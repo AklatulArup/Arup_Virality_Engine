@@ -122,6 +122,9 @@ export default function Dashboard() {
   const [forecastDate, setForecastDate] = useState<string>("");
   const [instagramInput, setInstagramInput] = useState("");
   const [instagramStatus, setInstagramStatus] = useState("");
+  const [tiktokInputVal, setTiktokInputVal] = useState("");
+  const [sidebarLibOpen, setSidebarLibOpen] = useState(false);
+  const [sidebarRefOpen, setSidebarRefOpen] = useState(false);
 
   // Extra analysis results for video mode
   const [adjacentCtx, setAdjacentCtx] = useState<AdjacentVideoContext | null>(null);
@@ -739,429 +742,402 @@ export default function Dashboard() {
     setTimeout(() => setInstagramStatus(""), 3000);
   };
 
-  return (
-    <div className="min-h-screen" style={{ background: "#000" }}>
-      {/* ── Apple-style nav bar ── */}
-      <nav
-        className="sticky top-0 z-50"
-        style={{
-          background: "rgba(0,0,0,0.85)",
-          backdropFilter: "blur(20px) saturate(180%)",
-          WebkitBackdropFilter: "blur(20px) saturate(180%)",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
-        }}
+  // ── Sidebar section helper ──
+  const SidebarSection = ({ title, open, onToggle, children }: { title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) => (
+    <div>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-white/5"
       >
-        <div className="max-w-[1024px] mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-extrabold text-black shrink-0"
-              style={{ background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-blue))" }}
-            >
-              FN
-            </div>
-            <span className="text-[14px] font-semibold tracking-tight" style={{ color: "#f5f5f7" }}>
-              FundedNext Intelligence
-            </span>
+        <span className="text-[10px] font-semibold tracking-widest" style={{ color: "#717171" }}>{title}</span>
+        <span className="text-[10px]" style={{ color: "#555", transform: open ? "rotate(180deg)" : "none", display: "inline-block", transition: "transform 0.2s" }}>▾</span>
+      </button>
+      {open && <div className="px-3 pb-3 space-y-2">{children}</div>}
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-screen" style={{ background: "#0f0f0f", color: "#f1f1f1" }}>
+      {/* ══════════════ LEFT SIDEBAR ══════════════ */}
+      <aside
+        className="fixed left-0 top-0 bottom-0 w-[220px] flex flex-col overflow-y-auto z-40"
+        style={{ background: "#212121", borderRight: "1px solid rgba(255,255,255,0.07)" }}
+      >
+        {/* Logo */}
+        <div className="px-4 h-14 flex items-center gap-2.5 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-extrabold text-black shrink-0"
+            style={{ background: "linear-gradient(135deg, #00D4AA, #0A84FF)" }}>
+            FN
           </div>
-          <div className="flex items-center gap-4">
-            {keywordBank && (
-              <span className="text-[11px] hidden sm:block" style={{ color: "#86868b" }}>
-                {keywordBank.categories.niche.length} keywords
-              </span>
-            )}
-            {referenceStore && (
-              <span
-                className="text-[11px] font-mono px-2.5 py-1 rounded-full"
+          <span className="text-[13px] font-semibold tracking-tight" style={{ color: "#f1f1f1" }}>FundedNext Intel</span>
+        </div>
+
+        {/* Platform Nav */}
+        <div className="px-3 pt-4 pb-2">
+          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "#717171" }}>PLATFORM</div>
+          {([
+            { id: "youtube" as InputTab, label: "YouTube", icon: "▶", color: "#FF4444" },
+            { id: "tiktok" as InputTab, label: "TikTok", icon: "♪", color: "#00f2ea" },
+            { id: "instagram" as InputTab, label: "Instagram", icon: "◎", color: "#E1306C" },
+          ]).map(({ id, label, icon, color }) => {
+            const active = inputTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setInputTab(id)}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all text-left mb-0.5"
                 style={{
-                  background: "rgba(255,255,255,0.06)",
-                  color: refStoreStatus !== "idle" ? "var(--color-accent)" : "#86868b",
+                  background: active ? "rgba(255,255,255,0.1)" : "transparent",
+                  color: active ? "#f1f1f1" : "#aaa",
                 }}
               >
-                {referenceStore.entries.length} refs
-                {refStoreStatus !== "idle" && " · saved"}
-              </span>
-            )}
-          </div>
-        </div>
-      </nav>
-
-      {/* ── Mode selector ── */}
-      <div className="max-w-[1024px] mx-auto px-6 pt-4">
-        <ModeSelector
-          activeModes={activeModes}
-          onToggle={toggleMode}
-          onSelectAll={selectAll}
-          onClear={clearModes}
-        />
-      </div>
-
-      {/* ── Platform tab switcher + input ── */}
-      <div className="max-w-[1024px] mx-auto px-6 pt-6 pb-2">
-        {/* Apple segmented control */}
-        <div className="flex justify-center mb-6">
-          <div
-            className="flex p-1 rounded-xl gap-0.5"
-            style={{ background: "rgba(255,255,255,0.06)" }}
-          >
-            {(
-              [
-                { id: "youtube", label: "YouTube", icon: "▶" },
-                { id: "tiktok", label: "TikTok", icon: "♪" },
-                { id: "instagram", label: "Instagram", icon: "◎" },
-              ] as { id: InputTab; label: string; icon: string }[]
-            ).map(({ id, label, icon }) => {
-              const active = inputTab === id;
-              return (
-                <button
-                  key={id}
-                  onClick={() => setInputTab(id)}
-                  className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-[13px] font-medium transition-all"
-                  style={{
-                    background: active ? "rgba(255,255,255,0.12)" : "transparent",
-                    color: active ? "#f5f5f7" : "#86868b",
-                    boxShadow: active ? "0 1px 3px rgba(0,0,0,0.4)" : "none",
-                  }}
-                >
-                  <span className="text-[10px]">{icon}</span>
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+                <span style={{ color: active ? color : "#555", fontSize: 11 }}>{icon}</span>
+                {label}
+                {active && <span className="ml-auto w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />}
+              </button>
+            );
+          })}
         </div>
 
-        {/* YouTube tab */}
-        {inputTab === "youtube" && (
-          <div
-            className="rounded-2xl overflow-hidden"
-            style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}
-          >
-            <UrlInput onAnalyze={analyze} loading={loading} status={status} error={error} />
-          </div>
-        )}
+        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
 
-        {/* TikTok tab */}
-        {inputTab === "tiktok" && (
-          <div
-            className="rounded-2xl p-5 space-y-4"
-            style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}
-          >
-            <div>
-              <div className="text-[11px] font-medium mb-2" style={{ color: "#86868b" }}>
-                Paste TikTok URL or @handle
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="https://tiktok.com/@handle or @username"
-                  className="flex-1 rounded-xl px-4 py-3 text-[13px] outline-none"
-                  style={{
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    color: "#f5f5f7",
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      const val = (e.target as HTMLInputElement).value.trim();
-                      if (val) {
-                        const normalized = val.includes("tiktok.com") ? val : `https://www.tiktok.com/@${val.replace(/^@/, "")}`;
-                        analyze(normalized);
-                      }
-                    }
-                  }}
-                />
-                <button
-                  onClick={(e) => {
-                    const input = (e.currentTarget.previousSibling as HTMLInputElement);
-                    const val = input?.value.trim();
-                    if (val) {
-                      const normalized = val.includes("tiktok.com") ? val : `https://www.tiktok.com/@${val.replace(/^@/, "")}`;
-                      analyze(normalized);
-                    }
-                  }}
-                  disabled={loading}
-                  className="rounded-xl px-5 py-3 text-[13px] font-semibold"
-                  style={{ background: "var(--color-accent)", color: "#000", opacity: loading ? 0.5 : 1 }}
-                >
-                  {loading ? "..." : "Analyze"}
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
-              <span className="text-[11px]" style={{ color: "#86868b" }}>or upload CSV</span>
-              <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
-            </div>
-            <CsvUpload onUpload={analyzeTikTok} loading={loading} lastUpload={tiktokUploadInfo} />
-            {status && <div className="text-[11px]" style={{ color: "#86868b" }}>{status}</div>}
-            {error && <div className="text-[11px]" style={{ color: "var(--color-vrs-rework)" }}>{error}</div>}
-          </div>
-        )}
+        {/* Analysis Modes */}
+        <div className="px-3 py-3">
+          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "#717171" }}>ANALYSIS MODES</div>
+          <ModeSelector activeModes={activeModes} onToggle={toggleMode} onSelectAll={selectAll} onClear={clearModes} />
+        </div>
 
-        {/* Instagram tab */}
-        {inputTab === "instagram" && (
-          <div
-            className="rounded-2xl p-5 space-y-4"
-            style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}
-          >
-            <div>
-              <div className="text-[11px] font-medium mb-2" style={{ color: "#86868b" }}>
-                Paste Instagram URLs, handles, or content links (one per line)
+        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+
+        {/* Pool Stats */}
+        <div className="px-4 py-3">
+          <div className="text-[10px] font-semibold tracking-widest mb-2.5" style={{ color: "#717171" }}>REFERENCE POOL</div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl p-2.5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.05)" }}>
+              <div className="text-[20px] font-bold leading-none" style={{ color: "#00D4AA" }}>
+                {referenceStore?.entries.length ?? 0}
               </div>
-              <textarea
-                value={instagramInput}
-                onChange={(e) => setInstagramInput(e.target.value)}
-                placeholder={"https://instagram.com/p/...\n@handle\nhttps://instagram.com/reel/..."}
-                rows={4}
-                className="w-full rounded-xl px-4 py-3 text-[13px] outline-none resize-none"
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  color: "#f5f5f7",
-                }}
-              />
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={() => {
-                    const lines = instagramInput.split("\n").map(s => s.trim()).filter(Boolean);
-                    if (lines.length === 1) {
-                      const raw = lines[0];
-                      // Normalize bare handles to instagram.com URLs so parseInput detects them correctly
-                      const normalized = raw.includes("instagram.com")
-                        ? raw
-                        : `https://www.instagram.com/${raw.replace(/^@/, "")}/`;
-                      analyze(normalized);
-                    } else {
-                      saveInstagram(lines);
-                    }
-                  }}
-                  disabled={!instagramInput.trim()}
-                  className="rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all"
-                  style={{
-                    background: instagramInput.trim() ? "linear-gradient(135deg, #E1306C, #833AB4)" : "rgba(255,255,255,0.05)",
-                    color: instagramInput.trim() ? "#fff" : "#86868b",
-                  }}
-                >
-                  Analyze
-                </button>
-                <button
-                  onClick={() => saveInstagram(instagramInput.split("\n"))}
-                  disabled={!instagramInput.trim()}
-                  className="rounded-xl px-5 py-2.5 text-[13px] font-medium transition-all"
-                  style={{
-                    background: "rgba(255,255,255,0.06)",
-                    color: instagramInput.trim() ? "#86868b" : "rgba(255,255,255,0.2)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
-                >
-                  Queue
-                </button>
-              </div>
-              {instagramStatus && (
-                <div className="mt-2 text-[11px]" style={{ color: "var(--color-accent)" }}>
-                  {instagramStatus}
-                </div>
-              )}
+              <div className="text-[10px] mt-0.5" style={{ color: "#717171" }}>Entries</div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
-              <span className="text-[11px]" style={{ color: "#86868b" }}>or bulk import via CSV</span>
-              <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
-            </div>
-            <div
-              className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer"
-              style={{ borderColor: "rgba(255,255,255,0.1)" }}
-              onClick={() => document.getElementById("ig-csv-input")?.click()}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const file = e.dataTransfer.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                  const text = ev.target?.result as string;
-                  saveInstagram(text.split(/\r?\n/).filter((l) => l.trim()));
-                };
-                reader.readAsText(file);
-              }}
-            >
-              <input
-                id="ig-csv-input"
-                type="file"
-                accept=".csv,.txt"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = (ev) => {
-                    const text = ev.target?.result as string;
-                    saveInstagram(text.split(/\r?\n/).filter((l) => l.trim()));
-                  };
-                  reader.readAsText(file);
-                }}
-              />
-              <div className="text-[13px] font-medium mb-1" style={{ color: "#86868b" }}>
-                Drop CSV or TXT file here
+            <div className="rounded-xl p-2.5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.05)" }}>
+              <div className="text-[20px] font-bold leading-none" style={{ color: "#0A84FF" }}>
+                {keywordBank?.categories.niche.length ?? 0}
               </div>
-              <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.2)" }}>
-                One URL or handle per line
-              </div>
-            </div>
-            <div
-              className="rounded-xl p-4 text-[12px]"
-              style={{ background: "rgba(131,58,180,0.08)", border: "1px solid rgba(131,58,180,0.2)", color: "#86868b" }}
-            >
-              Instagram entries are queued for analysis. Live scraping coming soon.
+              <div className="text-[10px] mt-0.5" style={{ color: "#717171" }}>Keywords</div>
             </div>
           </div>
-        )}
-      </div>
+          {refStoreStatus !== "idle" && (
+            <div className="mt-2 text-[10px] font-medium" style={{ color: "#00D4AA" }}>✓ Saved</div>
+          )}
+        </div>
 
-      {/* Results */}
-      <div className="px-6 pb-8 max-w-[1024px] mx-auto">
-        {!result && !loading && (
-          <div className="text-center py-16" style={{ color: "#86868b" }}>
-            <div className="text-5xl mb-4" style={{ opacity: 0.4 }}>◈</div>
-            <div className="text-[17px] font-semibold mb-2" style={{ color: "#f5f5f7" }}>
-              {inputTab === "youtube" ? "Paste a YouTube URL to begin" : inputTab === "tiktok" ? "Enter a TikTok handle or upload CSV" : "Add Instagram accounts or content"}
-            </div>
-            <div className="text-[13px] max-w-[420px] mx-auto leading-relaxed">
-              {inputTab === "youtube" ? (
-                <>Video URL · Channel URL · @handle · View count forecast at any future date</>
-              ) : inputTab === "tiktok" ? (
-                <>URL or handle → creator analysis · CSV → batch scoring</>
-              ) : (
-                <>Queue Instagram accounts and content for analysis</>
-              )}
-            </div>
-          </div>
-        )}
+        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
 
-        {result?.type === "video" && (
-          <div className="mb-4">
-            <ViewForecastPanel
-              video={result.video}
-              forecastDate={forecastDate}
-              onDateChange={setForecastDate}
-            />
-          </div>
-        )}
+        {/* Libraries accordion */}
+        <SidebarSection title="LIBRARIES" open={sidebarLibOpen} onToggle={() => setSidebarLibOpen(o => !o)}>
+          {keywordBank && <KeywordBankManager bank={keywordBank} onChange={(updated) => setKeywordBank(updated)} />}
+          {hashtagBank && <HashtagBankManager bank={hashtagBank} onChange={setHashtagBank} />}
+          <CompetitorBankManager competitors={competitors} onChange={setCompetitors} />
+          <CreatorBlocklist refreshKey={blocklistKey} onChange={() => refreshReferenceStore()} />
+        </SidebarSection>
 
-        {result?.type === "video" && (
-          <VideoResult
-            video={result.video}
-            channel={result.channel}
-            channelMedian={result.channelMedian}
-            recentVideos={result.recentVideos}
-            activeModes={activeModes}
-            url={lastUrl}
-            deepAnalysis={result.deepAnalysis}
-            referenceContext={result.referenceContext}
-            adjacentVideos={adjacentCtx}
-            nicheRanking={nicheRanking}
-            languageCPA={languageCPA}
-            referenceCount={referenceStore?.entries.length || 0}
-            descriptionSEO={descSEO}
-            engagementDecay={engDecay}
-            thumbnailAnalysis={thumbAnalysis}
-            crossPromotion={crossPromo}
-            keywordBank={keywordBank}
-            publishTimeHeatmap={publishTime}
-            competitorGap={competitorGap}
-            tagCorrelation={tagCorrelation}
-            uploadCadence={uploadCadence}
-          />
-        )}
+        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
 
-        {result?.type === "channel" && (
-          <ChannelResult
-            health={result.health}
-            activeModes={activeModes}
-            deepAnalysis={result.deepAnalysis}
-            referenceContext={result.referenceContext}
-          />
-        )}
-
-        {result?.type === "tiktok-batch" && (
-          <TikTokBatchResult result={result} activeModes={activeModes} />
-        )}
-
-        {/* ── Intelligence Tools ── */}
-        {keywordBank && (
-          <div className="mt-3.5 space-y-3.5">
-            <ReferencePoolBuilder
-              bank={keywordBank}
-              onComplete={(added) => {
-                if (added > 0) {
-                  setRefStoreStatus("saved");
-                  refreshReferenceStore();
-                }
-              }}
-            />
-          </div>
-        )}
-
-        {/* ── Reference Pool Browser ── */}
-        {referenceStore && referenceStore.entries.length > 0 && (
-          <div className="mt-3.5 space-y-3.5">
+        {/* Reference tools accordion */}
+        <SidebarSection title="REFERENCE TOOLS" open={sidebarRefOpen} onToggle={() => setSidebarRefOpen(o => !o)}>
+          <ReferenceUpload onUploadComplete={() => { setRefStoreStatus("saved"); refreshReferenceStore(); }} />
+          {referenceStore && referenceStore.entries.length > 0 && (
             <ReferenceSearch
               entries={referenceStore.entries}
               onRemove={(ids) => {
-                setReferenceStore((prev) => {
-                  if (!prev) return prev;
-                  return {
-                    ...prev,
-                    entries: prev.entries.filter((e) => !ids.includes(e.id)),
-                  };
-                });
+                setReferenceStore(prev => prev ? { ...prev, entries: prev.entries.filter(e => !ids.includes(e.id)) } : prev);
               }}
-              onBlockCreator={() => {
-                setBlocklistKey((k) => k + 1);
-                refreshReferenceStore();
-              }}
+              onBlockCreator={() => { setBlocklistKey(k => k + 1); refreshReferenceStore(); }}
             />
-          </div>
-        )}
-
-        {/* ── Pool Management Tools ── */}
-        <div className="mt-3.5 space-y-3.5">
-          <ReferenceUpload
-            onUploadComplete={() => {
-              setRefStoreStatus("saved");
-              refreshReferenceStore();
-            }}
-          />
-
-          {/* Keyword Bank Manager */}
+          )}
           {keywordBank && (
-            <KeywordBankManager
+            <ReferencePoolBuilder
               bank={keywordBank}
-              onChange={(updated) => setKeywordBank(updated)}
+              onComplete={(added) => { if (added > 0) { setRefStoreStatus("saved"); refreshReferenceStore(); } }}
             />
           )}
+        </SidebarSection>
 
-          {/* Hashtag Bank Manager */}
-          {hashtagBank && (
-            <HashtagBankManager
-              bank={hashtagBank}
-              onChange={setHashtagBank}
-            />
+        <div className="flex-1" />
+      </aside>
+
+      {/* ══════════════ MAIN CONTENT ══════════════ */}
+      <main className="flex-1 flex flex-col min-h-screen" style={{ marginLeft: 220 }}>
+
+        {/* ── Sticky top search bar ── */}
+        <div
+          className="sticky top-0 z-30 px-6 py-3 flex items-center gap-3"
+          style={{ background: "rgba(15,15,15,0.96)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+        >
+          {/* Search input — adapts to active platform */}
+          {inputTab === "youtube" && (
+            <div className="flex-1">
+              <UrlInput onAnalyze={analyze} loading={loading} status={status} error={error} />
+            </div>
           )}
 
-          {/* Competitor Bank Manager */}
-          <CompetitorBankManager
-            competitors={competitors}
-            onChange={setCompetitors}
-          />
+          {inputTab === "tiktok" && (
+            <div className="flex-1 flex gap-2">
+              <input
+                type="text"
+                value={tiktokInputVal}
+                onChange={e => setTiktokInputVal(e.target.value)}
+                placeholder="https://tiktok.com/@handle or @username"
+                className="flex-1 rounded-xl px-4 py-2.5 text-[13px] outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f1f1" }}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && tiktokInputVal.trim()) {
+                    const v = tiktokInputVal.trim();
+                    analyze(v.includes("tiktok.com") ? v : `https://www.tiktok.com/@${v.replace(/^@/, "")}`);
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  const v = tiktokInputVal.trim();
+                  if (v) analyze(v.includes("tiktok.com") ? v : `https://www.tiktok.com/@${v.replace(/^@/, "")}`);
+                }}
+                disabled={loading || !tiktokInputVal.trim()}
+                className="rounded-xl px-5 py-2.5 text-[13px] font-semibold shrink-0 transition-opacity"
+                style={{ background: "#00D4AA", color: "#000", opacity: (loading || !tiktokInputVal.trim()) ? 0.4 : 1 }}
+              >
+                {loading ? "…" : "Analyze"}
+              </button>
+              <div className="shrink-0">
+                <CsvUpload onUpload={analyzeTikTok} loading={loading} lastUpload={tiktokUploadInfo} />
+              </div>
+            </div>
+          )}
 
-          {/* Creator Blocklist */}
-          <CreatorBlocklist
-            refreshKey={blocklistKey}
-            onChange={() => refreshReferenceStore()}
-          />
+          {inputTab === "instagram" && (
+            <div className="flex-1 flex gap-2">
+              <input
+                type="text"
+                value={instagramInput}
+                onChange={e => setInstagramInput(e.target.value)}
+                placeholder="@handle or https://instagram.com/reel/..."
+                className="flex-1 rounded-xl px-4 py-2.5 text-[13px] outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f1f1" }}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && instagramInput.trim()) {
+                    const v = instagramInput.trim();
+                    const normalized = v.includes("instagram.com") ? v : `https://www.instagram.com/${v.replace(/^@/, "")}/`;
+                    analyze(normalized);
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  const v = instagramInput.trim();
+                  if (!v) return;
+                  const normalized = v.includes("instagram.com") ? v : `https://www.instagram.com/${v.replace(/^@/, "")}/`;
+                  analyze(normalized);
+                }}
+                disabled={loading || !instagramInput.trim()}
+                className="rounded-xl px-5 py-2.5 text-[13px] font-semibold shrink-0 transition-opacity"
+                style={{ background: "linear-gradient(135deg,#E1306C,#833AB4)", color: "#fff", opacity: (loading || !instagramInput.trim()) ? 0.4 : 1 }}
+              >
+                {loading ? "…" : "Analyze"}
+              </button>
+              <button
+                onClick={() => saveInstagram(instagramInput.split("\n"))}
+                disabled={!instagramInput.trim()}
+                className="rounded-xl px-4 py-2.5 text-[13px] font-medium shrink-0"
+                style={{ background: "rgba(255,255,255,0.07)", color: "#aaa", border: "1px solid rgba(255,255,255,0.1)" }}
+              >
+                Queue
+              </button>
+            </div>
+          )}
+
+          {/* Status / error chips */}
+          {status && (
+            <span className="text-[11px] shrink-0 px-3 py-1 rounded-full" style={{ background: "rgba(0,212,170,0.12)", color: "#00D4AA" }}>
+              {status}
+            </span>
+          )}
+          {error && (
+            <span className="text-[11px] shrink-0 px-3 py-1 rounded-full" style={{ background: "rgba(255,69,58,0.12)", color: "#FF453A" }}>
+              {error}
+            </span>
+          )}
+          {instagramStatus && (
+            <span className="text-[11px] shrink-0 px-3 py-1 rounded-full" style={{ background: "rgba(0,212,170,0.12)", color: "#00D4AA" }}>
+              {instagramStatus}
+            </span>
+          )}
         </div>
-      </div>
+
+        {/* ── Page content ── */}
+        <div className="flex-1 p-6">
+
+          {/* Loading skeleton */}
+          {loading && (
+            <div className="space-y-4 animate-pulse">
+              <div className="grid grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="rounded-2xl h-24" style={{ background: "rgba(255,255,255,0.05)" }} />
+                ))}
+              </div>
+              <div className="rounded-2xl h-48" style={{ background: "rgba(255,255,255,0.03)" }} />
+              <div className="rounded-2xl h-32" style={{ background: "rgba(255,255,255,0.03)" }} />
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!result && !loading && (
+            <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+              <div className="text-[64px]" style={{ opacity: 0.12 }}>
+                {inputTab === "youtube" ? "▶" : inputTab === "tiktok" ? "♪" : "◎"}
+              </div>
+              <div className="text-center">
+                <div className="text-[20px] font-semibold mb-2" style={{ color: "#f1f1f1" }}>
+                  {inputTab === "youtube" ? "Analyze any YouTube video or channel" : inputTab === "tiktok" ? "Analyze TikTok creators" : "Analyze Instagram accounts"}
+                </div>
+                <div className="text-[13px] max-w-[380px] leading-relaxed" style={{ color: "#717171" }}>
+                  {inputTab === "youtube" ? "Paste a video URL, channel URL, or @handle above. Get view forecast, virality score, and growth signals." : inputTab === "tiktok" ? "Enter a handle or profile URL to pull creator analytics and virality signals." : "Enter a handle or reel URL to pull Instagram analytics."}
+                </div>
+              </div>
+              {/* Quick stat cards when pool has data */}
+              {referenceStore && referenceStore.entries.length > 0 && (
+                <div className="mt-4 grid grid-cols-3 gap-3 w-full max-w-lg">
+                  {[
+                    { label: "Videos in Pool", value: referenceStore.entries.length, color: "#00D4AA", tip: "Total reference videos analyzed" },
+                    { label: "Avg Views", value: Math.round(referenceStore.entries.reduce((s, e) => s + (e.metrics?.views || 0), 0) / Math.max(referenceStore.entries.length, 1)).toLocaleString(), color: "#0A84FF", tip: "Mean views across the reference pool" },
+                    { label: "Creators", value: new Set(referenceStore.entries.map(e => e.channelName)).size, color: "#FF9F0A", tip: "Unique creators tracked" },
+                  ].map(({ label, value, color, tip }) => (
+                    <div
+                      key={label}
+                      title={tip}
+                      className="rounded-2xl p-4 cursor-default"
+                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                    >
+                      <div className="text-[22px] font-bold" style={{ color }}>{value}</div>
+                      <div className="text-[11px] mt-0.5" style={{ color: "#717171" }}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Video result: metric cards + forecast + panels ── */}
+          {result?.type === "video" && (() => {
+            const v = result.video;
+            const ch = result.channel;
+            const metrics = [
+              { label: "Total Views", value: v.views.toLocaleString(), color: "#00D4AA", tip: "Total lifetime views on this video" },
+              { label: "Likes", value: v.likes.toLocaleString(), color: "#0A84FF", tip: "Total likes" },
+              { label: "Engagement", value: `${v.engagement.toFixed(2)}%`, color: "#FF9F0A", tip: "Likes + comments as % of views" },
+              { label: "Velocity", value: `${v.velocity.toLocaleString()}/d`, color: "#BF5AF2", tip: "Average views per day since publish" },
+              ...(ch ? [{ label: "Subscribers", value: (ch.subs / 1000).toFixed(0) + "K", color: "#FF453A", tip: "Channel subscriber count" }] : []),
+              ...(ch ? [{ label: "Ch. Median", value: result.channelMedian.toLocaleString(), color: "#30D158", tip: "Median views per video on this channel" }] : []),
+            ];
+            return (
+              <div className="space-y-5">
+                {/* Metric cards row */}
+                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+                  {metrics.map(({ label, value, color, tip }) => (
+                    <div
+                      key={label}
+                      title={tip}
+                      className="rounded-2xl p-4 cursor-default transition-transform hover:scale-[1.02]"
+                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                    >
+                      <div className="text-[11px] mb-1.5" style={{ color: "#717171" }}>{label}</div>
+                      <div className="text-[22px] font-bold leading-none" style={{ color }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Forecast panel (chart-forward) */}
+                <ViewForecastPanel video={v} forecastDate={forecastDate} onDateChange={setForecastDate} />
+
+                {/* Full analysis panels */}
+                <VideoResult
+                  video={v}
+                  channel={ch}
+                  channelMedian={result.channelMedian}
+                  recentVideos={result.recentVideos}
+                  activeModes={activeModes}
+                  url={lastUrl}
+                  deepAnalysis={result.deepAnalysis}
+                  referenceContext={result.referenceContext}
+                  adjacentVideos={adjacentCtx}
+                  nicheRanking={nicheRanking}
+                  languageCPA={languageCPA}
+                  referenceCount={referenceStore?.entries.length || 0}
+                  descriptionSEO={descSEO}
+                  engagementDecay={engDecay}
+                  thumbnailAnalysis={thumbAnalysis}
+                  crossPromotion={crossPromo}
+                  keywordBank={keywordBank}
+                  publishTimeHeatmap={publishTime}
+                  competitorGap={competitorGap}
+                  tagCorrelation={tagCorrelation}
+                  uploadCadence={uploadCadence}
+                />
+              </div>
+            );
+          })()}
+
+          {/* Channel result */}
+          {result?.type === "channel" && (
+            <ChannelResult
+              health={result.health}
+              activeModes={activeModes}
+              deepAnalysis={result.deepAnalysis}
+              referenceContext={result.referenceContext}
+            />
+          )}
+
+          {/* TikTok / Instagram batch result */}
+          {result?.type === "tiktok-batch" && (() => {
+            const videos = result.videos;
+            const totalViews = videos.reduce((s, v) => s + v.views, 0);
+            const avgEng = videos.reduce((s, v) => s + v.engagement, 0) / Math.max(videos.length, 1);
+            const topVideo = videos[0];
+            const batchMetrics = [
+              { label: "Videos Analyzed", value: videos.length.toLocaleString(), color: "#00D4AA", tip: "Number of posts scraped" },
+              { label: "Total Views", value: (totalViews / 1000).toFixed(0) + "K", color: "#0A84FF", tip: "Combined view count across all videos" },
+              { label: "Avg Engagement", value: `${avgEng.toFixed(2)}%`, color: "#FF9F0A", tip: "Average engagement rate across all posts" },
+              { label: "Top Views", value: topVideo ? (topVideo.views / 1000).toFixed(0) + "K" : "—", color: "#BF5AF2", tip: "Highest view count in this batch" },
+              { label: "Creators", value: new Set(videos.map(v => v.channel)).size.toLocaleString(), color: "#FF453A", tip: "Unique creators in this batch" },
+            ];
+            return (
+              <div className="space-y-5">
+                {/* Metric cards */}
+                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+                  {batchMetrics.map(({ label, value, color, tip }) => (
+                    <div
+                      key={label}
+                      title={tip}
+                      className="rounded-2xl p-4 cursor-default transition-transform hover:scale-[1.02]"
+                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                    >
+                      <div className="text-[11px] mb-1.5" style={{ color: "#717171" }}>{label}</div>
+                      <div className="text-[22px] font-bold leading-none" style={{ color }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Forecast for top video */}
+                {topVideo && (
+                  <ViewForecastPanel video={topVideo} forecastDate={forecastDate} onDateChange={setForecastDate} />
+                )}
+
+                <TikTokBatchResult result={result} activeModes={activeModes} />
+              </div>
+            );
+          })()}
+
+        </div>
+      </main>
     </div>
   );
 }
