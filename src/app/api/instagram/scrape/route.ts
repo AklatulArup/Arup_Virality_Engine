@@ -66,7 +66,7 @@ function mapItem(item: any): VideoData | null {
 }
 
 export async function POST(request: Request) {
-  const token = process.env.APIFY_TOKEN || process.env.Instagram_API_Key || process.env.INSTAGRAM_API_KEY;
+  const token = process.env.APIFY_TOKEN || process.env.Instagram_API_Key || process.env.INSTAGRAM_API_KEY || process.env.YOUTUBE_API_KEY_2;
   if (!token) {
     return Response.json({ error: "APIFY_TOKEN not configured" }, { status: 500 });
   }
