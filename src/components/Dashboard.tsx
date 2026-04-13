@@ -67,6 +67,7 @@ import TikTokBatchResult from "./TikTokBatchResult";
 import ReferenceSearch from "./ReferenceSearch";
 import ReferenceUpload from "./ReferenceUpload";
 import ReferencePoolBuilder from "./ReferencePoolBuilder";
+import ReverseEngineerPanel from "./ReverseEngineerPanel";
 import KeywordBankManager from "./KeywordBankManager";
 import HashtagBankManager from "./HashtagBankManager";
 import CompetitorBankManager from "./CompetitorBankManager";
@@ -123,7 +124,7 @@ export default function Dashboard() {
   const [instagramInput, setInstagramInput] = useState("");
   const [instagramStatus, setInstagramStatus] = useState("");
   const [tiktokInputVal, setTiktokInputVal] = useState("");
-  const [activePanel, setActivePanel] = useState<"libraries" | "ref-tools" | null>(null);
+  const [activePanel, setActivePanel] = useState<"libraries" | "ref-tools" | "reverse-engineer" | null>(null);
 
   // Extra analysis results for video mode
   const [adjacentCtx, setAdjacentCtx] = useState<AdjacentVideoContext | null>(null);
@@ -818,6 +819,44 @@ export default function Dashboard() {
 
         <div className="mx-4 my-1" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
 
+        {/* Reverse Engineer — dedicated Mode D entry */}
+        <div className="px-3 py-2">
+          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "#717171" }}>TOOLS</div>
+          {(() => {
+            const active = activePanel === "reverse-engineer";
+            return (
+              <button
+                onClick={() => {
+                  const next = active ? null : "reverse-engineer";
+                  setActivePanel(next);
+                  if (next === "reverse-engineer" && !activeModes.includes("D")) toggleMode("D");
+                }}
+                className="w-full text-left rounded-xl px-3 py-3 transition-all"
+                style={{
+                  background: active ? "rgba(255,159,10,0.12)" : "rgba(255,255,255,0.03)",
+                  border: active ? "1px solid rgba(255,159,10,0.3)" : "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[15px]">⚙</span>
+                  <div className="flex-1">
+                    <div className="text-[12px] font-semibold" style={{ color: active ? "#f1f1f1" : "#ccc" }}>Reverse Engineer</div>
+                    <div className="text-[10px] mt-0.5" style={{ color: "#555" }}>Script · Hook · Title · Algorithm</div>
+                  </div>
+                  <span
+                    className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                    style={{ background: "rgba(255,159,10,0.15)", color: "#FF9F0A" }}
+                  >
+                    D
+                  </span>
+                </div>
+              </button>
+            );
+          })()}
+        </div>
+
+        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+
         {/* Nav buttons → open panels in main content */}
         <div className="px-3 py-2 space-y-0.5">
           {([
@@ -969,6 +1008,26 @@ export default function Dashboard() {
               </div>
               <div className="rounded-2xl h-48" style={{ background: "rgba(255,255,255,0.03)" }} />
               <div className="rounded-2xl h-32" style={{ background: "rgba(255,255,255,0.03)" }} />
+            </div>
+          )}
+
+          {/* ── Reverse Engineer panel ── */}
+          {activePanel === "reverse-engineer" && (
+            <div className="mb-6">
+              <ReverseEngineerPanel
+                platform={inputTab}
+                result={result}
+                loading={loading}
+                onAnalyze={(input) => {
+                  const normalized =
+                    inputTab === "tiktok" && !input.includes("tiktok.com")
+                      ? `https://www.tiktok.com/@${input.replace(/^@/, "")}`
+                      : inputTab === "instagram" && !input.includes("instagram.com")
+                        ? `https://www.instagram.com/${input.replace(/^@/, "")}/`
+                        : input;
+                  analyze(normalized);
+                }}
+              />
             </div>
           )}
 
