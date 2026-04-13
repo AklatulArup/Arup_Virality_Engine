@@ -123,8 +123,7 @@ export default function Dashboard() {
   const [instagramInput, setInstagramInput] = useState("");
   const [instagramStatus, setInstagramStatus] = useState("");
   const [tiktokInputVal, setTiktokInputVal] = useState("");
-  const [sidebarLibOpen, setSidebarLibOpen] = useState(false);
-  const [sidebarRefOpen, setSidebarRefOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState<"libraries" | "ref-tools" | null>(null);
 
   // Extra analysis results for video mode
   const [adjacentCtx, setAdjacentCtx] = useState<AdjacentVideoContext | null>(null);
@@ -742,20 +741,6 @@ export default function Dashboard() {
     setTimeout(() => setInstagramStatus(""), 3000);
   };
 
-  // ── Sidebar section helper ──
-  const SidebarSection = ({ title, open, onToggle, children }: { title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) => (
-    <div>
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-white/5"
-      >
-        <span className="text-[10px] font-semibold tracking-widest" style={{ color: "#717171" }}>{title}</span>
-        <span className="text-[10px]" style={{ color: "#555", transform: open ? "rotate(180deg)" : "none", display: "inline-block", transition: "transform 0.2s" }}>▾</span>
-      </button>
-      {open && <div className="px-3 pb-3 space-y-2">{children}</div>}
-    </div>
-  );
-
   return (
     <div className="flex min-h-screen" style={{ background: "#0f0f0f", color: "#f1f1f1" }}>
       {/* ══════════════ LEFT SIDEBAR ══════════════ */}
@@ -833,35 +818,33 @@ export default function Dashboard() {
 
         <div className="mx-4 my-1" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
 
-        {/* Libraries accordion */}
-        <SidebarSection title="LIBRARIES" open={sidebarLibOpen} onToggle={() => setSidebarLibOpen(o => !o)}>
-          {keywordBank && <KeywordBankManager bank={keywordBank} onChange={(updated) => setKeywordBank(updated)} />}
-          {hashtagBank && <HashtagBankManager bank={hashtagBank} onChange={setHashtagBank} />}
-          <CompetitorBankManager competitors={competitors} onChange={setCompetitors} />
-          <CreatorBlocklist refreshKey={blocklistKey} onChange={() => refreshReferenceStore()} />
-        </SidebarSection>
-
-        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
-
-        {/* Reference tools accordion */}
-        <SidebarSection title="REFERENCE TOOLS" open={sidebarRefOpen} onToggle={() => setSidebarRefOpen(o => !o)}>
-          <ReferenceUpload onUploadComplete={() => { setRefStoreStatus("saved"); refreshReferenceStore(); }} />
-          {referenceStore && referenceStore.entries.length > 0 && (
-            <ReferenceSearch
-              entries={referenceStore.entries}
-              onRemove={(ids) => {
-                setReferenceStore(prev => prev ? { ...prev, entries: prev.entries.filter(e => !ids.includes(e.id)) } : prev);
-              }}
-              onBlockCreator={() => { setBlocklistKey(k => k + 1); refreshReferenceStore(); }}
-            />
-          )}
-          {keywordBank && (
-            <ReferencePoolBuilder
-              bank={keywordBank}
-              onComplete={(added) => { if (added > 0) { setRefStoreStatus("saved"); refreshReferenceStore(); } }}
-            />
-          )}
-        </SidebarSection>
+        {/* Nav buttons → open panels in main content */}
+        <div className="px-3 py-2 space-y-0.5">
+          {([
+            { id: "libraries" as const, label: "Libraries", icon: "◧", desc: "Keywords · Hashtags · Competitors · Blocklist" },
+            { id: "ref-tools" as const, label: "Reference Tools", icon: "⊞", desc: "Upload · Browse · Build pool" },
+          ]).map(({ id, label, icon, desc }) => {
+            const active = activePanel === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setActivePanel(active ? null : id)}
+                className="w-full text-left rounded-xl px-3 py-2.5 transition-all"
+                style={{
+                  background: active ? "rgba(0,212,170,0.1)" : "transparent",
+                  border: active ? "1px solid rgba(0,212,170,0.2)" : "1px solid transparent",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px]" style={{ color: active ? "#00D4AA" : "#555" }}>{icon}</span>
+                  <span className="text-[12px] font-medium" style={{ color: active ? "#f1f1f1" : "#aaa" }}>{label}</span>
+                  <span className="ml-auto text-[10px]" style={{ color: "#444", transform: active ? "rotate(90deg)" : "none", display: "inline-block", transition: "transform 0.2s" }}>›</span>
+                </div>
+                <div className="text-[10px] mt-0.5 ml-5" style={{ color: "#555" }}>{desc}</div>
+              </button>
+            );
+          })}
+        </div>
 
         <div className="flex-1" />
       </aside>
@@ -989,8 +972,47 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* ── Tool panels (Libraries / Reference Tools) ── */}
+          {activePanel === "libraries" && (
+            <div className="mb-6 space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-[16px] font-semibold" style={{ color: "#f1f1f1" }}>Libraries</h2>
+                <button onClick={() => setActivePanel(null)} className="text-[11px] px-3 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.06)", color: "#aaa" }}>✕ Close</button>
+              </div>
+              {keywordBank && <KeywordBankManager bank={keywordBank} onChange={(updated) => setKeywordBank(updated)} />}
+              {hashtagBank && <HashtagBankManager bank={hashtagBank} onChange={setHashtagBank} />}
+              <CompetitorBankManager competitors={competitors} onChange={setCompetitors} />
+              <CreatorBlocklist refreshKey={blocklistKey} onChange={() => refreshReferenceStore()} />
+            </div>
+          )}
+
+          {activePanel === "ref-tools" && (
+            <div className="mb-6 space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-[16px] font-semibold" style={{ color: "#f1f1f1" }}>Reference Tools</h2>
+                <button onClick={() => setActivePanel(null)} className="text-[11px] px-3 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.06)", color: "#aaa" }}>✕ Close</button>
+              </div>
+              <ReferenceUpload onUploadComplete={() => { setRefStoreStatus("saved"); refreshReferenceStore(); }} />
+              {referenceStore && referenceStore.entries.length > 0 && (
+                <ReferenceSearch
+                  entries={referenceStore.entries}
+                  onRemove={(ids) => {
+                    setReferenceStore(prev => prev ? { ...prev, entries: prev.entries.filter(e => !ids.includes(e.id)) } : prev);
+                  }}
+                  onBlockCreator={() => { setBlocklistKey(k => k + 1); refreshReferenceStore(); }}
+                />
+              )}
+              {keywordBank && (
+                <ReferencePoolBuilder
+                  bank={keywordBank}
+                  onComplete={(added) => { if (added > 0) { setRefStoreStatus("saved"); refreshReferenceStore(); } }}
+                />
+              )}
+            </div>
+          )}
+
           {/* Empty state */}
-          {!result && !loading && (
+          {!result && !loading && activePanel === null && (
             <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
               <div className="text-[64px]" style={{ opacity: 0.12 }}>
                 {inputTab === "youtube" ? "▶" : inputTab === "tiktok" ? "♪" : "◎"}
