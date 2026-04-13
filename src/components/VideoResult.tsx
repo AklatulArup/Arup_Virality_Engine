@@ -22,10 +22,8 @@ import type {
   HookPatternLibrary,
 } from "@/lib/types";
 import { formatNumber, formatDate } from "@/lib/formatters";
-import { getVRSColor } from "@/lib/vrs";
 import { detectArchetypes, getArchetype } from "@/lib/archetypes";
 import MetricCard from "./MetricCard";
-import VRSScoreCard from "./VRSScoreCard";
 import ClaudePrompt from "./ClaudePrompt";
 import DeepAnalysisPanel from "./DeepAnalysisPanel";
 import CollapsibleSection from "./CollapsibleSection";
@@ -98,7 +96,6 @@ export default function VideoResult({
   sentimentAnalysis,
 }: VideoResultProps) {
   const archetypes = detectArchetypes(video.title, video.tags);
-  const vrsColor = getVRSColor(video.vrs.estimatedFullScore);
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -198,14 +195,6 @@ export default function VideoResult({
         />
       )}
 
-      {/* VRS Score with info tooltip */}
-      {activeModes.includes("G") && (
-        <VRSScoreCard
-          vrs={video.vrs}
-          referenceCount={referenceCount}
-        />
-      )}
-
       {/* Niche Competitive Ranking */}
       {nicheRanking && <NicheRankingPanel ranking={nicheRanking} />}
 
@@ -261,14 +250,6 @@ export default function VideoResult({
                   >
                     {formatNumber(rv.views)}
                   </span>
-                  {activeModes.includes("G") && (
-                    <span
-                      className="text-[10px] font-extrabold font-mono w-8 text-right"
-                      style={{ color: vrsColor }}
-                    >
-                      {rv.vrs.estimatedFullScore}
-                    </span>
-                  )}
                 </span>
               </div>
             ))}
@@ -356,7 +337,6 @@ export default function VideoResult({
               <span className="text-[10px] text-subtle truncate mr-2">{ref.name}</span>
               <span className="text-[10px] font-mono text-muted shrink-0">
                 {ref.metrics.views ? formatNumber(ref.metrics.views) : ref.metrics.medianViews ? `${formatNumber(ref.metrics.medianViews)} med` : ""}
-                {ref.metrics.vrsScore ? ` · VRS ${ref.metrics.vrsScore}` : ""}
               </span>
             </div>
           ))}
