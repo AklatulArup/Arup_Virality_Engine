@@ -128,7 +128,7 @@ export default function VRSScoreCard({ vrs, label = "VRS", referenceCount = 0 }:
             <div
               className="flex-1 rounded-r-full"
               style={{
-                background: "rgba(255,255,255,0.05)",
+                background: "rgba(139,92,246,0.08)",
               }}
             />
           </div>
@@ -218,7 +218,7 @@ export default function VRSScoreCard({ vrs, label = "VRS", referenceCount = 0 }:
                       setExpandedId(isExpanded ? null : item.id)
                     }
                     className="w-full flex items-center gap-1.5 py-1 border-b hover:bg-surface-hover transition-colors"
-                    style={{ borderColor: "rgba(255,255,255,0.02)" }}
+                    style={{ borderColor: "rgba(139,92,246,0.06)" }}
                   >
                     <span className="text-[11px] w-[18px] text-center shrink-0">
                       {getStatusIcon(item.status)}

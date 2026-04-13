@@ -781,24 +781,24 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-screen" style={{ background: "#0f0f0f", color: "#f1f1f1" }}>
+    <div className="flex min-h-screen" style={{ background: "#08081A", color: "#F0F0FF" }}>
       {/* ══════════════ LEFT SIDEBAR ══════════════ */}
       <aside
         className="fixed left-0 top-0 bottom-0 w-[220px] flex flex-col overflow-y-auto z-40"
-        style={{ background: "#212121", borderRight: "1px solid rgba(255,255,255,0.07)" }}
+        style={{ background: "#0E0E1F", borderRight: "1px solid rgba(139,92,246,0.15)" }}
       >
         {/* Logo */}
-        <div className="px-4 h-14 flex items-center gap-2.5 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        <div className="px-4 h-14 flex items-center gap-2.5 shrink-0" style={{ borderBottom: "1px solid rgba(139,92,246,0.15)" }}>
           <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-extrabold text-black shrink-0"
             style={{ background: "linear-gradient(135deg, #00D4AA, #0A84FF)" }}>
             FN
           </div>
-          <span className="text-[13px] font-semibold tracking-tight" style={{ color: "#f1f1f1" }}>FundedNext Intel</span>
+          <span className="text-[13px] font-semibold tracking-tight" style={{ color: "#F0F0FF" }}>FundedNext Intel</span>
         </div>
 
         {/* Platform Nav */}
         <div className="px-3 pt-4 pb-2">
-          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "#717171" }}>PLATFORM</div>
+          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "#7878A8" }}>PLATFORM</div>
           {([
             { id: "youtube" as InputTab, label: "YouTube", icon: "▶", color: "#FF4444" },
             { id: "tiktok" as InputTab, label: "TikTok", icon: "♪", color: "#00f2ea" },
@@ -811,7 +811,7 @@ export default function Dashboard() {
                 onClick={() => setInputTab(id)}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all text-left mb-0.5"
                 style={{
-                  background: active ? "rgba(255,255,255,0.1)" : "transparent",
+                  background: active ? "rgba(139,92,246,0.18)" : "transparent",
                   color: active ? "#f1f1f1" : "#aaa",
                 }}
               >
@@ -823,31 +823,31 @@ export default function Dashboard() {
           })}
         </div>
 
-        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(139,92,246,0.10)" }} />
 
         {/* Analysis Modes */}
         <div className="px-3 py-3">
-          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "#717171" }}>ANALYSIS MODES</div>
+          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "#7878A8" }}>ANALYSIS MODES</div>
           <ModeSelector activeModes={activeModes} onToggle={toggleMode} onSelectAll={selectAll} onClear={clearModes} />
         </div>
 
-        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(139,92,246,0.10)" }} />
 
         {/* Pool Stats */}
         <div className="px-4 py-3">
-          <div className="text-[10px] font-semibold tracking-widest mb-2.5" style={{ color: "#717171" }}>REFERENCE POOL</div>
+          <div className="text-[10px] font-semibold tracking-widest mb-2.5" style={{ color: "#7878A8" }}>REFERENCE POOL</div>
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-xl p-2.5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="rounded-xl p-2.5" style={{ background: "rgba(139,92,246,0.07)", border: "1px solid rgba(139,92,246,0.10)" }}>
               <div className="text-[20px] font-bold leading-none" style={{ color: "#00D4AA" }}>
                 {referenceStore?.entries.length ?? 0}
               </div>
-              <div className="text-[10px] mt-0.5" style={{ color: "#717171" }}>Entries</div>
+              <div className="text-[10px] mt-0.5" style={{ color: "#7878A8" }}>Entries</div>
             </div>
-            <div className="rounded-xl p-2.5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="rounded-xl p-2.5" style={{ background: "rgba(139,92,246,0.07)", border: "1px solid rgba(139,92,246,0.10)" }}>
               <div className="text-[20px] font-bold leading-none" style={{ color: "#0A84FF" }}>
                 {keywordBank?.categories.niche.length ?? 0}
               </div>
-              <div className="text-[10px] mt-0.5" style={{ color: "#717171" }}>Keywords</div>
+              <div className="text-[10px] mt-0.5" style={{ color: "#7878A8" }}>Keywords</div>
             </div>
           </div>
           {refStoreStatus !== "idle" && (
@@ -855,11 +855,11 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(139,92,246,0.10)" }} />
 
         {/* Reverse Engineer — dedicated Mode D entry */}
         <div className="px-3 py-2">
-          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "#717171" }}>TOOLS</div>
+          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "#7878A8" }}>TOOLS</div>
           {(() => {
             const active = activePanel === "reverse-engineer";
             return (
@@ -872,14 +872,14 @@ export default function Dashboard() {
                 className="w-full text-left rounded-xl px-3 py-3 transition-all"
                 style={{
                   background: active ? "rgba(255,159,10,0.12)" : "rgba(255,255,255,0.03)",
-                  border: active ? "1px solid rgba(255,159,10,0.3)" : "1px solid rgba(255,255,255,0.06)",
+                  border: active ? "1px solid rgba(255,159,10,0.3)" : "1px solid rgba(139,92,246,0.10)",
                 }}
               >
                 <div className="flex items-center gap-2.5">
                   <span className="text-[15px]">⚙</span>
                   <div className="flex-1">
                     <div className="text-[12px] font-semibold" style={{ color: active ? "#f1f1f1" : "#ccc" }}>Reverse Engineer</div>
-                    <div className="text-[10px] mt-0.5" style={{ color: "#555" }}>Script · Hook · Title · Algorithm</div>
+                    <div className="text-[10px] mt-0.5" style={{ color: "#4A4A7A" }}>Script · Hook · Title · Algorithm</div>
                   </div>
                   <span
                     className="text-[9px] font-bold px-1.5 py-0.5 rounded"
@@ -893,7 +893,7 @@ export default function Dashboard() {
           })()}
         </div>
 
-        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+        <div className="mx-4 my-1" style={{ height: 1, background: "rgba(139,92,246,0.10)" }} />
 
         {/* Nav buttons → open panels in main content */}
         <div className="px-3 py-2 space-y-0.5">
@@ -915,9 +915,9 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2">
                   <span className="text-[13px]" style={{ color: active ? "#00D4AA" : "#555" }}>{icon}</span>
                   <span className="text-[12px] font-medium" style={{ color: active ? "#f1f1f1" : "#aaa" }}>{label}</span>
-                  <span className="ml-auto text-[10px]" style={{ color: "#444", transform: active ? "rotate(90deg)" : "none", display: "inline-block", transition: "transform 0.2s" }}>›</span>
+                  <span className="ml-auto text-[10px]" style={{ color: "#3A3A6A", transform: active ? "rotate(90deg)" : "none", display: "inline-block", transition: "transform 0.2s" }}>›</span>
                 </div>
-                <div className="text-[10px] mt-0.5 ml-5" style={{ color: "#555" }}>{desc}</div>
+                <div className="text-[10px] mt-0.5 ml-5" style={{ color: "#4A4A7A" }}>{desc}</div>
               </button>
             );
           })}
@@ -932,7 +932,7 @@ export default function Dashboard() {
         {/* ── Sticky top search bar ── */}
         <div
           className="sticky top-0 z-30 px-6 py-3 flex items-center gap-3"
-          style={{ background: "rgba(15,15,15,0.96)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+          style={{ background: "rgba(8,8,26,0.96)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(139,92,246,0.15)" }}
         >
           {/* Search input — adapts to active platform */}
           {inputTab === "youtube" && (
@@ -949,7 +949,7 @@ export default function Dashboard() {
                 onChange={e => setTiktokInputVal(e.target.value)}
                 placeholder="https://tiktok.com/@handle or @username"
                 className="flex-1 rounded-xl px-4 py-2.5 text-[13px] outline-none"
-                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f1f1" }}
+                style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.18)", color: "#F0F0FF" }}
                 onKeyDown={e => {
                   if (e.key === "Enter" && tiktokInputVal.trim()) {
                     const v = tiktokInputVal.trim();
@@ -982,7 +982,7 @@ export default function Dashboard() {
                 onChange={e => setInstagramInput(e.target.value)}
                 placeholder="@handle or https://instagram.com/reel/..."
                 className="flex-1 rounded-xl px-4 py-2.5 text-[13px] outline-none"
-                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f1f1" }}
+                style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.18)", color: "#F0F0FF" }}
                 onKeyDown={e => {
                   if (e.key === "Enter" && instagramInput.trim()) {
                     const v = instagramInput.trim();
@@ -1008,7 +1008,7 @@ export default function Dashboard() {
                 onClick={() => saveInstagram(instagramInput.split("\n"))}
                 disabled={!instagramInput.trim()}
                 className="rounded-xl px-4 py-2.5 text-[13px] font-medium shrink-0"
-                style={{ background: "rgba(255,255,255,0.07)", color: "#aaa", border: "1px solid rgba(255,255,255,0.1)" }}
+                style={{ background: "rgba(139,92,246,0.15)", color: "#9090C0", border: "1px solid rgba(139,92,246,0.18)" }}
               >
                 Queue
               </button>
@@ -1041,7 +1041,7 @@ export default function Dashboard() {
             <div className="space-y-4 animate-pulse">
               <div className="grid grid-cols-4 gap-4">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="rounded-2xl h-24" style={{ background: "rgba(255,255,255,0.05)" }} />
+                  <div key={i} className="rounded-2xl h-24" style={{ background: "rgba(139,92,246,0.10)" }} />
                 ))}
               </div>
               <div className="rounded-2xl h-48" style={{ background: "rgba(255,255,255,0.03)" }} />
@@ -1073,8 +1073,8 @@ export default function Dashboard() {
           {activePanel === "libraries" && (
             <div className="mb-6 space-y-4">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-[16px] font-semibold" style={{ color: "#f1f1f1" }}>Libraries</h2>
-                <button onClick={() => setActivePanel(null)} className="text-[11px] px-3 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.06)", color: "#aaa" }}>✕ Close</button>
+                <h2 className="text-[16px] font-semibold" style={{ color: "#F0F0FF" }}>Libraries</h2>
+                <button onClick={() => setActivePanel(null)} className="text-[11px] px-3 py-1 rounded-lg" style={{ background: "rgba(139,92,246,0.10)", color: "#9090C0" }}>✕ Close</button>
               </div>
               {keywordBank && <KeywordBankManager bank={keywordBank} onChange={(updated) => setKeywordBank(updated)} />}
               {hashtagBank && <HashtagBankManager bank={hashtagBank} onChange={setHashtagBank} />}
@@ -1086,8 +1086,8 @@ export default function Dashboard() {
           {activePanel === "ref-tools" && (
             <div className="mb-6 space-y-4">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-[16px] font-semibold" style={{ color: "#f1f1f1" }}>Reference Tools</h2>
-                <button onClick={() => setActivePanel(null)} className="text-[11px] px-3 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.06)", color: "#aaa" }}>✕ Close</button>
+                <h2 className="text-[16px] font-semibold" style={{ color: "#F0F0FF" }}>Reference Tools</h2>
+                <button onClick={() => setActivePanel(null)} className="text-[11px] px-3 py-1 rounded-lg" style={{ background: "rgba(139,92,246,0.10)", color: "#9090C0" }}>✕ Close</button>
               </div>
               <ReferenceUpload onUploadComplete={() => { setRefStoreStatus("saved"); refreshReferenceStore(); }} />
               {referenceStore && referenceStore.entries.length > 0 && (
@@ -1115,10 +1115,10 @@ export default function Dashboard() {
                 {inputTab === "youtube" ? "▶" : inputTab === "tiktok" ? "♪" : "◎"}
               </div>
               <div className="text-center">
-                <div className="text-[20px] font-semibold mb-2" style={{ color: "#f1f1f1" }}>
+                <div className="text-[20px] font-semibold mb-2" style={{ color: "#F0F0FF" }}>
                   {inputTab === "youtube" ? "Analyze any YouTube video or channel" : inputTab === "tiktok" ? "Analyze TikTok creators" : "Analyze Instagram accounts"}
                 </div>
-                <div className="text-[13px] max-w-[380px] leading-relaxed" style={{ color: "#717171" }}>
+                <div className="text-[13px] max-w-[380px] leading-relaxed" style={{ color: "#7878A8" }}>
                   {inputTab === "youtube" ? "Paste a video URL, channel URL, or @handle above. Get view forecast, virality score, and growth signals." : inputTab === "tiktok" ? "Enter a handle or profile URL to pull creator analytics and virality signals." : "Enter a handle or reel URL to pull Instagram analytics."}
                 </div>
               </div>
@@ -1134,10 +1134,10 @@ export default function Dashboard() {
                       key={label}
                       title={tip}
                       className="rounded-2xl p-4 cursor-default"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                      style={{ background: "rgba(139,92,246,0.07)", border: "1px solid rgba(139,92,246,0.15)" }}
                     >
                       <div className="text-[22px] font-bold" style={{ color }}>{value}</div>
-                      <div className="text-[11px] mt-0.5" style={{ color: "#717171" }}>{label}</div>
+                      <div className="text-[11px] mt-0.5" style={{ color: "#7878A8" }}>{label}</div>
                     </div>
                   ))}
                 </div>
@@ -1166,9 +1166,9 @@ export default function Dashboard() {
                       key={label}
                       title={tip}
                       className="rounded-2xl p-4 cursor-default transition-transform hover:scale-[1.02]"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                      style={{ background: "rgba(139,92,246,0.07)", border: "1px solid rgba(139,92,246,0.15)" }}
                     >
-                      <div className="text-[11px] mb-1.5" style={{ color: "#717171" }}>{label}</div>
+                      <div className="text-[11px] mb-1.5" style={{ color: "#7878A8" }}>{label}</div>
                       <div className="text-[22px] font-bold leading-none" style={{ color }}>{value}</div>
                     </div>
                   ))}
@@ -1237,9 +1237,9 @@ export default function Dashboard() {
                       key={label}
                       title={tip}
                       className="rounded-2xl p-4 cursor-default transition-transform hover:scale-[1.02]"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                      style={{ background: "rgba(139,92,246,0.07)", border: "1px solid rgba(139,92,246,0.15)" }}
                     >
-                      <div className="text-[11px] mb-1.5" style={{ color: "#717171" }}>{label}</div>
+                      <div className="text-[11px] mb-1.5" style={{ color: "#7878A8" }}>{label}</div>
                       <div className="text-[22px] font-bold leading-none" style={{ color }}>{value}</div>
                     </div>
                   ))}

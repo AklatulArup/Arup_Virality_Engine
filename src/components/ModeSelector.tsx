@@ -51,7 +51,7 @@ function ModeTooltip({ mode, anchorRect }: { mode: typeof MODES[number]; anchorR
           transform: "translateY(-50%) rotate(45deg)",
           width: 9,
           height: 9,
-          background: "#2a2a2a",
+          background: "#0E0E2A",
           borderLeft: `1px solid color-mix(in srgb, ${mode.color} 35%, transparent)`,
           borderBottom: `1px solid color-mix(in srgb, ${mode.color} 35%, transparent)`,
         }}
@@ -60,9 +60,9 @@ function ModeTooltip({ mode, anchorRect }: { mode: typeof MODES[number]; anchorR
       <div
         className="rounded-xl px-3 py-2.5"
         style={{
-          background: "#2a2a2a",
+          background: "#0E0E2A",
           border: `1px solid color-mix(in srgb, ${mode.color} 35%, transparent)`,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.7), 0 0 0 1px rgba(139,92,246,0.08)",
         }}
       >
         <div className="flex items-center gap-2 mb-1.5">
@@ -71,12 +71,12 @@ function ModeTooltip({ mode, anchorRect }: { mode: typeof MODES[number]; anchorR
             <span className="text-[11px] font-bold leading-none block" style={{ color: mode.color }}>
               Mode {mode.id}
             </span>
-            <span className="text-[10px] font-semibold leading-none" style={{ color: "#f1f1f1" }}>
+            <span className="text-[10px] font-semibold leading-none" style={{ color: "#F0F0FF" }}>
               {mode.label}
             </span>
           </div>
         </div>
-        <p className="text-[11px] leading-relaxed m-0" style={{ color: "#aaa" }}>
+        <p className="text-[11px] leading-relaxed m-0" style={{ color: "#9090C0" }}>
           {MODE_DESCRIPTIONS[mode.id] || mode.desc}
         </p>
       </div>
@@ -122,8 +122,8 @@ export default function ModeSelector({
                   : "transparent",
                 borderColor: active
                   ? `color-mix(in srgb, ${m.color} 30%, transparent)`
-                  : "rgba(255,255,255,0.12)",
-                color: active ? m.color : "rgba(255,255,255,0.35)",
+                  : "rgba(139,92,246,0.18)",
+                color: active ? m.color : "rgba(139,92,246,0.50)",
                 transform: isHovered ? "scale(1.08)" : "scale(1)",
                 transition: "transform 0.15s ease",
               }}
@@ -137,18 +137,18 @@ export default function ModeSelector({
         <button
           onClick={onSelectAll}
           className="rounded px-1.5 py-0.5 text-[8px] font-mono border cursor-pointer"
-          style={{ color: "rgba(255,255,255,0.3)", borderColor: "rgba(255,255,255,0.1)" }}
-          onMouseEnter={e => (e.currentTarget.style.color = "#f1f1f1")}
-          onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}
+          style={{ color: "rgba(139,92,246,0.45)", borderColor: "rgba(139,92,246,0.18)" }}
+          onMouseEnter={e => (e.currentTarget.style.color = "#F0F0FF")}
+          onMouseLeave={e => (e.currentTarget.style.color = "rgba(139,92,246,0.45)")}
         >
           ALL
         </button>
         <button
           onClick={onClear}
           className="rounded px-1.5 py-0.5 text-[8px] font-mono border cursor-pointer"
-          style={{ color: "rgba(255,255,255,0.3)", borderColor: "rgba(255,255,255,0.1)" }}
-          onMouseEnter={e => (e.currentTarget.style.color = "#f1f1f1")}
-          onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}
+          style={{ color: "rgba(139,92,246,0.45)", borderColor: "rgba(139,92,246,0.18)" }}
+          onMouseEnter={e => (e.currentTarget.style.color = "#F0F0FF")}
+          onMouseLeave={e => (e.currentTarget.style.color = "rgba(139,92,246,0.45)")}
         >
           CLR
         </button>

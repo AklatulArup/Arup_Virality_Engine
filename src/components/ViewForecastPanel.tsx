@@ -64,7 +64,7 @@ export default function ViewForecastPanel({ video, forecastDate, onDateChange }:
             onChange={(e) => onDateChange(e.target.value)}
             className="rounded-xl px-3 py-2 text-[13px] font-mono outline-none cursor-pointer"
             style={{
-              background: "rgba(255,255,255,0.08)",
+              background: "rgba(139,92,246,0.12)",
               border: "1px solid rgba(255,255,255,0.14)",
               color: "#f5f5f7",
               colorScheme: "dark",
@@ -154,7 +154,7 @@ export default function ViewForecastPanel({ video, forecastDate, onDateChange }:
               <span>Current — {formatNumber(video.views)}</span>
               <span>{forecast.mid > 0 ? Math.round((video.views / forecast.mid) * 100) : 0}% of expected</span>
             </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(139,92,246,0.10)" }}>
               <div
                 className="h-full rounded-full"
                 style={{
@@ -229,7 +229,7 @@ export default function ViewForecastPanel({ video, forecastDate, onDateChange }:
               <div className="space-y-2.5">
                 <div
                   className="rounded-xl px-3 py-2 text-[10px] font-mono"
-                  style={{ background: "rgba(255,255,255,0.04)", color: "#86868b" }}
+                  style={{ background: "rgba(139,92,246,0.07)", color: "#86868b" }}
                 >
                   {forecast.platformScore.formula}
                 </div>
@@ -241,7 +241,7 @@ export default function ViewForecastPanel({ video, forecastDate, onDateChange }:
                         w:{(sig.weight * 100).toFixed(0)}% · {(sig.value * 100).toFixed(0)}%
                       </span>
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(139,92,246,0.10)" }}>
                       <div
                         className="h-full rounded-full"
                         style={{
@@ -268,7 +268,7 @@ export default function ViewForecastPanel({ video, forecastDate, onDateChange }:
                   <span className="text-[10px] font-mono w-14 shrink-0" style={{ color: "#86868b" }}>
                     Month {m.month}
                   </span>
-                  <div className="flex-1 relative h-6 rounded-lg overflow-hidden" style={{ background: "rgba(255,255,255,0.04)" }}>
+                  <div className="flex-1 relative h-6 rounded-lg overflow-hidden" style={{ background: "rgba(139,92,246,0.07)" }}>
                     {/* High bar */}
                     <div
                       className="absolute top-0 h-full rounded-lg"
@@ -328,7 +328,7 @@ export default function ViewForecastPanel({ video, forecastDate, onDateChange }:
                   <div
                     key={i}
                     className="rounded-xl px-3 py-2.5 text-[11px] leading-relaxed"
-                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", color: "#f5f5f7" }}
+                    style={{ background: "rgba(139,92,246,0.05)", border: "1px solid rgba(139,92,246,0.15)", color: "#f5f5f7" }}
                   >
                     {s}
                   </div>

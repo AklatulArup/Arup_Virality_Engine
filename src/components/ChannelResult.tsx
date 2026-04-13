@@ -115,7 +115,7 @@ export default function ChannelResult({
             <div
               key={v.id}
               className="flex items-center gap-2 py-1.5 border-b"
-              style={{ borderColor: "rgba(255,255,255,0.02)" }}
+              style={{ borderColor: "rgba(139,92,246,0.06)" }}
             >
               {v.thumbnail && (
                 <Image
@@ -207,7 +207,7 @@ export default function ChannelResult({
             REFERENCE LIBRARY &middot; {referenceContext.length} RELATED ENTRIES
           </div>
           {referenceContext.map((ref) => (
-            <div key={ref.id} className="flex justify-between py-1 border-b" style={{ borderColor: "rgba(255,255,255,0.02)" }}>
+            <div key={ref.id} className="flex justify-between py-1 border-b" style={{ borderColor: "rgba(139,92,246,0.06)" }}>
               <span className="text-[10px] text-subtle truncate mr-2">{ref.name}</span>
               <span className="text-[10px] font-mono text-muted shrink-0">
                 {ref.metrics.medianViews ? `${formatNumber(ref.metrics.medianViews)} med` : ""}

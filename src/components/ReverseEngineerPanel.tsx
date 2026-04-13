@@ -140,13 +140,13 @@ const PLATFORM_INTEL = {
 function Section({ title, accent, children }: { title: string; accent: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(139,92,246,0.05)", border: "1px solid rgba(139,92,246,0.18)" }}>
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-5 py-3.5 text-left"
-        style={{ borderBottom: open ? "1px solid rgba(255,255,255,0.06)" : "none" }}
+        style={{ borderBottom: open ? "1px solid rgba(139,92,246,0.15)" : "none" }}
       >
-        <span className="text-[13px] font-semibold" style={{ color: "#f1f1f1" }}>{title}</span>
+        <span className="text-[13px] font-semibold" style={{ color: "#F0F0FF" }}>{title}</span>
         <span style={{ color: accent, fontSize: 12, transform: open ? "rotate(180deg)" : "none", display: "inline-block", transition: "transform 0.2s" }}>▾</span>
       </button>
       {open && <div className="px-5 py-4">{children}</div>}
@@ -184,8 +184,8 @@ export default function ReverseEngineerPanel({
           ⚙
         </div>
         <div>
-          <h2 className="text-[16px] font-bold" style={{ color: "#f1f1f1" }}>Reverse Engineer</h2>
-          <p className="text-[12px]" style={{ color: "#717171" }}>
+          <h2 className="text-[16px] font-bold" style={{ color: "#F0F0FF" }}>Reverse Engineer</h2>
+          <p className="text-[12px]" style={{ color: "#7878A8" }}>
             Mode D active · {intel.label} algorithm · Paste a URL to break down specific content
           </p>
         </div>
@@ -203,7 +203,7 @@ export default function ReverseEngineerPanel({
           placeholder={`Paste a ${intel.label} URL or @handle to reverse engineer…`}
           onKeyDown={e => { if (e.key === "Enter" && urlInput.trim()) { onAnalyze(urlInput.trim()); } }}
           className="flex-1 rounded-xl px-4 py-2.5 text-[13px] outline-none"
-          style={{ background: "rgba(255,255,255,0.06)", border: `1px solid color-mix(in srgb, ${intel.color} 25%, transparent)`, color: "#f1f1f1" }}
+          style={{ background: "rgba(139,92,246,0.10)", border: `1px solid color-mix(in srgb, ${intel.color} 25%, transparent)`, color: "#F0F0FF" }}
         />
         <button
           onClick={() => { if (urlInput.trim()) onAnalyze(urlInput.trim()); }}
@@ -222,8 +222,8 @@ export default function ReverseEngineerPanel({
 
           {/* Video identity */}
           <div>
-            <div className="text-[15px] font-bold mb-1" style={{ color: "#f1f1f1" }}>{video.title || video.channel}</div>
-            {channel && <div className="text-[12px]" style={{ color: "#717171" }}>{channel.name} · {(channel.subs / 1000).toFixed(0)}K subs</div>}
+            <div className="text-[15px] font-bold mb-1" style={{ color: "#F0F0FF" }}>{video.title || video.channel}</div>
+            {channel && <div className="text-[12px]" style={{ color: "#7878A8" }}>{channel.name} · {(channel.subs / 1000).toFixed(0)}K subs</div>}
           </div>
 
           {/* Signal scores vs benchmarks */}
@@ -237,10 +237,10 @@ export default function ReverseEngineerPanel({
                 signal.toLowerCase().includes("share") || signal.toLowerCase().includes("sends") ? `${(video.shares ? (video.shares / Math.max(video.views, 1) * 100).toFixed(1) : (video.likes / Math.max(video.views, 1) * 100 * 0.4).toFixed(1))}%` :
                 `${video.engagement.toFixed(2)}%`;
               return (
-                <div key={signal} className="rounded-xl p-3" style={{ background: "rgba(0,0,0,0.3)" }}>
-                  <div className="text-[10px] mb-1" style={{ color: "#717171" }}>{signal.split(" ")[0]} {signal.split(" ")[1] || ""}</div>
+                <div key={signal} className="rounded-xl p-3" style={{ background: "rgba(4,4,20,0.6)" }}>
+                  <div className="text-[10px] mb-1" style={{ color: "#7878A8" }}>{signal.split(" ")[0]} {signal.split(" ")[1] || ""}</div>
                   <div className="text-[18px] font-bold" style={{ color: intel.color }}>{actual}</div>
-                  <div className="text-[10px]" style={{ color: "#555" }}>target: {target}</div>
+                  <div className="text-[10px]" style={{ color: "#4A4A7A" }}>target: {target}</div>
                 </div>
               );
             })}
@@ -248,8 +248,8 @@ export default function ReverseEngineerPanel({
 
           {/* Hook extraction from title */}
           <div>
-            <div className="text-[10px] font-semibold tracking-wider mb-2" style={{ color: "#717171" }}>HOOK FORMULA USED</div>
-            <div className="rounded-xl px-4 py-3" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="text-[10px] font-semibold tracking-wider mb-2" style={{ color: "#7878A8" }}>HOOK FORMULA USED</div>
+            <div className="rounded-xl px-4 py-3" style={{ background: "rgba(4,4,20,0.6)", border: "1px solid rgba(139,92,246,0.12)" }}>
               {(() => {
                 const t = (video.title || "").toLowerCase();
                 if (/^how to|^how i/i.test(video.title || "")) return <><span style={{ color: intel.color }} className="font-semibold">Tutorial Hook</span> — "How to / How I" frame. Promises a concrete skill or result.</>;
@@ -259,13 +259,13 @@ export default function ReverseEngineerPanel({
                 if (/i made|i earned|i lost|i went/i.test(video.title || "")) return <><span style={{ color: intel.color }} className="font-semibold">Confession / Story Hook</span> — First-person result creates trust and curiosity.</>;
                 return <><span style={{ color: intel.color }} className="font-semibold">Direct Statement Hook</span> — Bold assertion designed to confirm or challenge a belief.</>;
               })()}
-              <div className="mt-2 text-[12px] italic" style={{ color: "#aaa" }}>"{video.title}"</div>
+              <div className="mt-2 text-[12px] italic" style={{ color: "#9090C0" }}>"{video.title}"</div>
             </div>
           </div>
 
           {/* Replication instruction */}
           <div>
-            <div className="text-[10px] font-semibold tracking-wider mb-2" style={{ color: "#717171" }}>REPLICATION BLUEPRINT FOR THIS CONTENT</div>
+            <div className="text-[10px] font-semibold tracking-wider mb-2" style={{ color: "#7878A8" }}>REPLICATION BLUEPRINT FOR THIS CONTENT</div>
             <ol className="space-y-1.5">
               {[
                 `Mirror the hook type: start with the same emotional trigger (${video.title?.split(" ").slice(0, 3).join(" ")}…) but shift the topic or angle`,
@@ -276,7 +276,7 @@ export default function ReverseEngineerPanel({
                 ...(platform === "tiktok" ? ["Loop the ending back to frame 1 to force rewatch", "Use trending audio from the past 7 days for +40% distribution boost"] : []),
                 ...(platform === "instagram" ? ["Place a save CTA within the first 50% of the reel", "Add text overlay reinforcing the spoken hook for silent viewers"] : []),
               ].map((step, i) => (
-                <li key={i} className="flex gap-2.5 text-[12px]" style={{ color: "#ccc" }}>
+                <li key={i} className="flex gap-2.5 text-[12px]" style={{ color: "#B0B0D8" }}>
                   <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5" style={{ background: `color-mix(in srgb, ${intel.color} 20%, transparent)`, color: intel.color }}>{i + 1}</span>
                   {step}
                 </li>
@@ -290,17 +290,17 @@ export default function ReverseEngineerPanel({
       <Section title={`${intel.label} Algorithm Signals (2026)`} accent={intel.color}>
         <div className="space-y-3">
           {intel.algorithmSignals.map(({ signal, target, weight, tip }) => (
-            <div key={signal} className="rounded-xl p-3.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div key={signal} className="rounded-xl p-3.5" style={{ background: "rgba(139,92,246,0.05)", border: "1px solid rgba(139,92,246,0.15)" }}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[13px] font-semibold" style={{ color: "#f1f1f1" }}>{signal}</span>
+                <span className="text-[13px] font-semibold" style={{ color: "#F0F0FF" }}>{signal}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#aaa" }}>target: {target}</span>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded" style={{ background: "rgba(139,92,246,0.10)", color: "#9090C0" }}>target: {target}</span>
                   <span className="text-[11px] font-bold" style={{ color: intel.color }}>{weight}</span>
                 </div>
               </div>
-              <p className="text-[12px] m-0" style={{ color: "#717171" }}>{tip}</p>
+              <p className="text-[12px] m-0" style={{ color: "#7878A8" }}>{tip}</p>
               {/* Weight bar */}
-              <div className="mt-2 h-1 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+              <div className="mt-2 h-1 rounded-full" style={{ background: "rgba(139,92,246,0.10)" }}>
                 <div className="h-full rounded-full" style={{ width: weight, background: intel.color, opacity: 0.7 }} />
               </div>
             </div>
@@ -318,7 +318,7 @@ export default function ReverseEngineerPanel({
                   {step.split(".")[0].replace("1", "").replace("2", "").replace("3", "").replace("4", "").replace("5", "")} {step.split(". ")[1]?.split(" (")[0]}
                 </div>
               </div>
-              <p className="text-[12px] leading-relaxed m-0" style={{ color: "#aaa" }}>{desc}</p>
+              <p className="text-[12px] leading-relaxed m-0" style={{ color: "#9090C0" }}>{desc}</p>
             </div>
           ))}
         </div>
@@ -328,9 +328,9 @@ export default function ReverseEngineerPanel({
       <Section title="Title Formulas That Win" accent={intel.color}>
         <div className="space-y-2.5">
           {intel.titleFormula.map(({ pattern, example }) => (
-            <div key={pattern} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
-              <div className="text-[12px] font-semibold mb-1" style={{ color: "#f1f1f1" }}>{pattern}</div>
-              <div className="text-[11px] italic" style={{ color: "#717171" }}>{example}</div>
+            <div key={pattern} className="rounded-xl p-3" style={{ background: "rgba(139,92,246,0.05)", border: "1px solid rgba(139,92,246,0.12)" }}>
+              <div className="text-[12px] font-semibold mb-1" style={{ color: "#F0F0FF" }}>{pattern}</div>
+              <div className="text-[11px] italic" style={{ color: "#7878A8" }}>{example}</div>
             </div>
           ))}
         </div>
@@ -340,7 +340,7 @@ export default function ReverseEngineerPanel({
       <Section title="Thumbnail / Cover Formula" accent={intel.color}>
         <ul className="space-y-2">
           {intel.thumbnailFormula.map((rule, i) => (
-            <li key={i} className="flex gap-2.5 text-[12px]" style={{ color: "#ccc" }}>
+            <li key={i} className="flex gap-2.5 text-[12px]" style={{ color: "#B0B0D8" }}>
               <span style={{ color: intel.color }} className="shrink-0 mt-0.5">✓</span>
               {rule}
             </li>
@@ -352,7 +352,7 @@ export default function ReverseEngineerPanel({
       <Section title="Replication Blueprint" accent={intel.color}>
         <div className="space-y-2">
           {intel.replicationBlueprint.map((step, i) => (
-            <div key={i} className="flex gap-3 text-[12px]" style={{ color: "#ccc" }}>
+            <div key={i} className="flex gap-3 text-[12px]" style={{ color: "#B0B0D8" }}>
               <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5"
                 style={{ background: `color-mix(in srgb, ${intel.color} 15%, transparent)`, color: intel.color }}>
                 {i + 1}

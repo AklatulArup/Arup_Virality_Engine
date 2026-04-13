@@ -1,48 +1,48 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* ── Apple dark palette ── */
-  --color-background: #000000;
-  --color-foreground: #f5f5f7;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-light: rgba(255, 255, 255, 0.14);
-  --color-muted: #86868b;
-  --color-subtle: rgba(245, 245, 247, 0.55);
-  --color-surface: rgba(255, 255, 255, 0.04);
-  --color-surface-hover: rgba(255, 255, 255, 0.07);
-  --color-card: rgba(28, 28, 30, 0.9);
-  --color-nav: rgba(0, 0, 0, 0.82);
+  /* ── Vibrant dark palette ── */
+  --color-background: #08081A;
+  --color-foreground: #F0F0FF;
+  --color-border: rgba(139, 92, 246, 0.18);
+  --color-border-light: rgba(139, 92, 246, 0.28);
+  --color-muted: #7878A8;
+  --color-subtle: rgba(240, 240, 255, 0.5);
+  --color-surface: rgba(139, 92, 246, 0.07);
+  --color-surface-hover: rgba(139, 92, 246, 0.12);
+  --color-card: rgba(20, 20, 40, 0.95);
+  --color-nav: rgba(8, 8, 26, 0.9);
 
   /* ── Brand accents ── */
-  --color-accent: #00D4AA;
-  --color-accent-blue: #0A84FF;
+  --color-accent: #06B6D4;
+  --color-accent-blue: #8B5CF6;
 
   /* ── Mode colors ── */
-  --color-mode-a: #00D4AA;
-  --color-mode-b: #0A84FF;
-  --color-mode-c: #BF5AF2;
-  --color-mode-d: #FF453A;
-  --color-mode-e: #FFD60A;
-  --color-mode-f: #FF375F;
-  --color-mode-g: #30D158;
+  --color-mode-a: #06B6D4;
+  --color-mode-b: #8B5CF6;
+  --color-mode-c: #EC4899;
+  --color-mode-d: #F59E0B;
+  --color-mode-e: #10B981;
+  --color-mode-f: #F97316;
+  --color-mode-g: #06B6D4;
   --color-mode-h: #A78BFA;
 
   /* ── Score tiers ── */
-  --color-vrs-excellent: #30D158;
-  --color-vrs-strong: #0A84FF;
-  --color-vrs-competitive: #FFD60A;
-  --color-vrs-needs-work: #FF9F0A;
-  --color-vrs-rework: #FF453A;
+  --color-vrs-excellent: #10B981;
+  --color-vrs-strong: #06B6D4;
+  --color-vrs-competitive: #F59E0B;
+  --color-vrs-needs-work: #F97316;
+  --color-vrs-rework: #EF4444;
 
-  --color-tier-1: #FF453A;
-  --color-tier-2: #FFD60A;
-  --color-tier-3: #0A84FF;
-  --color-tier-4: #3a3a3c;
+  --color-tier-1: #EF4444;
+  --color-tier-2: #F59E0B;
+  --color-tier-3: #8B5CF6;
+  --color-tier-4: #2A2A4A;
 
-  --color-confidence-confirmed: #30D158;
-  --color-confidence-strong: #0A84FF;
-  --color-confidence-likely: #FFD60A;
-  --color-confidence-unconfirmed: #3a3a3c;
+  --color-confidence-confirmed: #10B981;
+  --color-confidence-strong: #8B5CF6;
+  --color-confidence-likely: #F59E0B;
+  --color-confidence-unconfirmed: #2A2A4A;
 
   /* ── Typography ── */
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
@@ -64,22 +64,21 @@ body {
 
 input::placeholder,
 textarea::placeholder {
-  color: rgba(255, 255, 255, 0.22);
+  color: rgba(240, 240, 255, 0.2);
 }
 
-/* Apple-style date input in dark mode */
 input[type="date"] {
   color-scheme: dark;
 }
 
-/* Scrollbar — minimal Apple-style */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.3);
   border-radius: 4px;
 }
 
@@ -89,5 +88,5 @@ input[type="date"] {
 
 /* Selection */
 ::selection {
-  background: rgba(0, 212, 170, 0.28);
+  background: rgba(139, 92, 246, 0.35);
 }

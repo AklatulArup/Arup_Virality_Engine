@@ -94,7 +94,7 @@ export default function TikTokVideoCard({ video, rank }: TikTokVideoCardProps) {
                   key={a}
                   className="text-[8px] px-1.5 py-0.5 rounded font-mono"
                   style={{
-                    background: "rgba(255,255,255,0.04)",
+                    background: "rgba(139,92,246,0.07)",
                     color: "var(--color-text-subtle)",
                   }}
                 >

@@ -129,7 +129,7 @@ export default function ViewPrediction({ prediction }: ViewPredictionProps) {
               <div
                 key={i}
                 className="flex justify-between py-0.5 border-b"
-                style={{ borderColor: "rgba(255,255,255,0.02)" }}
+                style={{ borderColor: "rgba(139,92,246,0.06)" }}
               >
                 <span className="text-[10px] text-subtle truncate mr-2 flex-1">
                   {v.title}
