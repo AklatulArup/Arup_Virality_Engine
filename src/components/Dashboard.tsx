@@ -616,10 +616,115 @@ export default function Dashboard() {
         }
 
         setStatus("");
+      } else if (parsed.type === "tiktok") {
+        // ── TikTok via Apify scraper ──
+        setStatus(`Scraping TikTok${parsed.handle ? ` @${parsed.handle}` : ""}...`);
+        const scrapeRes = await fetch("/api/tiktok/scrape", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: parsed.url, handle: parsed.handle, limit: 50 }),
+        });
+        if (!scrapeRes.ok) {
+          const err = await scrapeRes.json();
+          throw new Error(err.error || "TikTok scrape failed");
+        }
+        const scrapeData = await scrapeRes.json();
+        const ttVideos: VideoData[] = scrapeData.videos;
+        if (!ttVideos.length) throw new Error("No TikTok videos returned");
+
+        // Store and run existing TikTok batch pipeline
+        const store = await fetch("/api/tiktok/upload", {
+          method: "POST",
+          body: (() => { const fd = new FormData(); fd.append("json", JSON.stringify(ttVideos)); return fd; })(),
+        }).catch(() => null);
+        void store;
+
+        const medianViews = calculateMedian(ttVideos.map((v) => v.views));
+        setStatus("Computing scores...");
+        const enriched = ttVideos.map((v) => enrichVideo(v, medianViews, "tiktok")).sort((a, b) => b.views - a.views);
+        const topPerformers = enriched.slice(0, 10);
+        const creatorMap: Record<string, { views: number[]; scores: number[] }> = {};
+        for (const v of enriched) {
+          const h = v.channel || "unknown";
+          if (!creatorMap[h]) creatorMap[h] = { views: [], scores: [] };
+          creatorMap[h].views.push(v.views);
+          creatorMap[h].scores.push(v.vrs.estimatedFullScore);
+        }
+        const competitorBreakdown = Object.entries(creatorMap)
+          .map(([handle, data]) => ({
+            handle,
+            videoCount: data.views.length,
+            avgViews: Math.round(data.views.reduce((s, v) => s + v, 0) / data.views.length),
+            avgScore: Math.round(data.scores.reduce((s, v) => s + v, 0) / data.scores.length),
+          }))
+          .sort((a, b) => b.avgViews - a.avgViews);
+
+        const relatedEntries = referenceStore ? referenceStore.entries.filter((e) => e.platform === "tiktok") : [];
+        const deepAnalysis = computeDeepAnalysis(enriched, null, relatedEntries, "tiktok");
+        const batchResult: TikTokBatchAnalysis = { type: "tiktok-batch", videos: enriched, deepAnalysis, topPerformers, competitorBreakdown, referenceContext: relatedEntries };
+        setResult(batchResult);
+        setLanguageCPA(computeLanguageCPA(enriched));
+        setTiktokUploadInfo({ videoCount: ttVideos.length, uploadCount: 1, time: new Date().toLocaleString() });
+
+        const entries = buildReferenceEntry(batchResult);
+        const entryArray = Array.isArray(entries) ? entries : [entries];
+        if (entryArray.length > 0) {
+          fetch("/api/reference-store", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(entryArray) })
+            .then(() => { setRefStoreStatus("saved"); refreshReferenceStore(); }).catch(() => {});
+        }
+        setStatus("");
+
+      } else if (parsed.type === "instagram") {
+        // ── Instagram via Apify scraper ──
+        setStatus(`Scraping Instagram${parsed.handle ? ` @${parsed.handle}` : ""}...`);
+        const igRes = await fetch("/api/instagram/scrape", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            urls: parsed.url && parsed.url.includes("instagram.com/") ? [parsed.url] : [],
+            handle: parsed.handle,
+            limit: 30,
+          }),
+        });
+        if (!igRes.ok) {
+          const err = await igRes.json();
+          throw new Error(err.error || "Instagram scrape failed");
+        }
+        const igData = await igRes.json();
+        const igVideos: VideoData[] = igData.videos;
+        if (!igVideos.length) throw new Error("No Instagram posts returned");
+
+        const medianIG = calculateMedian(igVideos.map((v) => v.views));
+        setStatus("Computing scores...");
+        const enrichedIG = igVideos.map((v) => enrichVideo(v, medianIG, "tiktok")).sort((a, b) => b.views - a.views);
+        const igTopPerformers = enrichedIG.slice(0, 10);
+        const igCreatorMap: Record<string, { views: number[]; scores: number[] }> = {};
+        for (const v of enrichedIG) {
+          const h = v.channel || "unknown";
+          if (!igCreatorMap[h]) igCreatorMap[h] = { views: [], scores: [] };
+          igCreatorMap[h].views.push(v.views);
+          igCreatorMap[h].scores.push(v.vrs.estimatedFullScore);
+        }
+        const igBreakdown = Object.entries(igCreatorMap)
+          .map(([handle, data]) => ({
+            handle,
+            videoCount: data.views.length,
+            avgViews: Math.round(data.views.reduce((s, v) => s + v, 0) / data.views.length),
+            avgScore: Math.round(data.scores.reduce((s, v) => s + v, 0) / data.scores.length),
+          }))
+          .sort((a, b) => b.avgViews - a.avgViews);
+
+        const igRelated = referenceStore ? referenceStore.entries.filter((e) => e.platform === "tiktok") : [];
+        const igDeep = computeDeepAnalysis(enrichedIG, null, igRelated, "tiktok");
+        const igBatch: TikTokBatchAnalysis = { type: "tiktok-batch", videos: enrichedIG, deepAnalysis: igDeep, topPerformers: igTopPerformers, competitorBreakdown: igBreakdown, referenceContext: igRelated };
+        setResult(igBatch);
+        setLanguageCPA(computeLanguageCPA(enrichedIG));
+        setStatus("");
+
       } else if (parsed.type === "unknown") {
-        throw new Error("Could not detect input type. Paste a YouTube video URL or @channel handle.");
+        throw new Error("Could not detect input type. Paste a YouTube, TikTok, or Instagram URL / @handle.");
       } else {
-        throw new Error(`${parsed.label} analysis coming soon. Currently YouTube only.`);
+        throw new Error(`${parsed.label} — paste a YouTube, TikTok, or Instagram URL.`);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
@@ -830,17 +935,35 @@ export default function Dashboard() {
                   color: "#f5f5f7",
                 }}
               />
-              <button
-                onClick={() => saveInstagram(instagramInput.split("\n"))}
-                disabled={!instagramInput.trim()}
-                className="mt-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all"
-                style={{
-                  background: instagramInput.trim() ? "linear-gradient(135deg, #E1306C, #833AB4)" : "rgba(255,255,255,0.05)",
-                  color: instagramInput.trim() ? "#fff" : "#86868b",
-                }}
-              >
-                Save to Queue
-              </button>
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => {
+                    const lines = instagramInput.split("\n").map(s => s.trim()).filter(Boolean);
+                    if (lines.length === 1) analyze(lines[0]);
+                    else saveInstagram(lines);
+                  }}
+                  disabled={!instagramInput.trim()}
+                  className="rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all"
+                  style={{
+                    background: instagramInput.trim() ? "linear-gradient(135deg, #E1306C, #833AB4)" : "rgba(255,255,255,0.05)",
+                    color: instagramInput.trim() ? "#fff" : "#86868b",
+                  }}
+                >
+                  Analyze
+                </button>
+                <button
+                  onClick={() => saveInstagram(instagramInput.split("\n"))}
+                  disabled={!instagramInput.trim()}
+                  className="rounded-xl px-5 py-2.5 text-[13px] font-medium transition-all"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    color: instagramInput.trim() ? "#86868b" : "rgba(255,255,255,0.2)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  Queue
+                </button>
+              </div>
               {instagramStatus && (
                 <div className="mt-2 text-[11px]" style={{ color: "var(--color-accent)" }}>
                   {instagramStatus}
