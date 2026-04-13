@@ -75,6 +75,7 @@ import CompetitorBankManager from "./CompetitorBankManager";
 import type { Competitor } from "./CompetitorBankManager";
 import CreatorBlocklist from "./CreatorBlocklist";
 import ViewForecastPanel from "./ViewForecastPanel";
+import CursorGlow from "./CursorGlow";
 
 type InputTab = "youtube" | "tiktok" | "instagram";
 
@@ -789,6 +790,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen" style={{ background: "#05050F", color: "#E8E8FF" }}>
+      <CursorGlow />
       {/* ── Animated Background Orbs ── */}
       <div style={{ position: "fixed", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
         <div style={{ position: "absolute", width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,58,237,0.13) 0%, transparent 65%)", top: "-150px", left: "80px", animation: "orbFloat1 22s ease-in-out infinite", filter: "blur(50px)" }} />
