@@ -939,8 +939,16 @@ export default function Dashboard() {
                 <button
                   onClick={() => {
                     const lines = instagramInput.split("\n").map(s => s.trim()).filter(Boolean);
-                    if (lines.length === 1) analyze(lines[0]);
-                    else saveInstagram(lines);
+                    if (lines.length === 1) {
+                      const raw = lines[0];
+                      // Normalize bare handles to instagram.com URLs so parseInput detects them correctly
+                      const normalized = raw.includes("instagram.com")
+                        ? raw
+                        : `https://www.instagram.com/${raw.replace(/^@/, "")}/`;
+                      analyze(normalized);
+                    } else {
+                      saveInstagram(lines);
+                    }
                   }}
                   disabled={!instagramInput.trim()}
                   className="rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all"
