@@ -27,8 +27,6 @@ import DeepAnalysisPanel from "./DeepAnalysisPanel";
 import CollapsibleSection from "./CollapsibleSection";
 import AlgorithmIntelPanel from "./AlgorithmIntelPanel";
 import AdjacentVideos from "./AdjacentVideos";
-import NicheRankingPanel from "./NicheRankingPanel";
-import LanguageCPAPanel from "./LanguageCPAPanel";
 import DescriptionSEOPanel from "./DescriptionSEOPanel";
 import EngagementDecayPanel from "./EngagementDecayPanel";
 import ThumbnailPanel from "./ThumbnailPanel";
@@ -180,17 +178,6 @@ export default function VideoResult({
           currentTitle={video.title}
           currentViews={video.views}
           currentVRS={video.vrs.estimatedFullScore}
-        />
-      )}
-
-      {/* Niche Competitive Ranking */}
-      {nicheRanking && <NicheRankingPanel ranking={nicheRanking} />}
-
-      {/* Language CPA */}
-      {languageCPA && languageCPA.length > 1 && (
-        <LanguageCPAPanel
-          data={languageCPA}
-          totalVideos={recentVideos.length}
         />
       )}
 
