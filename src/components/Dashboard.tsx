@@ -788,7 +788,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-screen scanline-host" style={{ background: "#05050F", color: "#E8E8FF" }}>
+    <div className="flex min-h-screen" style={{ background: "#05050F", color: "#E8E8FF" }}>
       {/* ── Animated Background Orbs ── */}
       <div style={{ position: "fixed", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
         <div style={{ position: "absolute", width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,58,237,0.13) 0%, transparent 65%)", top: "-150px", left: "80px", animation: "orbFloat1 22s ease-in-out infinite", filter: "blur(50px)" }} />
@@ -817,6 +817,11 @@ export default function Dashboard() {
       <div className="light-streak light-streak-a" />
       <div className="light-streak light-streak-b" />
       <div className="light-streak light-streak-c" />
+
+      {/* ── Radar pulse rings ── */}
+      <div className="radar-ring radar-ring-a" />
+      <div className="radar-ring radar-ring-b" />
+      <div className="radar-ring radar-ring-c" />
       {/* ══════════════ LEFT SIDEBAR ══════════════ */}
       <aside
         className="fixed left-0 top-0 bottom-0 w-[220px] flex flex-col overflow-y-auto z-40"

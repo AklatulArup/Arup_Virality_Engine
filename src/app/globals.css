@@ -73,11 +73,10 @@
   40%      { transform: translate(25px, 50px) scale(1.04); }
   70%      { transform: translate(-45px, -20px) scale(0.96); }
 }
-@keyframes scanLine {
-  0%   { transform: translateY(-4px); opacity: 0; }
-  5%   { opacity: 1; }
-  95%  { opacity: 1; }
-  100% { transform: translateY(100vh); opacity: 0; }
+@keyframes radarPulse {
+  0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0.12; }
+  75%  { opacity: 0.04; }
+  100% { transform: translate(-50%, -50%) scale(2.8); opacity: 0; }
 }
 @keyframes glowPulse {
   0%,100% { opacity: 0.6; }
@@ -398,20 +397,29 @@
 .fade-up-3 { animation: fadeUpIn 0.45s ease-out 0.19s both; }
 .fade-up-4 { animation: fadeUpIn 0.45s ease-out 0.26s both; }
 
-/* Scanline parent */
-.scanline-host {
-  position: relative;
-  overflow: hidden;
-}
-.scanline-host::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, rgba(0,212,255,0.25) 30%, rgba(124,58,237,0.3) 60%, rgba(0,212,255,0.25) 80%, transparent 100%);
-  animation: scanLine 14s linear infinite;
+/* ── Radar pulse rings ── */
+.radar-ring {
+  position: fixed;
+  width: 700px;
+  height: 700px;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.2);
   pointer-events: none;
-  z-index: 10;
+  z-index: 1;
+}
+.radar-ring-a {
+  border: 1px solid rgba(0,212,255,0.18);
+  animation: radarPulse 10s ease-out infinite;
+}
+.radar-ring-b {
+  border: 1px solid rgba(124,58,237,0.14);
+  animation: radarPulse 10s ease-out infinite 3.3s;
+}
+.radar-ring-c {
+  border: 1px solid rgba(0,255,136,0.1);
+  animation: radarPulse 10s ease-out infinite 6.6s;
 }
 
 /* ═══════════════════════════════════════════
