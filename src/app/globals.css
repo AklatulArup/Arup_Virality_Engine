@@ -1,53 +1,201 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* ── Vibrant dark palette ── */
-  --color-background: #08081A;
-  --color-foreground: #F0F0FF;
-  --color-border: rgba(139, 92, 246, 0.18);
-  --color-border-light: rgba(139, 92, 246, 0.28);
-  --color-muted: #7878A8;
-  --color-subtle: rgba(240, 240, 255, 0.5);
-  --color-surface: rgba(139, 92, 246, 0.07);
-  --color-surface-hover: rgba(139, 92, 246, 0.12);
-  --color-card: rgba(20, 20, 40, 0.95);
-  --color-nav: rgba(8, 8, 26, 0.9);
+  /* ── Rich multi-color palette (NOT monochromatic) ── */
+  --color-background: #05050F;
+  --color-foreground: #E8E8FF;
+  --color-border: rgba(99,102,241,0.2);
+  --color-border-light: rgba(99,102,241,0.32);
+  --color-muted: #6B7280;
+  --color-subtle: rgba(232,232,255,0.55);
+  --color-surface: rgba(99,102,241,0.06);
+  --color-surface-hover: rgba(99,102,241,0.11);
+  --color-card: rgba(13,13,30,0.92);
+  --color-nav: rgba(5,5,15,0.92);
 
-  /* ── Brand accents ── */
-  --color-accent: #06B6D4;
-  --color-accent-blue: #8B5CF6;
+  /* ── Brand accents — multiple vivid colors ── */
+  --color-accent: #00D4FF;         /* electric cyan */
+  --color-accent-blue: #7C3AED;    /* deep violet */
+  --color-accent-pink: #FF2D78;    /* hot pink */
+  --color-accent-green: #00FF88;   /* neon green */
+  --color-accent-amber: #FFB800;   /* electric amber */
+  --color-accent-orange: #FF5500;  /* electric orange */
 
-  /* ── Mode colors ── */
-  --color-mode-a: #06B6D4;
-  --color-mode-b: #8B5CF6;
-  --color-mode-c: #EC4899;
-  --color-mode-d: #F59E0B;
-  --color-mode-e: #10B981;
-  --color-mode-f: #F97316;
-  --color-mode-g: #06B6D4;
-  --color-mode-h: #A78BFA;
+  /* ── Mode colors — vivid, each distinct ── */
+  --color-mode-a: #00D4FF;
+  --color-mode-b: #7C3AED;
+  --color-mode-c: #FF2D78;
+  --color-mode-d: #FFB800;
+  --color-mode-e: #00FF88;
+  --color-mode-f: #FF5500;
+  --color-mode-g: #00C8FF;
+  --color-mode-h: #BF5FFF;
 
   /* ── Score tiers ── */
-  --color-vrs-excellent: #10B981;
-  --color-vrs-strong: #06B6D4;
-  --color-vrs-competitive: #F59E0B;
-  --color-vrs-needs-work: #F97316;
-  --color-vrs-rework: #EF4444;
+  --color-vrs-excellent: #00FF88;
+  --color-vrs-strong: #00D4FF;
+  --color-vrs-competitive: #FFB800;
+  --color-vrs-needs-work: #FF5500;
+  --color-vrs-rework: #FF2D78;
 
-  --color-tier-1: #EF4444;
-  --color-tier-2: #F59E0B;
-  --color-tier-3: #8B5CF6;
-  --color-tier-4: #2A2A4A;
+  --color-tier-1: #FF2D78;
+  --color-tier-2: #FFB800;
+  --color-tier-3: #7C3AED;
+  --color-tier-4: #1A1A3E;
 
-  --color-confidence-confirmed: #10B981;
-  --color-confidence-strong: #8B5CF6;
-  --color-confidence-likely: #F59E0B;
-  --color-confidence-unconfirmed: #2A2A4A;
+  --color-confidence-confirmed: #00FF88;
+  --color-confidence-strong: #7C3AED;
+  --color-confidence-likely: #FFB800;
+  --color-confidence-unconfirmed: #1A1A3E;
 
   /* ── Typography ── */
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
 }
+
+/* ═══════════════════════════════════════════
+   FUTURISTIC ANIMATIONS
+═══════════════════════════════════════════ */
+
+@keyframes orbFloat1 {
+  0%,100% { transform: translate(0px, 0px) scale(1); }
+  25%      { transform: translate(40px, -60px) scale(1.06); }
+  50%      { transform: translate(-30px, 30px) scale(0.94); }
+  75%      { transform: translate(55px, 15px) scale(1.03); }
+}
+@keyframes orbFloat2 {
+  0%,100% { transform: translate(0px, 0px) scale(1); }
+  33%      { transform: translate(-60px, 40px) scale(1.09); }
+  66%      { transform: translate(35px, -35px) scale(0.91); }
+}
+@keyframes orbFloat3 {
+  0%,100% { transform: translate(0px, 0px) scale(1); }
+  40%      { transform: translate(25px, 50px) scale(1.04); }
+  70%      { transform: translate(-45px, -20px) scale(0.96); }
+}
+@keyframes scanLine {
+  0%   { transform: translateY(-4px); opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+@keyframes glowPulse {
+  0%,100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+@keyframes shimmerGradient {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes borderFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes pingRing {
+  0%   { transform: scale(1); opacity: 0.75; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+@keyframes neonFlicker {
+  0%,19%,21%,23%,25%,54%,56%,100% { opacity: 1; }
+  20%,22%,24%,55%                   { opacity: 0.72; }
+}
+@keyframes dataStream {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(8px); }
+}
+@keyframes holoBorder {
+  0%   { border-color: rgba(0,212,255,0.6); }
+  25%  { border-color: rgba(124,58,237,0.6); }
+  50%  { border-color: rgba(255,45,120,0.6); }
+  75%  { border-color: rgba(0,255,136,0.6); }
+  100% { border-color: rgba(0,212,255,0.6); }
+}
+
+/* ═══════════════════════════════════════════
+   UTILITY CLASSES
+═══════════════════════════════════════════ */
+
+/* Gradient brand text */
+.gradient-text-brand {
+  background: linear-gradient(135deg, #00D4FF 0%, #7C3AED 40%, #FF2D78 75%, #FFB800 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 300% auto;
+  animation: shimmerGradient 5s linear infinite;
+}
+
+/* Metric value neon glows */
+.neon-cyan   { text-shadow: 0 0 8px rgba(0,212,255,0.8), 0 0 20px rgba(0,212,255,0.35); }
+.neon-purple { text-shadow: 0 0 8px rgba(124,58,237,0.8), 0 0 20px rgba(124,58,237,0.35); }
+.neon-pink   { text-shadow: 0 0 8px rgba(255,45,120,0.8), 0 0 20px rgba(255,45,120,0.35); }
+.neon-green  { text-shadow: 0 0 8px rgba(0,255,136,0.8), 0 0 20px rgba(0,255,136,0.35); }
+.neon-amber  { text-shadow: 0 0 8px rgba(255,184,0,0.8), 0 0 20px rgba(255,184,0,0.35); }
+.neon-orange { text-shadow: 0 0 8px rgba(255,85,0,0.8), 0 0 20px rgba(255,85,0,0.35); }
+
+/* Animated gradient border card */
+.holo-card {
+  position: relative;
+  background: var(--color-card);
+  border-radius: 12px;
+  isolation: isolate;
+}
+.holo-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, rgba(0,212,255,0.5), rgba(124,58,237,0.5), rgba(255,45,120,0.4), rgba(0,255,136,0.4), rgba(0,212,255,0.5));
+  background-size: 400% 400%;
+  animation: borderFlow 5s ease infinite;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.holo-card:hover::before { opacity: 1; }
+
+/* Pulse dot (active state indicator) */
+.pulse-dot {
+  position: relative;
+  display: inline-block;
+}
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pingRing 2s ease-out infinite;
+}
+
+/* Dot-grid background overlay */
+.dot-grid-bg {
+  background-image: radial-gradient(circle, rgba(99,102,241,0.1) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Scanline parent */
+.scanline-host {
+  position: relative;
+  overflow: hidden;
+}
+.scanline-host::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0,212,255,0.25) 30%, rgba(124,58,237,0.3) 60%, rgba(0,212,255,0.25) 80%, transparent 100%);
+  animation: scanLine 14s linear infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ═══════════════════════════════════════════
+   BASE STYLES
+═══════════════════════════════════════════ */
 
 * {
   box-sizing: border-box;
@@ -64,7 +212,7 @@ body {
 
 input::placeholder,
 textarea::placeholder {
-  color: rgba(240, 240, 255, 0.2);
+  color: rgba(232,232,255,0.2);
 }
 
 input[type="date"] {
@@ -72,21 +220,12 @@ input[type="date"] {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
+::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
+  background: linear-gradient(180deg, rgba(0,212,255,0.4), rgba(124,58,237,0.4));
   border-radius: 4px;
 }
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+::-webkit-scrollbar-track { background: transparent; }
 
 /* Selection */
-::selection {
-  background: rgba(139, 92, 246, 0.35);
-}
+::selection { background: rgba(0,212,255,0.25); }

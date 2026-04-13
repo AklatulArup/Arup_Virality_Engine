@@ -781,24 +781,33 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-screen" style={{ background: "#08081A", color: "#F0F0FF" }}>
+    <div className="flex min-h-screen scanline-host" style={{ background: "#05050F", color: "#E8E8FF" }}>
+      {/* ── Animated Background Orbs ── */}
+      <div style={{ position: "fixed", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+        <div style={{ position: "absolute", width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,58,237,0.13) 0%, transparent 65%)", top: "-150px", left: "80px", animation: "orbFloat1 22s ease-in-out infinite", filter: "blur(50px)" }} />
+        <div style={{ position: "absolute", width: 550, height: 550, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,212,255,0.11) 0%, transparent 65%)", top: "35%", right: "-80px", animation: "orbFloat2 28s ease-in-out infinite", filter: "blur(55px)" }} />
+        <div style={{ position: "absolute", width: 450, height: 450, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,45,120,0.08) 0%, transparent 65%)", bottom: "80px", left: "28%", animation: "orbFloat3 20s ease-in-out infinite", filter: "blur(60px)" }} />
+        <div style={{ position: "absolute", width: 350, height: 350, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,255,136,0.06) 0%, transparent 65%)", top: "60%", left: "10%", animation: "orbFloat1 32s ease-in-out infinite reverse", filter: "blur(65px)" }} />
+        {/* Dot grid overlay */}
+        <div className="dot-grid-bg" style={{ position: "absolute", inset: 0, opacity: 0.5 }} />
+      </div>
       {/* ══════════════ LEFT SIDEBAR ══════════════ */}
       <aside
         className="fixed left-0 top-0 bottom-0 w-[220px] flex flex-col overflow-y-auto z-40"
-        style={{ background: "#0E0E1F", borderRight: "1px solid rgba(139,92,246,0.15)" }}
+        style={{ background: "linear-gradient(180deg, rgba(10,10,28,0.98) 0%, rgba(8,8,22,0.98) 100%)", borderRight: "1px solid rgba(99,102,241,0.2)", zIndex: 40 }}
       >
         {/* Logo */}
         <div className="px-4 h-14 flex items-center gap-2.5 shrink-0" style={{ borderBottom: "1px solid rgba(139,92,246,0.15)" }}>
           <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-extrabold text-black shrink-0"
-            style={{ background: "linear-gradient(135deg, #00D4AA, #0A84FF)" }}>
+            style={{ background: "linear-gradient(135deg, #00D4FF, #7C3AED)" }}>
             FN
           </div>
-          <span className="text-[13px] font-semibold tracking-tight" style={{ color: "#F0F0FF" }}>FundedNext Intel</span>
+          <span className="text-[13px] font-bold tracking-tight gradient-text-brand">FundedNext Intel</span>
         </div>
 
         {/* Platform Nav */}
         <div className="px-3 pt-4 pb-2">
-          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "#7878A8" }}>PLATFORM</div>
+          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "rgba(0,212,255,0.6)", letterSpacing: "0.15em" }}>PLATFORM</div>
           {([
             { id: "youtube" as InputTab, label: "YouTube", icon: "▶", color: "#FF4444" },
             { id: "tiktok" as InputTab, label: "TikTok", icon: "♪", color: "#00f2ea" },
@@ -811,8 +820,8 @@ export default function Dashboard() {
                 onClick={() => setInputTab(id)}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all text-left mb-0.5"
                 style={{
-                  background: active ? "rgba(139,92,246,0.18)" : "transparent",
-                  color: active ? "#f1f1f1" : "#aaa",
+                  background: active ? `color-mix(in srgb, ${color} 15%, transparent)` : "transparent",
+                  color: active ? "#E8E8FF" : "rgba(232,232,255,0.45)",
                 }}
               >
                 <span style={{ color: active ? color : "#555", fontSize: 11 }}>{icon}</span>
@@ -827,7 +836,7 @@ export default function Dashboard() {
 
         {/* Analysis Modes */}
         <div className="px-3 py-3">
-          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "#7878A8" }}>ANALYSIS MODES</div>
+          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "rgba(124,58,237,0.7)", letterSpacing: "0.15em" }}>ANALYSIS MODES</div>
           <ModeSelector activeModes={activeModes} onToggle={toggleMode} onSelectAll={selectAll} onClear={clearModes} />
         </div>
 
@@ -835,16 +844,16 @@ export default function Dashboard() {
 
         {/* Pool Stats */}
         <div className="px-4 py-3">
-          <div className="text-[10px] font-semibold tracking-widest mb-2.5" style={{ color: "#7878A8" }}>REFERENCE POOL</div>
+          <div className="text-[10px] font-semibold tracking-widest mb-2.5" style={{ color: "rgba(0,255,136,0.6)", letterSpacing: "0.15em" }}>REFERENCE POOL</div>
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-xl p-2.5" style={{ background: "rgba(139,92,246,0.07)", border: "1px solid rgba(139,92,246,0.10)" }}>
-              <div className="text-[20px] font-bold leading-none" style={{ color: "#00D4AA" }}>
+            <div className="rounded-xl p-2.5" style={{ background: "rgba(0,255,136,0.05)", border: "1px solid rgba(0,255,136,0.12)" }}>
+              <div className="text-[20px] font-bold leading-none neon-green" style={{ color: "#00FF88" }}>
                 {referenceStore?.entries.length ?? 0}
               </div>
-              <div className="text-[10px] mt-0.5" style={{ color: "#7878A8" }}>Entries</div>
+              <div className="text-[10px] mt-0.5" style={{ color: "rgba(232,232,255,0.4)" }}>Entries</div>
             </div>
-            <div className="rounded-xl p-2.5" style={{ background: "rgba(139,92,246,0.07)", border: "1px solid rgba(139,92,246,0.10)" }}>
-              <div className="text-[20px] font-bold leading-none" style={{ color: "#0A84FF" }}>
+            <div className="rounded-xl p-2.5" style={{ background: "rgba(0,212,255,0.06)", border: "1px solid rgba(0,212,255,0.12)" }}>
+              <div className="text-[20px] font-bold leading-none neon-cyan" style={{ color: "#00D4FF" }}>
                 {keywordBank?.categories.niche.length ?? 0}
               </div>
               <div className="text-[10px] mt-0.5" style={{ color: "#7878A8" }}>Keywords</div>
@@ -859,7 +868,7 @@ export default function Dashboard() {
 
         {/* Reverse Engineer — dedicated Mode D entry */}
         <div className="px-3 py-2">
-          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "#7878A8" }}>TOOLS</div>
+          <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "rgba(255,184,0,0.65)", letterSpacing: "0.15em" }}>TOOLS</div>
           {(() => {
             const active = activePanel === "reverse-engineer";
             return (
@@ -932,7 +941,7 @@ export default function Dashboard() {
         {/* ── Sticky top search bar ── */}
         <div
           className="sticky top-0 z-30 px-6 py-3 flex items-center gap-3"
-          style={{ background: "rgba(8,8,26,0.96)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(139,92,246,0.15)" }}
+          style={{ background: "rgba(5,5,15,0.95)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(99,102,241,0.2)", position: "relative", zIndex: 30 }}
         >
           {/* Search input — adapts to active platform */}
           {inputTab === "youtube" && (
@@ -1034,18 +1043,18 @@ export default function Dashboard() {
         </div>
 
         {/* ── Page content ── */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6" style={{ position: "relative", zIndex: 2 }}>
 
           {/* Loading skeleton */}
           {loading && (
             <div className="space-y-4 animate-pulse">
               <div className="grid grid-cols-4 gap-4">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="rounded-2xl h-24" style={{ background: "rgba(139,92,246,0.10)" }} />
+                  <div key={i} className="rounded-2xl h-24" style={{ background: "linear-gradient(135deg, rgba(99,102,241,0.08), rgba(0,212,255,0.05))", border: "1px solid rgba(99,102,241,0.1)", animation: "glowPulse 2s ease-in-out infinite" }} />
                 ))}
               </div>
-              <div className="rounded-2xl h-48" style={{ background: "rgba(255,255,255,0.03)" }} />
-              <div className="rounded-2xl h-32" style={{ background: "rgba(255,255,255,0.03)" }} />
+              <div className="rounded-2xl h-48" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.06), rgba(0,212,255,0.04))", border: "1px solid rgba(99,102,241,0.08)" }} />
+              <div className="rounded-2xl h-32" style={{ background: "linear-gradient(135deg, rgba(255,45,120,0.05), rgba(124,58,237,0.06))", border: "1px solid rgba(99,102,241,0.08)" }} />
             </div>
           )}
 
