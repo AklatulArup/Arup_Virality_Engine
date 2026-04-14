@@ -77,7 +77,7 @@ import CreatorBlocklist from "./CreatorBlocklist";
 import ViewForecastPanel from "./ViewForecastPanel";
 import CursorGlow from "./CursorGlow";
 
-type InputTab = "youtube" | "tiktok" | "instagram";
+type InputTab = "youtube" | "youtube_short" | "tiktok" | "instagram";
 
 function enrichVideo(
   v: VideoData,
@@ -126,6 +126,7 @@ export default function Dashboard() {
   const [instagramInput, setInstagramInput] = useState("");
   const [instagramStatus, setInstagramStatus] = useState("");
   const [tiktokInputVal, setTiktokInputVal] = useState("");
+  const [youtubeShortInput, setYoutubeShortInput] = useState("");
   const [activePanel, setActivePanel] = useState<"libraries" | "ref-tools" | "reverse-engineer" | null>(null);
 
   // Extra analysis results for video mode
@@ -842,7 +843,8 @@ export default function Dashboard() {
         <div className="px-3 pt-4 pb-2">
           <div className="text-[10px] font-semibold tracking-widest px-2 mb-2" style={{ color: "rgba(0,212,255,0.6)", letterSpacing: "0.15em" }}>PLATFORM</div>
           {([
-            { id: "youtube" as InputTab, label: "YouTube", icon: "▶", color: "#FF4444" },
+            { id: "youtube" as InputTab, label: "YT Long Form", icon: "▶", color: "#FF4444" },
+            { id: "youtube_short" as InputTab, label: "YT Shorts", icon: "⚡", color: "#FF0076" },
             { id: "tiktok" as InputTab, label: "TikTok", icon: "♪", color: "#00f2ea" },
             { id: "instagram" as InputTab, label: "Instagram", icon: "◎", color: "#E1306C" },
           ]).map(({ id, label, icon, color }) => {
@@ -878,19 +880,40 @@ export default function Dashboard() {
         {/* Pool Stats */}
         <div className="px-4 py-3">
           <div className="text-[10px] font-semibold tracking-widest mb-2.5" style={{ color: "rgba(0,255,136,0.6)", letterSpacing: "0.15em" }}>REFERENCE POOL</div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="glass-card" style={{ padding: "10px" }}>
-              <div className="text-[20px] font-bold leading-none neon-green" style={{ color: "#00FF88" }}>
-                {referenceStore?.entries.length ?? 0}
+          <div className="grid grid-cols-2 gap-1.5">
+            {[
+              {
+                value: referenceStore?.entries.filter(e => e.type === "video").length ?? 0,
+                label: "Videos",
+                color: "#00FF88",
+                neon: "neon-green",
+              },
+              {
+                value: referenceStore ? new Set(referenceStore.entries.map(e => e.channelName)).size : 0,
+                label: "Creators",
+                color: "#00D4FF",
+                neon: "neon-cyan",
+              },
+              {
+                value: referenceStore?.entries.filter(e => e.type === "video" && (e.durationSeconds ?? 999) <= 60).length ?? 0,
+                label: "Shorts",
+                color: "#FF0076",
+                neon: "neon-pink",
+              },
+              {
+                value: keywordBank?.categories.niche.length ?? 0,
+                label: "Keywords",
+                color: "#FFB800",
+                neon: "neon-amber",
+              },
+            ].map(({ value, label, color, neon }) => (
+              <div key={label} className="glass-card" style={{ padding: "8px" }}>
+                <div className={`text-[18px] font-bold leading-none ${neon}`} style={{ color }}>
+                  {typeof value === "number" && value >= 1000 ? `${(value/1000).toFixed(1)}K` : value}
+                </div>
+                <div className="text-[9px] mt-0.5 uppercase tracking-wider" style={{ color: "rgba(232,232,255,0.38)" }}>{label}</div>
               </div>
-              <div className="text-[10px] mt-0.5" style={{ color: "rgba(232,232,255,0.4)" }}>Entries</div>
-            </div>
-            <div className="glass-card" style={{ padding: "10px" }}>
-              <div className="text-[20px] font-bold leading-none neon-cyan" style={{ color: "#00D4FF" }}>
-                {keywordBank?.categories.niche.length ?? 0}
-              </div>
-              <div className="text-[10px] mt-0.5" style={{ color: "#7878A8" }}>Keywords</div>
-            </div>
+            ))}
           </div>
           {refStoreStatus !== "idle" && (
             <div className="mt-2 text-[10px] font-medium" style={{ color: "#00D4AA" }}>✓ Saved</div>
@@ -983,6 +1006,32 @@ export default function Dashboard() {
           {inputTab === "youtube" && (
             <div className="flex-1">
               <UrlInput onAnalyze={analyze} loading={loading} status={status} error={error} />
+            </div>
+          )}
+
+          {inputTab === "youtube_short" && (
+            <div className="flex-1 flex gap-2">
+              <input
+                type="text"
+                value={youtubeShortInput}
+                onChange={e => setYoutubeShortInput(e.target.value)}
+                placeholder="https://youtube.com/shorts/VIDEO_ID or @channel"
+                className="flex-1 rounded-xl px-4 py-2.5 text-[13px] outline-none"
+                style={{ color: "#F0F0FF" }}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && youtubeShortInput.trim()) {
+                    analyze(youtubeShortInput.trim());
+                  }
+                }}
+              />
+              <button
+                onClick={() => { if (youtubeShortInput.trim()) analyze(youtubeShortInput.trim()); }}
+                disabled={loading || !youtubeShortInput.trim()}
+                className="glass-input rounded-xl px-5 py-2.5 text-[13px] font-semibold shrink-0 transition-opacity"
+                style={{ background: "linear-gradient(135deg, #FF0076, #FF4444)", color: "#fff", opacity: (loading || !youtubeShortInput.trim()) ? 0.4 : 1 }}
+              >
+                {loading ? "…" : "Analyze"}
+              </button>
             </div>
           )}
 
@@ -1096,7 +1145,7 @@ export default function Dashboard() {
           {activePanel === "reverse-engineer" && (
             <div className="mb-6 fade-up">
               <ReverseEngineerPanel
-                platform={inputTab}
+                platform={inputTab === "youtube_short" ? "youtube" : inputTab}
                 result={result}
                 loading={loading}
                 onAnalyze={(input) => {
@@ -1105,7 +1154,9 @@ export default function Dashboard() {
                       ? `https://www.tiktok.com/@${input.replace(/^@/, "")}`
                       : inputTab === "instagram" && !input.includes("instagram.com")
                         ? `https://www.instagram.com/${input.replace(/^@/, "")}/`
-                        : input;
+                        : inputTab === "youtube_short" && !input.includes("youtube.com") && !input.includes("youtu.be")
+                          ? input.startsWith("@") ? `https://www.youtube.com/${input}` : `https://www.youtube.com/shorts/${input}`
+                          : input;
                   analyze(normalized);
                 }}
               />

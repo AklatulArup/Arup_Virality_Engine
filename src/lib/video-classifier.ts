@@ -38,7 +38,7 @@ export function classifyVideoFormat(
   title?: string,
   tags?: string[],
   description?: string,
-  platform?: "youtube" | "tiktok"
+  platform?: "youtube" | "youtube_short" | "tiktok" | "instagram"
 ): VideoFormat {
   const shortsSignal = hasShortsSignal(title || "", tags, description);
 
@@ -68,7 +68,7 @@ export function classifyOrientation(
   title?: string,
   tags?: string[],
   description?: string,
-  platform?: "youtube" | "tiktok"
+  platform?: "youtube" | "youtube_short" | "tiktok" | "instagram"
 ): VideoOrientation {
   // TikTok is always vertical
   if (platform === "tiktok") return "vertical";

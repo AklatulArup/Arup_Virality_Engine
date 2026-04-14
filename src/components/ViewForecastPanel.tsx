@@ -15,6 +15,7 @@ export default function ViewForecastPanel({ video, forecastDate, onDateChange }:
   const [showSignals, setShowSignals] = useState(false);
   const [showFormula, setShowFormula] = useState(false);
   const [showConfidence, setShowConfidence] = useState(false);
+  const [showKMath, setShowKMath] = useState(false);
 
   const forecast = useMemo(() => {
     if (!forecastDate) return null;
@@ -247,38 +248,148 @@ export default function ViewForecastPanel({ video, forecastDate, onDateChange }:
           </div>
 
           {/* ── Virality Coefficient ── */}
-          <div
-            className="mx-6 mb-5 rounded-2xl p-4 flex items-center justify-between gap-4 flex-wrap"
-            style={{
-              background: `color-mix(in srgb, ${forecast.coefficient.color} 6%, rgba(255,255,255,0.03))`,
-              border: `1px solid color-mix(in srgb, ${forecast.coefficient.color} 20%, transparent)`,
-            }}
-          >
-            <div>
-              <div className="text-[11px] font-mono uppercase tracking-widest mb-1" style={{ color: "#86868b" }}>
-                Virality Coefficient — K = i × c
+          {(() => {
+            const K = forecast.coefficient.K;
+            const i = forecast.coefficient.shares;
+            const c = forecast.coefficient.conversion;
+            return (
+              <div
+                className="mx-6 mb-5 rounded-2xl overflow-hidden"
+                style={{
+                  background: `color-mix(in srgb, ${forecast.coefficient.color} 6%, rgba(255,255,255,0.03))`,
+                  border: `1px solid color-mix(in srgb, ${forecast.coefficient.color} 22%, transparent)`,
+                  backdropFilter: "blur(16px)",
+                }}
+              >
+                {/* Header row */}
+                <button
+                  onClick={() => setShowKMath(v => !v)}
+                  className="w-full px-4 pt-4 pb-3 flex items-start justify-between gap-4 flex-wrap text-left"
+                >
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest mb-1.5" style={{ color: "#86868b" }}>
+                      VIRALITY COEFFICIENT
+                    </div>
+                    <div className="flex items-baseline gap-2.5 flex-wrap">
+                      <span className="text-[32px] font-bold font-mono leading-none" style={{ color: forecast.coefficient.color }}>
+                        K = {K}
+                      </span>
+                      <div>
+                        <div className="text-[11px] font-mono" style={{ color: "#86868b" }}>
+                          {K >= 1.5 ? "≥1.5 exponential viral" : K >= 1 ? "≥1 self-spreading" : K >= 0.7 ? "0.7–1 contained steady" : "<0.7 declining"}
+                        </div>
+                        <div className="text-[12px] font-semibold mt-0.5" style={{ color: forecast.coefficient.color }}>
+                          {forecast.coefficient.verdict}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[10px] mb-1" style={{ color: "#86868b" }}>
+                      i = <span className="font-mono" style={{ color: "#f5f5f7" }}>{i}</span> shares/1K views
+                    </div>
+                    <div className="text-[10px] mb-2" style={{ color: "#86868b" }}>
+                      c = <span className="font-mono" style={{ color: "#f5f5f7" }}>{c}%</span> share→view conv.
+                    </div>
+                    <span className="text-[10px]" style={{ color: "#86868b" }}>{showKMath ? "▲ hide math" : "▼ full math"}</span>
+                  </div>
+                </button>
+
+                {/* Expandable full math */}
+                {showKMath && (
+                  <div className="px-4 pb-4 space-y-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+
+                    {/* Formula definition */}
+                    <div className="pt-3">
+                      <div className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: "#86868b" }}>THE FORMULA</div>
+                      <div
+                        className="rounded-xl px-4 py-3 font-mono text-[13px] text-center"
+                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#f5f5f7" }}
+                      >
+                        K = i × c × 10 + platformScore × 0.5
+                      </div>
+                      <div className="mt-2 text-[11px] space-y-1" style={{ color: "#86868b" }}>
+                        <div><span style={{ color: "#f5f5f7" }}>K</span> — Viral coefficient. &gt;1 = each view generates more than 1 new view (exponential). &lt;1 = shrinking reach.</div>
+                        <div><span style={{ color: "#f5f5f7" }}>i</span> — Infectiousness: estimated shares per 1,000 views. Derived from like rate × share proxy.</div>
+                        <div><span style={{ color: "#f5f5f7" }}>c</span> — Conversion: what % of people who see a share actually watch. Derived from platform score × baseline performance.</div>
+                      </div>
+                    </div>
+
+                    {/* Step-by-step with actual values */}
+                    <div>
+                      <div className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: "#86868b" }}>STEP-BY-STEP WITH YOUR NUMBERS</div>
+                      <div className="space-y-2">
+                        {[
+                          {
+                            step: "1",
+                            label: "Like Rate",
+                            formula: `likes ÷ views = ${video.likes.toLocaleString()} ÷ ${video.views.toLocaleString()}`,
+                            result: `${((video.likes / Math.max(1, video.views)) * 100).toFixed(3)}%`,
+                            explain: "What fraction of viewers click Like. Proxy for content satisfaction and share intent.",
+                          },
+                          {
+                            step: "2",
+                            label: "Share Proxy (i)",
+                            formula: `(likeRate × 0.15) + (engRate × 0.05) = infectiousness per view`,
+                            result: `${(((video.likes / Math.max(1, video.views)) * 0.15 + (video.engagement / 100) * 0.05) * 1000).toFixed(1)} shares/1K`,
+                            explain: "Empirical: roughly 15% of likers share. Added 5% of engagement rate as a DM/send proxy.",
+                          },
+                          {
+                            step: "3",
+                            label: "Conversion (c)",
+                            formula: `platformScore × (vsBaseline ÷ 3), capped at 1`,
+                            result: `${c}%`,
+                            explain: "How many people who see a shared link actually watch. Higher platform score = content that hooks cold audiences.",
+                          },
+                          {
+                            step: "4",
+                            label: "K Score",
+                            formula: `(shareProxy × c × 10) + (platformScore × 0.5)`,
+                            result: `K = ${K}`,
+                            explain: K >= 1 ? "K ≥ 1: Every 1,000 views spawn more than 1,000 new views through sharing. Self-sustaining growth loop." : "K < 1: Shares are not generating enough new viewers to replace the source audience. Growth relies entirely on algorithm push.",
+                          },
+                        ].map(({ step, label, formula, result, explain }) => (
+                          <div
+                            key={step}
+                            className="rounded-xl p-3"
+                            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                          >
+                            <div className="flex items-start justify-between gap-3 mb-1">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                                  style={{ background: `color-mix(in srgb, ${forecast.coefficient.color} 20%, transparent)`, color: forecast.coefficient.color }}
+                                >{step}</span>
+                                <span className="text-[11px] font-semibold" style={{ color: "#f5f5f7" }}>{label}</span>
+                              </div>
+                              <span className="text-[11px] font-mono font-bold shrink-0" style={{ color: forecast.coefficient.color }}>{result}</span>
+                            </div>
+                            <div className="text-[10px] font-mono ml-7 mb-1" style={{ color: "rgba(232,232,255,0.45)" }}>{formula}</div>
+                            <div className="text-[10px] ml-7" style={{ color: "#86868b" }}>{explain}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Decision + what to do */}
+                    <div
+                      className="rounded-xl p-3.5"
+                      style={{ background: `color-mix(in srgb, ${forecast.coefficient.color} 8%, rgba(0,0,0,0.3))`, border: `1px solid color-mix(in srgb, ${forecast.coefficient.color} 25%, transparent)` }}
+                    >
+                      <div className="text-[10px] font-mono uppercase tracking-wider mb-2" style={{ color: "#86868b" }}>DECISION & REASONING</div>
+                      <div className="text-[11px] font-semibold mb-1" style={{ color: forecast.coefficient.color }}>{forecast.coefficient.verdict}</div>
+                      <div className="text-[11px]" style={{ color: "#f5f5f7" }}>
+                        {K >= 1.5 && "This content is in exponential growth. The sharing loop is self-sustaining — each view generates more than 1.5 new views through organic distribution. Publish a follow-up immediately to capture the momentum. Double down on the exact hook and format."}
+                        {K >= 1 && K < 1.5 && "The algorithm is actively amplifying this content. Shares are converting to new viewers faster than the audience decays. Engage every comment to signal continued traction. Consider pinning the best comment to boost DMs."}
+                        {K >= 0.7 && K < 1 && "Content is holding steady but not breaking out. The sharing loop exists but closes below 1 — each 1,000 views generates fewer than 1,000 new views from shares. Growth is sustained by algorithmic push alone. Optimise the thumbnail and title to improve CTR and trigger a second distribution wave."}
+                        {K < 0.7 && "Organic spread is minimal. Fewer than 0.7 new views are generated per view through sharing — the content is not being passed along. The hook or topic may not be share-worthy for this audience. Analyse what the top 3 performers in the reference pool did differently at their hook (first 3 seconds)."}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-[28px] font-bold font-mono" style={{ color: forecast.coefficient.color }}>
-                  K = {forecast.coefficient.K}
-                </span>
-                <span className="text-[11px]" style={{ color: "#86868b" }}>
-                  {forecast.coefficient.K >= 1 ? "≥1 exponential" : "<1 contained"}
-                </span>
-              </div>
-              <div className="text-[12px] mt-1 font-medium" style={{ color: forecast.coefficient.color }}>
-                {forecast.coefficient.verdict}
-              </div>
-            </div>
-            <div className="text-right space-y-0.5">
-              <div className="text-[10px]" style={{ color: "#86868b" }}>
-                Shares / 1K views: <span className="font-mono" style={{ color: "#f5f5f7" }}>{forecast.coefficient.shares}</span>
-              </div>
-              <div className="text-[10px]" style={{ color: "#86868b" }}>
-                Share conversion: <span className="font-mono" style={{ color: "#f5f5f7" }}>{forecast.coefficient.conversion}%</span>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* ── Platform score breakdown ── */}
           <div className="mx-6 mb-5">

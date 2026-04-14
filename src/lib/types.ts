@@ -34,7 +34,7 @@ export interface VideoData {
   thumbnail: string;
   tags: string[];
   description: string;
-  platform?: "youtube" | "tiktok";
+  platform?: "youtube" | "youtube_short" | "tiktok" | "instagram";
   shares?: number;
   saves?: number;
   channelContext?: ChannelContext;
@@ -313,7 +313,7 @@ export type SentimentLabel = "positive" | "neutral" | "negative";
 export interface ReferenceEntry {
   id: string;
   type: "channel" | "video";
-  platform?: "youtube" | "tiktok";
+  platform?: "youtube" | "youtube_short" | "tiktok" | "instagram";
   name: string;
   channelId: string;
   channelName: string;
