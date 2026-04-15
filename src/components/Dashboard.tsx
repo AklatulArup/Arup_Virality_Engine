@@ -1233,7 +1233,7 @@ export default function Dashboard() {
                 platform={inputTab === "youtube_short" ? "youtube_short" : inputTab}
                 result={result}
                 loading={loading}
-                onAnalyze={(input) => {
+                onAnalyze={(input: string) => {
                   const normalized =
                     inputTab === "tiktok" && !input.includes("tiktok.com")
                       ? `https://www.tiktok.com/@${input.replace(/^@/, "")}`
@@ -1261,7 +1261,7 @@ export default function Dashboard() {
                 </div>
                 <button onClick={() => setActivePanel(null)} className="btn-ghost">✕ Close</button>
               </div>
-              {keywordBank && <KeywordBankManager bank={keywordBank} onChange={updated => setKeywordBank(updated)} />}
+              {keywordBank && <KeywordBankManager bank={keywordBank} onChange={(updated: KeywordBank) => setKeywordBank(updated)} />}
               {hashtagBank && <HashtagBankManager bank={hashtagBank} onChange={setHashtagBank} />}
               <CompetitorBankManager competitors={competitors} onChange={setCompetitors} />
               <CreatorBlocklist refreshKey={blocklistKey} onChange={() => refreshReferenceStore()} />
@@ -1284,7 +1284,7 @@ export default function Dashboard() {
               {referenceStore && referenceStore.entries.length > 0 && (
                 <ReferenceSearch
                   entries={referenceStore.entries}
-                  onRemove={ids => {
+                  onRemove={(ids: string[]) => {
                     setReferenceStore(prev => prev ? { ...prev, entries: prev.entries.filter(e => !ids.includes(e.id)) } : prev);
                   }}
                   onBlockCreator={() => { setBlocklistKey(k => k + 1); refreshReferenceStore(); }}
