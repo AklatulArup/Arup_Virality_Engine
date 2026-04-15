@@ -135,6 +135,30 @@ export default function ViralityVerdictPanel({ video, channel, channelMedian, re
   const hasQuestion  = title.includes("?");
   const titleScore   = (hasPowerWord ? 30 : 0) + (hasNumber ? 20 : 0) + (hasQuestion ? 15 : 0) + (titleLen >= 40 && titleLen <= 70 ? 20 : titleLen < 40 ? 10 : 5) + (format.short ? 15 : 0);
 
+  function buildComputedVerdict(): string {
+    const phaseContext = phase.phase === "viral"
+      ? `This video is in full viral distribution. At ${video.vsBaseline}x the channel median and ${video.velocity.toLocaleString()} views/day, the platform algorithm has moved it beyond the subscriber audience and is actively serving it to cold traffic. This is confirmed by the ${likeRate}% like rate against ${video.views.toLocaleString()} views — the ratio holds even with non-subscriber traffic, which is the clearest viral signal.`
+      : phase.phase === "expansion"
+      ? `This video has cleared the algorithm's initial quality threshold and entered expansion distribution. At ${video.vsBaseline}x the channel median (${chMedianViews.toLocaleString()} views), it's performing well above the creator's baseline. The ${video.velocity.toLocaleString()} views/day velocity on day ${video.days} indicates sustained algorithmic push rather than a spike-and-decay pattern.`
+      : phase.phase === "resonance"
+      ? `This video is in the resonance phase — the algorithm has detected early quality signals and is beginning to expand distribution. The ${video.vsBaseline}x performance vs channel median (${chMedianViews.toLocaleString()} views) at ${video.days} days old suggests the initial subscriber audience responded well, giving the algorithm confidence to test it on broader audiences.`
+      : `This video is in its seed phase. ${video.days <= 2 ? "At under 48 hours old, the algorithm is still sampling engagement quality before making distribution decisions. The first 48 hours set the ceiling." : `At day ${video.days}, early performance signals are being established. The ${video.velocity.toLocaleString()} views/day velocity relative to the channel median will determine whether it enters wider distribution.`}`;
+
+    const compareContext = pool
+      ? `Against your ${pool.poolSize}-video reference pool, this sits ${pool.pct > 0 ? `${pool.pct}% above` : `${Math.abs(pool.pct)}% below`} the pool median of ${pool.poolMedian.toLocaleString()} views. ${pool.pct > 50 ? "That's a top-tier result for this niche." : pool.pct > 0 ? "It's beating pool median, which is a solid benchmark." : "It's underperforming the pool benchmark — worth investigating what separates the top pool performers."}`
+      : `The channel median is ${chMedianViews.toLocaleString()} views. This video is performing at ${video.vsBaseline}x that — ${perfVsChannel > 0 ? `${perfVsChannel}% above` : `${Math.abs(perfVsChannel)}% below`} the creator's own baseline. ${video.vsBaseline >= 3 ? "That margin is significant and suggests a format or topic hit." : video.vsBaseline >= 1.5 ? "That's above average for the channel." : "There's room to improve — look at top performers in the same niche for format cues."}`;
+
+    const commentContext = parseFloat(commentRate) >= 2
+      ? `The ${commentRate} comments per 1,000 views is a strong signal — this rate drives algorithmic retargeting loops, especially on YouTube where comment activity is weighted as a distribution signal. The audience isn't just watching; they're invested enough to respond.`
+      : parseFloat(commentRate) >= 0.8
+      ? `The ${commentRate} comments per 1,000 views shows the audience is engaged. For ${format.label.toLowerCase()} content, this is a healthy signal. Adding a direct question or opinion prompt in the CTA could push this into the higher engagement tier.`
+      : `Comment rate is low at ${commentRate} per 1,000 views. For ${niche} content, driving more comments would improve retargeting signals. The most effective approach is posing a specific question that's easy to answer quickly.`;
+
+    return [phaseContext, compareContext, commentContext].join("
+
+");
+  }
+
   async function generateAIVerdict() {
     setAiLoading(true);
     setAiTriggered(true);
@@ -318,25 +342,36 @@ Write a plain-English performance verdict. 3 paragraphs max. Cover: (1) what the
         {/* ── AI Verdict ── */}
         <div>
           {!aiTriggered ? (
-            <button
-              onClick={generateAIVerdict}
-              className="w-full flex items-center justify-center gap-2 font-semibold rounded-xl"
-              style={{
-                height: 42, fontSize: 13,
-                background: "linear-gradient(135deg, rgba(96,165,250,0.12), rgba(46,204,138,0.08))",
-                border: "1px solid rgba(96,165,250,0.3)",
-                color: "#60A5FA", cursor: "pointer",
-                transition: "all 0.2s",
-                boxShadow: "0 0 16px rgba(96,165,250,0.1)",
-              }}
-              onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 24px rgba(96,165,250,0.25)")}
-              onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 0 16px rgba(96,165,250,0.1)")}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1v2M7 11v2M1 7h2M11 7h2M3.2 3.2l1.4 1.4M9.4 9.4l1.4 1.4M3.2 10.8l1.4-1.4M9.4 4.6l1.4-1.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-              </svg>
-              Generate Full AI Verdict
-            </button>
+            <div>
+              <div className="panel-label mb-3">PERFORMANCE VERDICT</div>
+              <div style={{
+                background: "rgba(96,165,250,0.04)", border: "1px solid rgba(96,165,250,0.12)",
+                borderRadius: 10, padding: "16px 18px",
+              }}>
+                {buildComputedVerdict().split("\n\n").map((para, i, arr) => (
+                  <p key={i} style={{ fontSize: 13, color: "#C8C6C1", lineHeight: 1.75, marginBottom: i < arr.length - 1 ? 14 : 0 }}>
+                    {para}
+                  </p>
+                ))}
+              </div>
+              <button
+                onClick={generateAIVerdict}
+                className="mt-3 w-full flex items-center justify-center gap-2 font-semibold rounded-xl"
+                style={{
+                  height: 40, fontSize: 12,
+                  background: "linear-gradient(135deg, rgba(96,165,250,0.10), rgba(46,204,138,0.06))",
+                  border: "1px solid rgba(96,165,250,0.25)",
+                  color: "#60A5FA", cursor: "pointer", transition: "all 0.2s",
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 0 20px rgba(96,165,250,0.2)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; }}
+              >
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 1v2M7 11v2M1 7h2M11 7h2M3.2 3.2l1.4 1.4M9.4 9.4l1.4 1.4M3.2 10.8l1.4-1.4M9.4 4.6l1.4-1.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                </svg>
+                Upgrade with AI Analysis
+              </button>
+            </div>
           ) : aiLoading ? (
             <div className="flex items-center gap-3" style={{ padding: "14px 0" }}>
               <span className="orbital-loader" />
