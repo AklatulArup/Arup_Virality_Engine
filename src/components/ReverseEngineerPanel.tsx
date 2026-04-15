@@ -11,6 +11,7 @@ interface ReverseEngineerPanelProps {
   result: AnalysisResult | null;
   loading: boolean;
   onAnalyze: (input: string) => void;
+  onRetry?: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -688,7 +689,7 @@ function Section({ title, accent, defaultOpen = true, badge, children }: {
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function ReverseEngineerPanel({ platform, result, loading, onAnalyze }: ReverseEngineerPanelProps) {
+export default function ReverseEngineerPanel({ platform, result, loading, onAnalyze, onRetry }: ReverseEngineerPanelProps) {
   const [urlInput, setUrlInput] = useState("");
   const [targetPlatform, setTargetPlatform] = useState<TargetPlatform>(platform as TargetPlatform);
   const intel = PLATFORM_INTEL[platform] ?? PLATFORM_INTEL.youtube;
@@ -858,10 +859,66 @@ export default function ReverseEngineerPanel({ platform, result, loading, onAnal
         }}>
           {/* Header */}
           <div className="px-5 py-3.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", background: `color-mix(in srgb, ${intel.color} 8%, transparent)` }}>
-            <div className="text-[10px] font-mono uppercase tracking-widest mb-0.5" style={{ color: intel.color }}>CONTENT ANALYSIS — LIVE</div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[10px] font-mono uppercase tracking-widest mb-0.5" style={{ color: intel.color }}>CONTENT ANALYSIS — LIVE</div>
+              {(platform === "tiktok" || platform === "instagram") && onRetry && (
+                <button
+                  onClick={onRetry}
+                  disabled={loading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all shrink-0"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    color: "rgba(232,232,255,0.7)",
+                    opacity: loading ? 0.4 : 1,
+                  }}
+                >
+                  <span style={{ fontSize: 11 }}>↺</span> Re-scrape Fresh Data
+                </button>
+              )}
+            </div>
             <div className="text-[14px] font-bold" style={{ color: "#E8E8FF" }}>{video.title || video.channel}</div>
             {channel && <div className="text-[11px] mt-0.5" style={{ color: "rgba(232,232,255,0.5)" }}>{channel.name} · {channel.subs >= 1000000 ? `${(channel.subs/1000000).toFixed(1)}M` : `${(channel.subs/1000).toFixed(0)}K`} subscribers</div>}
           </div>
+
+          {/* Data accuracy banner for TikTok / Instagram */}
+          {(platform === "tiktok" || platform === "instagram") && (
+            <div className="mx-5 mt-4 rounded-xl px-4 py-3" style={{
+              background: "rgba(255,184,0,0.07)",
+              border: "1px solid rgba(255,184,0,0.2)",
+            }}>
+              <div className="flex items-start gap-2.5">
+                <span className="text-[15px] shrink-0 mt-0.5">⚠️</span>
+                <div>
+                  <div className="text-[11px] font-bold mb-1" style={{ color: "#FFB800" }}>
+                    {platform === "tiktok" ? "TikTok" : "Instagram"} Data Accuracy Notice
+                  </div>
+                  <p className="text-[11px] leading-relaxed" style={{ color: "rgba(232,232,255,0.7)" }}>
+                    {platform === "tiktok"
+                      ? "TikTok blocks official API access. This data is scraped via Apify and may be 12–48 hours old. View counts, saves, and shares are real but may not reflect the latest numbers. Signals marked \"estimated\" below are calculated approximations — not direct platform data."
+                      : "Instagram restricts third-party data access. This data is scraped via Apify and may be 24–48 hours old. Engagement rates and reach data are approximations. For most accurate numbers, cross-check inside Instagram's native Insights panel."}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {[
+                      { label: "Views/Likes/Comments", reliable: true },
+                      { label: "Saves & Shares", reliable: platform === "tiktok" },
+                      { label: "Completion Rate", reliable: false },
+                      { label: "Loop Rate", reliable: false },
+                      { label: "Reach & Impressions", reliable: false },
+                    ].map(({ label, reliable }) => (
+                      <span key={label} className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{
+                        background: reliable ? "rgba(0,255,136,0.1)" : "rgba(255,184,0,0.1)",
+                        border: `1px solid ${reliable ? "rgba(0,255,136,0.2)" : "rgba(255,184,0,0.2)"}`,
+                        color: reliable ? "#00FF88" : "#FFB800",
+                      }}>
+                        {reliable ? "✓" : "~"} {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="p-5 space-y-5">
 
@@ -871,26 +928,40 @@ export default function ReverseEngineerPanel({ platform, result, loading, onAnal
               <div className="grid grid-cols-3 gap-3">
                 {intel.algorithmSignals.map(({ signal, target, weight }) => {
                   const rawLikeRate = video.likes / Math.max(video.views, 1);
+                  const isScrapedPlatform = platform === "tiktok" || platform === "instagram";
+                  const sigLower = signal.toLowerCase();
+
+                  // Which signals are estimated (not directly from API)
+                  const isEstimated = isScrapedPlatform && (
+                    sigLower.includes("completion") ||
+                    sigLower.includes("loop") ||
+                    sigLower.includes("3-second") ||
+                    sigLower.includes("saves") ||
+                    sigLower.includes("send")
+                  );
+
                   const actual =
-                    signal.toLowerCase().includes("completion") ? `${(video.engagement * 12).toFixed(0)}%` :
-                    signal.toLowerCase().includes("ctr") ? "—" :
-                    signal.toLowerCase().includes("avd") ? "—" :
-                    signal.toLowerCase().includes("saves") ? `${(rawLikeRate * 100 * 0.8).toFixed(1)}%` :
-                    signal.toLowerCase().includes("share") || signal.toLowerCase().includes("send") ? `${(video.shares ? (video.shares / Math.max(video.views, 1) * 100).toFixed(1) : (rawLikeRate * 100 * 0.4).toFixed(1))}%` :
-                    signal.toLowerCase().includes("3-second") || signal.toLowerCase().includes("loop") ? `${Math.min(99, (video.engagement * 8)).toFixed(0)}%` :
+                    sigLower.includes("completion") ? `${(video.engagement * 12).toFixed(0)}%` :
+                    sigLower.includes("ctr") ? "—" :
+                    sigLower.includes("avd") ? "—" :
+                    sigLower.includes("saves") ? `${(rawLikeRate * 100 * 0.8).toFixed(1)}%` :
+                    sigLower.includes("share") || sigLower.includes("send") ? `${(video.shares ? (video.shares / Math.max(video.views, 1) * 100).toFixed(1) : (rawLikeRate * 100 * 0.4).toFixed(1))}%` :
+                    sigLower.includes("3-second") || sigLower.includes("loop") ? `${Math.min(99, (video.engagement * 8)).toFixed(0)}%` :
                     `${video.engagement.toFixed(2)}%`;
 
                   const numericTarget = parseFloat(target);
                   const numericActual = parseFloat(actual);
                   const isGood = !isNaN(numericActual) && !isNaN(numericTarget) && numericActual >= numericTarget;
-                  const statusColor = actual === "—" ? "rgba(232,232,255,0.4)" : isGood ? "#00FF88" : "#FF453A";
+                  const statusColor = actual === "—" ? "rgba(232,232,255,0.4)" : isEstimated ? "#FFB800" : isGood ? "#00FF88" : "#FF453A";
 
                   return (
-                    <div key={signal} className="rounded-xl p-3" style={{ background: "rgba(0,0,0,0.35)", border: `1px solid ${actual === "—" ? "rgba(255,255,255,0.06)" : isGood ? "rgba(0,255,136,0.2)" : "rgba(255,69,58,0.2)"}` }}>
+                    <div key={signal} className="rounded-xl p-3" style={{ background: "rgba(0,0,0,0.35)", border: `1px solid ${actual === "—" ? "rgba(255,255,255,0.06)" : isEstimated ? "rgba(255,184,0,0.2)" : isGood ? "rgba(0,255,136,0.2)" : "rgba(255,69,58,0.2)"}` }}>
                       <div className="text-[9px] mb-1.5 leading-tight" style={{ color: "rgba(232,232,255,0.45)" }}>{signal.split(" (")[0]}</div>
                       <div className="text-[20px] font-bold font-mono leading-none mb-1" style={{ color: statusColor }}>{actual}</div>
                       <div className="text-[9px]" style={{ color: "rgba(232,232,255,0.35)" }}>target: {target}</div>
-                      <div className="text-[8px] mt-1 font-semibold" style={{ color: statusColor }}>{actual === "—" ? "needs platform data" : isGood ? "✓ above target" : "↑ below target"}</div>
+                      <div className="text-[8px] mt-1 font-semibold" style={{ color: statusColor }}>
+                        {actual === "—" ? "needs platform data" : isEstimated ? "~ estimated (not direct API)" : isGood ? "✓ above target" : "↑ below target"}
+                      </div>
                     </div>
                   );
                 })}

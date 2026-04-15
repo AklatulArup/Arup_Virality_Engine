@@ -1145,7 +1145,7 @@ export default function Dashboard() {
           {activePanel === "reverse-engineer" && (
             <div className="mb-6 fade-up">
               <ReverseEngineerPanel
-                platform={inputTab === "youtube_short" ? "youtube" : inputTab}
+                platform={inputTab === "youtube_short" ? "youtube_short" : inputTab}
                 result={result}
                 loading={loading}
                 onAnalyze={(input) => {
@@ -1159,6 +1159,7 @@ export default function Dashboard() {
                           : input;
                   analyze(normalized);
                 }}
+                onRetry={() => { if (lastUrl) analyze(lastUrl); }}
               />
             </div>
           )}
