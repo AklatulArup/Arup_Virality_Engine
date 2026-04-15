@@ -1945,7 +1945,7 @@ export default function Dashboard() {
             ];
             return (
               <div className="space-y-5" style={{ paddingTop: 4 }}>
-                <div className="grid gap-3 fade-up" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}>
+                <div className="grid gap-3 fade-up" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", marginBottom: 8 }}>
                   {metrics.map((m, i) => <MetricCard key={m.label} {...m} index={i} />)}
                 </div>
                 <div className="fade-up-1">
@@ -2006,7 +2006,7 @@ export default function Dashboard() {
             ];
             return (
               <div className="space-y-5" style={{ paddingTop: 4 }}>
-                <div className="grid gap-3 fade-up" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}>
+                <div className="grid gap-3 fade-up" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", marginBottom: 8 }}>
                   {metrics.map((m, i) => <MetricCard key={m.label} {...m} index={i} />)}
                 </div>
                 {topVideo && (
