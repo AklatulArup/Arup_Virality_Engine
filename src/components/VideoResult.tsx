@@ -84,84 +84,103 @@ export default function VideoResult({
   const archetypes = detectArchetypes(video.title, video.tags);
 
   return (
-    <div className="flex flex-col gap-3.5">
-      {/* Video header card */}
-      <div className="bg-surface border border-border rounded-[10px] p-3.5 flex gap-3.5">
+    <div className="flex flex-col gap-4">
+      {/* ── Video hero card ── */}
+      <div
+        className="glass-card"
+        style={{
+          padding: 0,
+          overflow: "hidden",
+          borderRadius: 12,
+          display: "flex",
+          gap: 0,
+        }}
+      >
+        {/* Thumbnail */}
         {video.thumbnail && (
-          <Image
-            src={video.thumbnail}
-            alt={video.title}
-            width={320}
-            height={180}
-            className="rounded-md object-cover shrink-0"
-            style={{ width: 180, height: "auto" }}
-          />
+          <div style={{ position: "relative", flexShrink: 0, width: 200 }}>
+            <Image
+              src={video.thumbnail}
+              alt={video.title}
+              width={360}
+              height={203}
+              className="object-cover"
+              style={{ width: 200, height: "100%", minHeight: 120, display: "block" }}
+            />
+            {/* Gradient overlay on thumbnail */}
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "linear-gradient(to right, transparent 60%, rgba(13,13,11,0.9))",
+            }} />
+          </div>
         )}
-        <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-bold mb-1 leading-snug">
-            {video.title}
-          </h2>
-          <div className="text-[11px] text-muted mb-2">
-            {video.channel} &middot; {formatDate(video.publishedAt)} &middot;{" "}
-            {video.duration}
-          </div>
 
-          <div className="flex gap-2 flex-wrap">
-            <MetricCard label="Views" value={formatNumber(video.views)} />
-            <MetricCard
-              label="Likes"
-              value={formatNumber(video.likes)}
-              color="var(--color-accent)"
-            />
-            <MetricCard
-              label="Comments"
-              value={formatNumber(video.comments)}
-              color="var(--color-accent-blue)"
-            />
-            <MetricCard
-              label="Velocity"
-              value={`${formatNumber(video.velocity)}/d`}
-              color="var(--color-mode-c)"
-            />
-            <MetricCard
-              label="Engage"
-              value={`${video.engagement.toFixed(1)}%`}
-              color="var(--color-mode-e)"
-            />
-            <MetricCard
-              label="vs Base"
-              value={`${video.vsBaseline}x`}
-              color={
-                video.vsBaseline >= 3
-                  ? "var(--color-vrs-excellent)"
-                  : video.vsBaseline >= 1
-                    ? "var(--color-vrs-competitive)"
-                    : "var(--color-vrs-rework)"
-              }
-            />
-          </div>
-
-          {video.isOutlier && (
-            <div
-              className="mt-2 text-[10px] font-mono inline-block px-2 py-0.5 rounded"
-              style={{
-                color: "var(--color-vrs-excellent)",
-                background: "rgba(0,229,160,0.06)",
-              }}
-            >
-              &#x1F525; OUTLIER &mdash; {video.vsBaseline}x channel median
+        <div className="flex-1 min-w-0 p-5">
+          {/* Title + meta */}
+          <div className="mb-3">
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#E8E6E1", lineHeight: 1.4, marginBottom: 6 }}>
+              {video.title}
+            </h2>
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="font-mono" style={{ fontSize: 11, color: "#8A8885" }}>
+                {video.channel}
+              </span>
+              <span style={{ color: "#3A3835" }}>·</span>
+              <span className="font-mono" style={{ fontSize: 11, color: "#8A8885" }}>
+                {formatDate(video.publishedAt)}
+              </span>
+              {video.duration && (
+                <>
+                  <span style={{ color: "#3A3835" }}>·</span>
+                  <span className="font-mono" style={{ fontSize: 11, color: "#8A8885" }}>{video.duration}</span>
+                </>
+              )}
             </div>
-          )}
+          </div>
 
-          {/* Archetype badges */}
-          <div className="flex gap-1 mt-2 flex-wrap">
+          {/* Metric pills row */}
+          <div className="flex gap-4 flex-wrap mb-3">
+            {[
+              { label: "VIEWS",    value: formatNumber(video.views),               color: "#2ECC8A" },
+              { label: "LIKES",    value: formatNumber(video.likes),               color: "#60A5FA" },
+              { label: "COMMENTS", value: formatNumber(video.comments),            color: "#A78BFA" },
+              { label: "VELOCITY", value: `${formatNumber(video.velocity)}/d`,     color: "#7B4FFF" },
+              { label: "ENGAGE",   value: `${video.engagement.toFixed(1)}%`,       color: "#F59E0B" },
+              { label: "VS BASE",  value: `${video.vsBaseline}x`,                  color: video.vsBaseline >= 3 ? "#2ECC8A" : video.vsBaseline >= 1 ? "#F59E0B" : "#FF4D6A" },
+            ].map(({ label, value, color }) => (
+              <div key={label}>
+                <div className="font-mono" style={{ fontSize: 9, color: "#5E5A57", letterSpacing: "0.12em", marginBottom: 2 }}>{label}</div>
+                <div className="font-mono font-bold" style={{ fontSize: 16, color, textShadow: `0 0 10px ${color}88` }}>{value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tags row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {video.isOutlier && (
+              <span
+                className="font-mono font-bold"
+                style={{
+                  fontSize: 9, letterSpacing: "0.1em", padding: "3px 8px", borderRadius: 99,
+                  background: "rgba(46,204,138,0.12)", border: "1px solid rgba(46,204,138,0.3)",
+                  color: "#2ECC8A", boxShadow: "0 0 8px rgba(46,204,138,0.2)",
+                }}
+              >
+                🔥 OUTLIER — {video.vsBaseline}x MEDIAN
+              </span>
+            )}
             {archetypes.map((id) => {
               const arch = getArchetype(id);
               if (!arch) return null;
               return (
                 <span
                   key={id}
-                  className="text-[8px] font-mono px-1.5 py-0.5 rounded border border-border text-subtle"
+                  className="font-mono"
+                  style={{
+                    fontSize: 9, padding: "2px 7px", borderRadius: 99,
+                    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)",
+                    color: "#8A8885",
+                  }}
                 >
                   {arch.label}
                 </span>

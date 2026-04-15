@@ -14,68 +14,110 @@ export default function CollapsibleSection({
   title,
   subtitle,
   defaultOpen = false,
-  accentColor = "var(--color-accent)",
+  accentColor = "#60A5FA",
   children,
 }: CollapsibleSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
     <div
-      className="rounded-2xl overflow-hidden"
       style={{
-        background: open ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.03)",
-        backdropFilter: "blur(24px) saturate(160%)",
-        WebkitBackdropFilter: "blur(24px) saturate(160%)",
-        border: `1px solid ${open ? `color-mix(in srgb, ${accentColor} 30%, rgba(255,255,255,0.10))` : "rgba(255,255,255,0.07)"}`,
+        position: "relative",
+        background: open ? "rgba(255,255,255,0.045)" : "rgba(255,255,255,0.025)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        border: `1px solid ${open ? `${accentColor}30` : "rgba(255,255,255,0.08)"}`,
+        borderRadius: 12,
+        overflow: "hidden",
+        transition: "background 0.2s, border-color 0.2s, box-shadow 0.25s",
         boxShadow: open
-          ? `0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15), 0 0 24px color-mix(in srgb, ${accentColor} 6%, transparent)`
-          : "0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)",
-        transition: "all 0.3s ease",
+          ? `inset 0 1px 0 rgba(255,255,255,0.12), 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px ${accentColor}08`
+          : "inset 0 1px 0 rgba(255,255,255,0.07), 0 2px 12px rgba(0,0,0,0.3)",
       }}
     >
+      {/* Accent top border line */}
+      <div style={{
+        position: "absolute", top: 0, left: 0, right: 0, height: 1,
+        background: open
+          ? `linear-gradient(90deg, transparent, ${accentColor}60, transparent)`
+          : "transparent",
+        transition: "background 0.25s",
+        pointerEvents: "none",
+        zIndex: 2,
+      }} />
+
+      {/* Trigger */}
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+        className="w-full flex items-center gap-3 text-left"
         style={{
-          background: open ? `color-mix(in srgb, ${accentColor} 5%, rgba(255,255,255,0.03))` : "transparent",
+          padding: "14px 18px",
+          background: "transparent",
+          cursor: "pointer",
+          border: "none",
+          outline: "none",
         }}
       >
+        {/* Arrow */}
         <span
-          className="text-xs transition-transform duration-200 shrink-0"
           style={{
+            width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: open ? `${accentColor}20` : "rgba(255,255,255,0.05)",
+            border: `1px solid ${open ? `${accentColor}40` : "rgba(255,255,255,0.08)"}`,
+            color: open ? accentColor : "#6B6860",
+            fontSize: 8, fontWeight: 700,
             transform: open ? "rotate(90deg)" : "rotate(0deg)",
-            color: accentColor,
-            filter: open ? `drop-shadow(0 0 4px ${accentColor})` : "none",
-            transition: "transform 0.2s, filter 0.2s",
+            transition: "transform 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s",
+            boxShadow: open ? `0 0 8px ${accentColor}40` : "none",
           }}
         >
-          &#9654;
+          ▶
         </span>
-        <div className="flex-1">
-          <div className="text-[13px] font-semibold" style={{ color: open ? accentColor : "rgba(232,232,255,0.85)" }}>
+
+        <div className="flex-1 min-w-0">
+          <div
+            style={{
+              fontSize: 13, fontWeight: 600,
+              color: open ? "#E8E6E1" : "#B8B6B1",
+              transition: "color 0.2s",
+              letterSpacing: "-0.01em",
+            }}
+          >
             {title}
           </div>
           {subtitle && (
-            <div className="text-[10px] mt-0.5" style={{ color: "rgba(232,232,255,0.38)" }}>{subtitle}</div>
+            <div
+              className="font-mono"
+              style={{ fontSize: 10, marginTop: 2, color: "#5E5A57", letterSpacing: "0.04em" }}
+            >
+              {subtitle}
+            </div>
           )}
         </div>
-        {open && (
-          <div
-            className="shrink-0 w-1.5 h-1.5 rounded-full"
-            style={{
-              background: accentColor,
-              boxShadow: `0 0 6px ${accentColor}, 0 0 12px color-mix(in srgb, ${accentColor} 50%, transparent)`,
-              animation: "glowPulse 2s ease-in-out infinite",
-            }}
-          />
-        )}
+
+        {/* Open/close pill */}
+        <span
+          className="font-mono shrink-0"
+          style={{
+            fontSize: 8, letterSpacing: "0.1em", padding: "2px 7px", borderRadius: 99,
+            background: open ? `${accentColor}15` : "rgba(255,255,255,0.04)",
+            border: `1px solid ${open ? `${accentColor}30` : "rgba(255,255,255,0.08)"}`,
+            color: open ? accentColor : "#5E5A57",
+            transition: "all 0.2s",
+          }}
+        >
+          {open ? "OPEN" : "VIEW"}
+        </span>
       </button>
+
+      {/* Content */}
       {open && (
         <div
-          className="px-4 pb-4"
           style={{
-            borderTop: `1px solid rgba(255,255,255,0.06)`,
-            paddingTop: 12,
+            borderTop: `1px solid ${accentColor}18`,
+            padding: "16px 18px",
+            background: "rgba(0,0,0,0.15)",
           }}
         >
           {children}

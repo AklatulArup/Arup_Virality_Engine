@@ -1,5 +1,17 @@
 "use client";
 
+interface HistoryEntry {
+  id: string;
+  url: string;
+  platform: string;
+  title: string;
+  channelName: string;
+  checkedAt: string;
+  firstCheckedAt?: string;
+  metrics: Record<string, number | string>;
+  previousSnapshot?: { checkedAt: string; metrics: Record<string, number | string> };
+}
+
 import { useState, useEffect } from "react";
 import type {
   ModeId,
@@ -131,6 +143,8 @@ export default function Dashboard() {
   const [youtubeShortInput, setYoutubeShortInput] = useState("");
   const [activePanel, setActivePanel] = useState<"libraries" | "ref-tools" | "reverse-engineer" | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [history, setHistory]   = useState<HistoryEntry[]>([]);
+  const [historyPanel, setHistoryPanel] = useState(false);
 
   // Extra analysis results for video mode
   const [adjacentCtx, setAdjacentCtx] = useState<AdjacentVideoContext | null>(null);
@@ -164,6 +178,11 @@ export default function Dashboard() {
     fetch("/api/competitor-bank")
       .then((r) => r.json())
       .then(setCompetitors)
+      .catch(() => {});
+    // Load analysis history
+    fetch("/api/analysis-history")
+      .then((r) => r.json())
+      .then((data) => setHistory(data.entries || []))
       .catch(() => {});
   }, []);
 
@@ -596,6 +615,39 @@ export default function Dashboard() {
         };
         setResult(videoResult);
 
+        // Save to analysis history
+        const histEntry: HistoryEntry = {
+          id: Date.now().toString(),
+          url: parsed.url || url,
+          platform: "youtube",
+          title: videoData.title,
+          channelName: channelData?.name || videoData.channel,
+          checkedAt: new Date().toISOString(),
+          metrics: {
+            views: videoData.views,
+            likes: videoData.likes,
+            engagement: parseFloat(enrichedVideo.engagement.toFixed(2)),
+            velocity: Math.round(enrichedVideo.velocity),
+            vrsScore: enrichedVideo.vrs.estimatedFullScore,
+            subscribers: channelData?.subs || 0,
+          },
+        };
+        fetch("/api/analysis-history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(histEntry),
+        }).then(() => {
+          setHistory(prev => {
+            const idx = prev.findIndex(e => e.url === histEntry.url);
+            if (idx >= 0) {
+              const updated = [...prev];
+              updated[idx] = { ...histEntry, previousSnapshot: { checkedAt: prev[idx].checkedAt, metrics: prev[idx].metrics } };
+              return updated;
+            }
+            return [histEntry, ...prev].slice(0, 200);
+          });
+        }).catch(() => {});
+
         // Expand keyword bank
         expandBank(videoData.title, videoData.description, videoData.tags);
 
@@ -984,6 +1036,36 @@ export default function Dashboard() {
             );
           })()}
 
+          {/* History Panel Button */}
+          {(() => {
+            const active = historyPanel;
+            return (
+              <button
+                onClick={() => setHistoryPanel(!historyPanel)}
+                className="nav-item w-full text-left px-3 py-2.5 rounded-lg mb-0.5 cursor-pointer"
+                style={{
+                  borderLeftColor: active ? "#A78BFA" : "transparent",
+                  boxShadow: active ? "0 0 16px rgba(167,139,250,0.06)" : "none",
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span style={{ color: active ? "#A78BFA" : "#3A3835", fontSize: 13 }}>◷</span>
+                  <div className="flex-1">
+                    <div style={{ fontSize: 12, fontWeight: 500, color: active ? "#E8E6E1" : "#9E9C97" }}>Analysis History</div>
+                    <div style={{ fontSize: 10, color: "#5E5A57", marginTop: 1 }}>
+                      {history.length > 0 ? `${history.length} items tracked` : "No history yet"}
+                    </div>
+                  </div>
+                  {history.length > 0 && (
+                    <span className="font-mono" style={{ fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 4, background: "rgba(167,139,250,0.15)", color: "#A78BFA", border: "1px solid rgba(167,139,250,0.25)" }}>
+                      {history.length}
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })()}
+
           {/* Libraries / Reference Tools */}
           {([ 
             { id: "libraries" as const,  label: "Libraries",       icon: "◧", desc: "Keywords · Tags · Competitors" },
@@ -1210,7 +1292,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── Page body ── */}
-        <div className="flex-1 p-5" style={{ position: "relative", zIndex: 2 }}>
+        <div className="flex-1 p-6" style={{ position: "relative", zIndex: 2 }}>
 
           {/* ── Loading skeleton ── */}
           {loading && (
@@ -1304,6 +1386,147 @@ export default function Dashboard() {
                   onComplete={() => { setRefStoreStatus("saved"); refreshReferenceStore(); }}
                   onBatchSaved={() => refreshReferenceStore()}
                 />
+              )}
+            </div>
+          )}
+
+          {/* ── History Panel ── */}
+          {historyPanel && (
+            <div className="mb-5 fade-up">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="font-semibold" style={{ fontSize: 15, color: "#E8E6E1" }}>Analysis History</h2>
+                  <p className="font-mono" style={{ fontSize: 10, color: "#5E5A57", marginTop: 2, letterSpacing: "0.06em" }}>
+                    CROSS-REFERENCE · TRACK CHANGES OVER TIME
+                  </p>
+                </div>
+                <button onClick={() => setHistoryPanel(false)} className="btn-ghost">✕ Close</button>
+              </div>
+
+              {history.length === 0 ? (
+                <div className="glass-card" style={{ padding: "32px 24px", textAlign: "center" }}>
+                  <div className="font-mono" style={{ fontSize: 12, color: "#5E5A57" }}>No analysis history yet. Analyse a video or channel to begin tracking.</div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {history.map((entry) => {
+                    const prev = entry.previousSnapshot;
+                    const viewDiff = prev && typeof entry.metrics.views === "number" && typeof prev.metrics.views === "number"
+                      ? Math.round(((entry.metrics.views - (prev.metrics.views as number)) / Math.max(prev.metrics.views as number, 1)) * 100)
+                      : null;
+                    const daysSinceFirst = entry.firstCheckedAt
+                      ? Math.round((Date.now() - new Date(entry.firstCheckedAt).getTime()) / 86400000)
+                      : 0;
+                    const daysSinceLast = Math.round((Date.now() - new Date(entry.checkedAt).getTime()) / 86400000);
+                    return (
+                      <div
+                        key={entry.id}
+                        className="glass-card cursor-pointer"
+                        style={{ padding: "14px 18px" }}
+                        onClick={() => { if (entry.url) analyze(entry.url); }}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span
+                                className="font-mono shrink-0"
+                                style={{
+                                  fontSize: 8, letterSpacing: "0.1em", padding: "2px 6px", borderRadius: 4,
+                                  background: entry.platform === "youtube" ? "rgba(239,68,68,0.12)" : entry.platform === "tiktok" ? "rgba(6,182,212,0.12)" : "rgba(225,48,108,0.12)",
+                                  color: entry.platform === "youtube" ? "#EF4444" : entry.platform === "tiktok" ? "#06B6D4" : "#E1306C",
+                                  border: `1px solid ${entry.platform === "youtube" ? "rgba(239,68,68,0.25)" : entry.platform === "tiktok" ? "rgba(6,182,212,0.25)" : "rgba(225,48,108,0.25)"}`,
+                                }}
+                              >
+                                {entry.platform.toUpperCase()}
+                              </span>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: "#E8E6E1", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 400 }}>
+                                {entry.title}
+                              </span>
+                            </div>
+                            <div className="font-mono flex items-center gap-3 flex-wrap">
+                              <span style={{ fontSize: 10, color: "#8A8885" }}>{entry.channelName}</span>
+                              <span style={{ color: "#3A3835" }}>·</span>
+                              <span style={{ fontSize: 10, color: "#5E5A57" }}>
+                                {daysSinceLast === 0 ? "Checked today" : `Last checked ${daysSinceLast}d ago`}
+                              </span>
+                              {daysSinceFirst > 0 && prev && (
+                                <>
+                                  <span style={{ color: "#3A3835" }}>·</span>
+                                  <span style={{ fontSize: 10, color: "#5E5A57" }}>Tracking for {daysSinceFirst}d</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Metrics snapshot */}
+                          <div className="flex items-center gap-4 shrink-0">
+                            {[
+                              { label: "VIEWS",  value: typeof entry.metrics.views === "number" ? (entry.metrics.views >= 1000 ? `${(entry.metrics.views/1000).toFixed(0)}K` : String(entry.metrics.views)) : "—", color: "#2ECC8A" },
+                              { label: "VRS",    value: entry.metrics.vrsScore ? `${entry.metrics.vrsScore}` : "—", color: "#A78BFA" },
+                              { label: "ENGAGE", value: entry.metrics.engagement ? `${entry.metrics.engagement}%` : "—", color: "#F59E0B" },
+                            ].map(({ label, value, color }) => (
+                              <div key={label} className="text-right">
+                                <div className="font-mono" style={{ fontSize: 8, color: "#5E5A57", letterSpacing: "0.1em" }}>{label}</div>
+                                <div className="font-mono font-bold" style={{ fontSize: 13, color }}>{value}</div>
+                              </div>
+                            ))}
+
+                            {/* Delta badge */}
+                            {viewDiff !== null && (
+                              <div
+                                className="font-mono font-bold"
+                                style={{
+                                  fontSize: 11, padding: "3px 8px", borderRadius: 6,
+                                  background: viewDiff >= 0 ? "rgba(46,204,138,0.12)" : "rgba(255,77,106,0.12)",
+                                  border: `1px solid ${viewDiff >= 0 ? "rgba(46,204,138,0.3)" : "rgba(255,77,106,0.3)"}`,
+                                  color: viewDiff >= 0 ? "#2ECC8A" : "#FF4D6A",
+                                  boxShadow: `0 0 8px ${viewDiff >= 0 ? "rgba(46,204,138,0.2)" : "rgba(255,77,106,0.2)"}`,
+                                }}
+                              >
+                                {viewDiff >= 0 ? "+" : ""}{viewDiff}% views
+                              </div>
+                            )}
+
+                            {/* Re-analyse button */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); analyze(entry.url); }}
+                              className="font-mono font-semibold"
+                              style={{
+                                fontSize: 9, padding: "4px 10px", borderRadius: 6, cursor: "pointer",
+                                background: "rgba(96,165,250,0.10)", border: "1px solid rgba(96,165,250,0.25)",
+                                color: "#60A5FA", letterSpacing: "0.06em",
+                                transition: "all 0.15s",
+                              }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 0 12px rgba(96,165,250,0.3)"; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; }}
+                            >
+                              RE-CHECK
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Previous snapshot comparison */}
+                        {prev && (
+                          <div className="mt-3 pt-3 font-mono" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                            <div style={{ fontSize: 9, color: "#5E5A57", letterSpacing: "0.1em", marginBottom: 6 }}>
+                              PREVIOUS SNAPSHOT · {new Date(prev.checkedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                            <div className="flex gap-4 flex-wrap">
+                              {Object.entries(prev.metrics).map(([key, val]) => (
+                                <div key={key}>
+                                  <div style={{ fontSize: 8, color: "#4A4845", letterSpacing: "0.1em" }}>{key.toUpperCase()}</div>
+                                  <div style={{ fontSize: 11, color: "#6B6860" }}>
+                                    {typeof val === "number" && val >= 1000 ? `${(val/1000).toFixed(1)}K` : String(val)}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           )}
@@ -1637,8 +1860,8 @@ export default function Dashboard() {
               ...(ch ? [{ label: "Ch. Median",  value: result.channelMedian.toLocaleString(), color: "#06B6D4", tip: "Median views/video on channel" }] : []),
             ];
             return (
-              <div className="space-y-5">
-                <div className="grid gap-3 fade-up" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))" }}>
+              <div className="space-y-5" style={{ paddingTop: 4 }}>
+                <div className="grid gap-3 fade-up" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}>
                   {metrics.map((m, i) => <MetricCard key={m.label} {...m} index={i} />)}
                 </div>
                 <div className="fade-up-1">
@@ -1697,8 +1920,8 @@ export default function Dashboard() {
               { label: "Creators",     value: new Set(videos.map(v => v.channel)).size.toLocaleString(), color: "#EF4444", tip: "Unique creators" },
             ];
             return (
-              <div className="space-y-5">
-                <div className="grid gap-3 fade-up" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))" }}>
+              <div className="space-y-5" style={{ paddingTop: 4 }}>
+                <div className="grid gap-3 fade-up" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}>
                   {metrics.map((m, i) => <MetricCard key={m.label} {...m} index={i} />)}
                 </div>
                 {topVideo && (
