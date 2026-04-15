@@ -154,9 +154,7 @@ export default function ViralityVerdictPanel({ video, channel, channelMedian, re
       ? `The ${commentRate} comments per 1,000 views shows the audience is engaged. For ${format.label.toLowerCase()} content, this is a healthy signal. Adding a direct question or opinion prompt in the CTA could push this into the higher engagement tier.`
       : `Comment rate is low at ${commentRate} per 1,000 views. For ${niche} content, driving more comments would improve retargeting signals. The most effective approach is posing a specific question that's easy to answer quickly.`;
 
-    return [phaseContext, compareContext, commentContext].join("
-
-");
+    return [phaseContext, compareContext, commentContext].join("\n\n");
   }
 
   async function generateAIVerdict() {
