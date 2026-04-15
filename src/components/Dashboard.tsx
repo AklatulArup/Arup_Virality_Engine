@@ -75,6 +75,9 @@ import CompetitorBankManager from "./CompetitorBankManager";
 import type { Competitor } from "./CompetitorBankManager";
 import CreatorBlocklist from "./CreatorBlocklist";
 import ViewForecastPanel from "./ViewForecastPanel";
+import StarfieldCanvas from "./StarfieldCanvas";
+import CursorGlow from "./CursorGlow";
+import MetricCard from "./MetricCard";
 
 type InputTab = "youtube" | "youtube_short" | "tiktok" | "instagram";
 
@@ -178,8 +181,8 @@ export default function Dashboard() {
   };
 
   const toggleMode = (id: ModeId) => {
-    setActiveModes((prev) =>
-      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
+    setActiveModes((prev: ModeId[]) =>
+      prev.includes(id) ? prev.filter((m: ModeId) => m !== id) : [...prev, id]
     );
   };
 
@@ -788,91 +791,163 @@ export default function Dashboard() {
     setTimeout(() => setInstagramStatus(""), 3000);
   };
 
-  return (
-    <div className="flex min-h-screen" style={{ background: "#000000", color: "#E8E6E1" }}>
-      {/* ── Static dot-grid background ── */}
-      <div className="dot-grid-bg" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }} />
 
-      {/* ══════════════ LEFT SIDEBAR ══════════════ */}
+  // ─── Platform config ───
+  const PLATFORMS = [
+    { id: "youtube"       as InputTab, label: "YT Long-form", short: "YTL", color: "#EF4444", icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.13C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.56A3.02 3.02 0 0 0 .5 6.19C0 8.03 0 12 0 12s0 3.97.5 5.81a3.02 3.02 0 0 0 2.12 2.12C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.57a3.02 3.02 0 0 0 2.12-2.12C24 15.97 24 12 24 12s0-3.97-.5-5.81zM9.75 15.52V8.48L15.85 12l-6.1 3.52z"/></svg>
+    ) },
+    { id: "youtube_short" as InputTab, label: "YT Shorts",   short: "YTS", color: "#EC4899", icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.56 10.75l-3.88-2.24A2.47 2.47 0 0 0 10 10.63v2.74a2.47 2.47 0 0 0 3.68 2.12l3.88-2.24a2.47 2.47 0 0 0 0-4.5z"/><path d="M8.5 2a9.5 9.5 0 1 0 0 19 9.5 9.5 0 0 0 0-19z" fillOpacity=".35"/></svg>
+    ) },
+    { id: "tiktok"        as InputTab, label: "TikTok",      short: "TTK", color: "#06B6D4", icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.87a8.17 8.17 0 0 0 4.77 1.52V7a4.85 4.85 0 0 1-1-.31z"/></svg>
+    ) },
+    { id: "instagram"     as InputTab, label: "Instagram",   short: "IGR", color: "#E1306C", icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="2" width="20" height="20" rx="5.5" ry="5.5" fillOpacity=".2" stroke="currentColor" strokeWidth="2" fill="none"/><circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" fill="none"/><circle cx="18" cy="6" r="1.2"/></svg>
+    ) },
+  ] as const;
+
+  const activePlatform = PLATFORMS.find(p => p.id === inputTab)!;
+
+  return (
+    <div className="flex min-h-screen" style={{ background: "#000000", color: "#E8E6E1", position: "relative" }}>
+
+      {/* ── Background layers (z:0) ── */}
+      <StarfieldCanvas opacity={0.55} />
+      <CursorGlow />
+
+      {/* Ambient nebula behind sidebar */}
+      <div style={{
+        position: "fixed", top: "-10%", left: -80, width: 480, height: 600,
+        background: "radial-gradient(ellipse at 0% 40%, rgba(96,165,250,0.055) 0%, rgba(123,79,255,0.03) 50%, transparent 75%)",
+        pointerEvents: "none", zIndex: 1,
+        animation: "nebulaDrift 25s ease-in-out infinite alternate",
+      }} />
+
+      {/* ══════════════════════════════════════
+          SIDEBAR — 240px fixed
+      ══════════════════════════════════════ */}
       <aside
-        className="fixed left-0 top-0 bottom-0 w-[240px] flex flex-col overflow-y-auto z-40"
-        style={{ background: "#0A0A08", borderRight: "1px solid #1C1C1A", zIndex: 40 }}
+        className="glass-deep fixed left-0 top-0 bottom-0 flex flex-col z-40"
+        style={{ width: 240, overflowY: "auto", overflowX: "hidden" }}
       >
-        {/* Logo */}
-        <div className="px-4 h-14 flex items-center gap-2.5 shrink-0" style={{ borderBottom: "1px solid #1C1C1A" }}>
-          <div className="w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-extrabold shrink-0"
-            style={{ background: "#60A5FA", color: "#000" }}>
+        {/* ── Logo ── */}
+        <div
+          className="flex items-center gap-2.5 shrink-0 px-4"
+          style={{ height: 56, borderBottom: "1px solid rgba(255,255,255,0.055)" }}
+        >
+          <div
+            className="flex items-center justify-center shrink-0 font-extrabold"
+            style={{
+              width: 28, height: 28, borderRadius: 7, fontSize: 10,
+              background: "linear-gradient(135deg, #3B82F6 0%, #2ECC8A 100%)",
+              color: "#000",
+              boxShadow: "0 0 0 1px rgba(96,165,250,0.3), 0 0 16px rgba(96,165,250,0.2)",
+            }}
+          >
             FN
           </div>
-          <span className="text-[13px] font-semibold tracking-tight gradient-text-brand">FundedNext Intel</span>
+          <div>
+            <div className="gradient-text-brand font-semibold" style={{ fontSize: 13, letterSpacing: "-0.02em" }}>
+              FundedNext Intel
+            </div>
+            <div className="font-mono" style={{ fontSize: 8, color: "#4A4845", letterSpacing: "0.1em" }}>
+              PLATFORM INTELLIGENCE
+            </div>
+          </div>
         </div>
 
-        {/* Platform Nav */}
+        {/* ── Platform ── */}
         <div className="px-2 pt-4 pb-2">
-          <div className="text-[10px] font-semibold tracking-widest px-2 mb-1" style={{ color: "#6B6860", letterSpacing: "0.12em" }}>PLATFORM</div>
-          {([
-            { id: "youtube" as InputTab, label: "YT Long-form", icon: "▶", color: "#EF4444" },
-            { id: "youtube_short" as InputTab, label: "YT Shorts", icon: "⚡", color: "#EC4899" },
-            { id: "tiktok" as InputTab, label: "TikTok", icon: "♪", color: "#06B6D4" },
-            { id: "instagram" as InputTab, label: "Instagram", icon: "◎", color: "#E1306C" },
-          ]).map(({ id, label, icon, color }) => {
+          <div className="font-mono px-2 mb-2" style={{ fontSize: 9, color: "#4A4845", letterSpacing: "0.14em", textTransform: "uppercase" }}>
+            Platform
+          </div>
+          {PLATFORMS.map(({ id, label, color, icon }) => {
             const active = inputTab === id;
             return (
               <button
                 key={id}
                 onClick={() => setInputTab(id)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium transition-all text-left mb-0.5 rounded-md"
+                className="nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left mb-0.5 cursor-pointer"
                 style={{
-                  background: active ? "#111110" : "transparent",
+                  borderLeftColor: active ? color : "transparent",
                   color: active ? "#E8E6E1" : "#6B6860",
-                  borderLeft: active ? `2px solid ${color}` : "2px solid transparent",
+                  fontSize: 12.5, fontWeight: active ? 500 : 400,
+                  boxShadow: active ? `inset 0 1px 0 rgba(255,255,255,0.06), 0 0 16px ${color}08` : "none",
                 }}
               >
-                <span style={{ color: active ? color : "#3A3835", fontSize: 11 }}>{icon}</span>
+                <span style={{ color: active ? color : "#3A3835", opacity: active ? 1 : 0.7 }}>{icon}</span>
                 {label}
+                {active && (
+                  <span
+                    className="ml-auto font-mono"
+                    style={{ fontSize: 8, color, background: `${color}18`, border: `1px solid ${color}30`, padding: "1px 5px", borderRadius: 4 }}
+                  >
+                    ACTIVE
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
 
-        <div className="glass-divider mx-4 my-2" />
+        <div className="glass-divider mx-3 my-1.5" />
 
-        {/* Analysis Modes */}
+        {/* ── Analysis Modes ── */}
         <div className="px-2 py-2">
-          <div className="text-[10px] font-semibold tracking-widest px-2 mb-1" style={{ color: "#6B6860", letterSpacing: "0.12em" }}>ANALYSIS MODES</div>
+          <div className="font-mono px-2 mb-2" style={{ fontSize: 9, color: "#4A4845", letterSpacing: "0.14em", textTransform: "uppercase" }}>
+            Analysis Modes
+          </div>
           <ModeSelector activeModes={activeModes} onToggle={toggleMode} onSelectAll={selectAll} onClear={clearModes} />
         </div>
 
-        <div className="glass-divider mx-4 my-2" />
+        <div className="glass-divider mx-3 my-1.5" />
 
-        {/* Pool Stats */}
+        {/* ── Reference Pool ── */}
         <div className="px-4 py-3">
-          <div className="text-[10px] font-semibold tracking-widest mb-2" style={{ color: "#6B6860", letterSpacing: "0.12em" }}>REFERENCE POOL</div>
+          <div className="font-mono mb-2" style={{ fontSize: 9, color: "#4A4845", letterSpacing: "0.14em", textTransform: "uppercase" }}>
+            Reference Pool
+          </div>
           <div className="grid grid-cols-2 gap-1.5">
             {[
-              { value: referenceStore?.entries.filter(e => e.type === "video").length ?? 0, label: "Videos", color: "#2ECC8A" },
+              { value: referenceStore?.entries.filter(e => e.type === "video").length ?? 0, label: "Videos",   color: "#2ECC8A" },
               { value: referenceStore ? new Set(referenceStore.entries.map(e => e.channelName)).size : 0, label: "Creators", color: "#60A5FA" },
               { value: referenceStore?.entries.filter(e => e.type === "video" && (e.durationSeconds ?? 999) <= 60).length ?? 0, label: "Shorts", color: "#EC4899" },
               { value: keywordBank?.categories.niche.length ?? 0, label: "Keywords", color: "#F59E0B" },
             ].map(({ value, label, color }) => (
-              <div key={label} className="glass-card" style={{ padding: "8px 10px" }}>
-                <div className="text-[18px] font-bold leading-none font-mono" style={{ color, fontFamily: "var(--font-mono)" }}>
+              <div
+                key={label}
+                className="pool-stat cursor-default"
+              >
+                <div
+                  className="font-mono font-bold leading-none"
+                  style={{ fontSize: 17, color, textShadow: `0 0 8px ${color}44` }}
+                >
                   {typeof value === "number" && value >= 1000 ? `${(value/1000).toFixed(1)}K` : value}
                 </div>
-                <div className="text-[9px] mt-0.5 uppercase tracking-wider" style={{ color: "#6B6860" }}>{label}</div>
+                <div className="font-mono mt-0.5" style={{ fontSize: 9, color: "#6B6860", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  {label}
+                </div>
               </div>
             ))}
           </div>
           {refStoreStatus !== "idle" && (
-            <div className="mt-2 text-[10px] font-medium" style={{ color: "#2ECC8A" }}>✓ Saved to pool</div>
+            <div className="flex items-center gap-1.5 mt-2 font-mono" style={{ fontSize: 10, color: "#2ECC8A" }}>
+              <span>✦</span> Saved to pool
+            </div>
           )}
         </div>
 
-        <div className="glass-divider mx-4 my-2" />
+        <div className="glass-divider mx-3 my-1.5" />
 
-        {/* Reverse Engineer — Tools section */}
+        {/* ── Tools ── */}
         <div className="px-2 py-2">
-          <div className="text-[10px] font-semibold tracking-widest px-2 mb-1" style={{ color: "#6B6860", letterSpacing: "0.12em" }}>TOOLS</div>
+          <div className="font-mono px-2 mb-2" style={{ fontSize: 9, color: "#4A4845", letterSpacing: "0.14em", textTransform: "uppercase" }}>
+            Tools
+          </div>
+
+          {/* Reverse Engineer */}
           {(() => {
             const active = activePanel === "reverse-engineer";
             return (
@@ -882,68 +957,100 @@ export default function Dashboard() {
                   setActivePanel(next);
                   if (next === "reverse-engineer" && !activeModes.includes("D")) toggleMode("D");
                 }}
-                className="w-full text-left px-3 py-2.5 rounded-md transition-all"
+                className="nav-item w-full text-left px-3 py-2.5 rounded-lg mb-0.5 cursor-pointer"
                 style={{
-                  background: active ? "#111110" : "transparent",
-                  color: active ? "#E8E6E1" : "#6B6860",
-                  borderLeft: active ? "2px solid #F59E0B" : "2px solid transparent",
+                  borderLeftColor: active ? "#F59E0B" : "transparent",
+                  boxShadow: active ? "0 0 16px rgba(245,158,11,0.06)" : "none",
                 }}
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="text-[13px]" style={{ color: active ? "#F59E0B" : "#3A3835" }}>⚙</span>
+                  <span style={{ color: active ? "#F59E0B" : "#3A3835", fontSize: 14 }}>⚙</span>
                   <div className="flex-1">
-                    <div className="text-[12px] font-medium" style={{ color: active ? "#E8E6E1" : "#9E9C97" }}>Reverse Engineer</div>
-                    <div className="text-[10px] mt-0.5" style={{ color: "#4A4845" }}>Script · Hook · Title · Algorithm</div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: active ? "#E8E6E1" : "#9E9C97" }}>Reverse Engineer</div>
+                    <div style={{ fontSize: 10, color: "#4A4845", marginTop: 1 }}>Script · Hook · Title</div>
                   </div>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#1C1C1A", color: "#9E9C97" }}>D</span>
+                  <span
+                    className="font-mono"
+                    style={{ fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 4,
+                      background: active ? "rgba(245,158,11,0.15)" : "#111110",
+                      color: active ? "#F59E0B" : "#6B6860",
+                      border: active ? "1px solid rgba(245,158,11,0.25)" : "1px solid transparent" }}
+                  >
+                    D
+                  </span>
                 </div>
               </button>
             );
           })()}
-        </div>
 
-        <div className="glass-divider mx-4 my-2" />
-
-        {/* Nav buttons → open panels in main content */}
-        <div className="px-2 py-2 space-y-0.5">
-          {([
-            { id: "libraries" as const, label: "Libraries", icon: "◧", desc: "Keywords · Hashtags · Competitors" },
-            { id: "ref-tools" as const, label: "Reference Tools", icon: "⊞", desc: "Upload · Browse · Build pool" },
-          ]).map(({ id, label, icon, desc }) => {
+          {/* Libraries / Reference Tools */}
+          {([ 
+            { id: "libraries" as const,  label: "Libraries",       icon: "◧", desc: "Keywords · Tags · Competitors" },
+            { id: "ref-tools" as const, label: "Reference Tools",  icon: "⊞", desc: "Upload · Browse · Build pool"  },
+          ] as const).map(({ id, label, icon, desc }) => {
             const active = activePanel === id;
             return (
               <button
                 key={id}
                 onClick={() => setActivePanel(active ? null : id)}
-                className="w-full text-left px-3 py-2.5 rounded-md transition-all"
+                className="nav-item w-full text-left px-3 py-2.5 rounded-lg mb-0.5 cursor-pointer"
                 style={{
-                  background: active ? "#111110" : "transparent",
-                  borderLeft: active ? "2px solid #60A5FA" : "2px solid transparent",
+                  borderLeftColor: active ? "#60A5FA" : "transparent",
+                  boxShadow: active ? "0 0 16px rgba(96,165,250,0.05)" : "none",
                 }}
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="text-[13px]" style={{ color: active ? "#60A5FA" : "#3A3835" }}>{icon}</span>
-                  <span className="text-[12px] font-medium" style={{ color: active ? "#E8E6E1" : "#9E9C97" }}>{label}</span>
-                  <span className="ml-auto text-[10px]" style={{ color: "#4A4845", display: "inline-block", transition: "transform 0.15s", transform: active ? "rotate(90deg)" : "none" }}>›</span>
+                  <span style={{ color: active ? "#60A5FA" : "#3A3835", fontSize: 14 }}>{icon}</span>
+                  <div className="flex-1">
+                    <div style={{ fontSize: 12, fontWeight: 500, color: active ? "#E8E6E1" : "#9E9C97" }}>{label}</div>
+                    <div style={{ fontSize: 10, color: "#4A4845", marginTop: 1 }}>{desc}</div>
+                  </div>
+                  <span style={{
+                    fontSize: 12, color: active ? "#60A5FA" : "#3A3835",
+                    transform: active ? "rotate(90deg)" : "none",
+                    display: "inline-block", transition: "transform 0.2s",
+                  }}>›</span>
                 </div>
-                <div className="text-[10px] mt-0.5 ml-6" style={{ color: "#4A4845" }}>{desc}</div>
               </button>
             );
           })}
         </div>
 
         <div className="flex-1" />
+
+        {/* ── Footer ── */}
+        <div className="px-4 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+          <div className="font-mono" style={{ fontSize: 9, color: "#4A4845", letterSpacing: "0.08em" }}>
+            FUNDEDNEXT · INTERNAL
+          </div>
+        </div>
       </aside>
 
-      {/* ══════════════ MAIN CONTENT ══════════════ */}
-      <main className="flex-1 flex flex-col min-h-screen" style={{ marginLeft: 240 }}>
+      {/* ══════════════════════════════════════
+          MAIN CONTENT — offset 240px
+      ══════════════════════════════════════ */}
+      <main className="flex-1 flex flex-col min-h-screen" style={{ marginLeft: 240, position: "relative", zIndex: 2 }}>
 
-        {/* ── Sticky top search bar ── */}
+        {/* ── Sticky topbar ── */}
         <div
-          className="sticky top-0 z-30 px-6 py-3 flex items-center gap-3"
-          style={{ background: "#000000", borderBottom: "1px solid #1C1C1A", position: "relative", zIndex: 30 }}
+          className="glass-nav sticky top-0 z-30 flex items-center gap-3 px-5"
+          style={{ height: 56, minHeight: 56 }}
         >
-          {/* Search input — adapts to active platform */}
+          {/* Platform badge */}
+          <div
+            className="shrink-0 flex items-center gap-1.5 font-mono font-semibold rounded-lg px-2.5 py-1.5"
+            style={{
+              fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase",
+              background: `${activePlatform.color}12`,
+              border: `1px solid ${activePlatform.color}30`,
+              color: activePlatform.color,
+            }}
+          >
+            {activePlatform.icon}
+            {activePlatform.short}
+          </div>
+
+          {/* ── Input — adapts per platform ── */}
           {inputTab === "youtube" && (
             <div className="flex-1">
               <UrlInput onAnalyze={analyze} loading={loading} status={status} error={error} />
@@ -951,56 +1058,75 @@ export default function Dashboard() {
           )}
 
           {inputTab === "youtube_short" && (
-            <div className="flex-1 flex gap-2">
-              <input
-                type="text"
-                value={youtubeShortInput}
-                onChange={e => setYoutubeShortInput(e.target.value)}
-                placeholder="https://youtube.com/shorts/VIDEO_ID or @channel"
-                className="glass-input flex-1 rounded-md px-4 py-2.5 text-[13px] outline-none"
-                style={{ color: "#E8E6E1" }}
-                onKeyDown={e => {
-                  if (e.key === "Enter" && youtubeShortInput.trim()) {
-                    analyze(youtubeShortInput.trim());
-                  }
+            <div className="flex-1 flex gap-2 items-center">
+              <div
+                className="flex-1 flex items-center gap-2 rounded-[9px] px-3.5"
+                style={{
+                  background: "rgba(0,0,0,0.6)", backdropFilter: "blur(12px)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
                 }}
-              />
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="#EC4899" opacity={0.6}>
+                  <rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor" fillOpacity=".2" stroke="currentColor" strokeWidth="1.5"/>
+                  <path d="M9.75 15.52V8.48L15.85 12l-6.1 3.52z" fill="#EC4899"/>
+                </svg>
+                <input
+                  type="text" value={youtubeShortInput}
+                  onChange={e => setYoutubeShortInput(e.target.value)}
+                  placeholder="YouTube Shorts URL or @channel..."
+                  className="flex-1 bg-transparent border-none outline-none text-[13px] py-2.5"
+                  style={{ color: "#E8E6E1", caretColor: "#EC4899" }}
+                  onKeyDown={e => { if (e.key === "Enter" && youtubeShortInput.trim()) analyze(youtubeShortInput.trim()); }}
+                />
+              </div>
               <button
                 onClick={() => { if (youtubeShortInput.trim()) analyze(youtubeShortInput.trim()); }}
                 disabled={loading || !youtubeShortInput.trim()}
-                className="rounded-md px-5 py-2.5 text-[13px] font-semibold shrink-0 transition-opacity"
-                style={{ background: "#EC4899", color: "#fff", opacity: (loading || !youtubeShortInput.trim()) ? 0.4 : 1 }}
+                className="btn-cosmic shrink-0"
+                style={{ background: "linear-gradient(135deg, #BE185D, #EC4899)", height: 40, padding: "0 20px" }}
               >
-                {loading ? "…" : "Analyze"}
+                {loading ? <span className="orbital-loader" style={{ borderTopColor: "#EC4899" }} /> : "Analyze"}
               </button>
             </div>
           )}
 
           {inputTab === "tiktok" && (
-            <div className="flex-1 flex gap-2">
-              <input
-                type="text"
-                value={tiktokInputVal}
-                onChange={e => setTiktokInputVal(e.target.value)}
-                placeholder="https://tiktok.com/@handle or @username"
-                className="glass-input flex-1 rounded-md px-4 py-2.5 text-[13px]" style={{ color: "#E8E6E1" }}
-                onKeyDown={e => {
-                  if (e.key === "Enter" && tiktokInputVal.trim()) {
-                    const v = tiktokInputVal.trim();
-                    analyze(v.includes("tiktok.com") ? v : `https://www.tiktok.com/@${v.replace(/^@/, "")}`);
-                  }
+            <div className="flex-1 flex gap-2 items-center">
+              <div
+                className="flex-1 flex items-center gap-2 rounded-[9px] px-3.5"
+                style={{
+                  background: "rgba(0,0,0,0.6)", backdropFilter: "blur(12px)",
+                  border: "1px solid rgba(255,255,255,0.08)",
                 }}
-              />
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="#06B6D4" opacity={0.7}>
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.87a8.17 8.17 0 0 0 4.77 1.52V7a4.85 4.85 0 0 1-1-.31z"/>
+                </svg>
+                <input
+                  type="text" value={tiktokInputVal}
+                  onChange={e => setTiktokInputVal(e.target.value)}
+                  placeholder="@handle or tiktok.com/..."
+                  className="flex-1 bg-transparent border-none outline-none text-[13px] py-2.5"
+                  style={{ color: "#E8E6E1", caretColor: "#06B6D4" }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && tiktokInputVal.trim()) {
+                      const v = tiktokInputVal.trim();
+                      analyze(v.includes("tiktok.com") ? v : `https://www.tiktok.com/@${v.replace(/^@/, "")}`);
+                    }
+                  }}
+                />
+              </div>
               <button
                 onClick={() => {
                   const v = tiktokInputVal.trim();
                   if (v) analyze(v.includes("tiktok.com") ? v : `https://www.tiktok.com/@${v.replace(/^@/, "")}`);
                 }}
                 disabled={loading || !tiktokInputVal.trim()}
-                className="rounded-md px-5 py-2.5 text-[13px] font-semibold shrink-0 transition-opacity"
-                style={{ background: "#06B6D4", color: "#000", opacity: (loading || !tiktokInputVal.trim()) ? 0.4 : 1 }}
+                className="btn-cosmic shrink-0"
+                style={{ background: "linear-gradient(135deg, #0E7490, #06B6D4)", color: "#000", height: 40, padding: "0 20px" }}
               >
-                {loading ? "…" : "Analyze"}
+                {loading ? <span className="orbital-loader" style={{ borderTopColor: "#06B6D4" }} /> : "Analyze"}
               </button>
               <div className="shrink-0">
                 <CsvUpload onUpload={analyzeTikTok} loading={loading} lastUpload={tiktokUploadInfo} />
@@ -1009,82 +1135,100 @@ export default function Dashboard() {
           )}
 
           {inputTab === "instagram" && (
-            <div className="flex-1 flex gap-2">
-              <input
-                type="text"
-                value={instagramInput}
-                onChange={e => setInstagramInput(e.target.value)}
-                placeholder="@handle or https://instagram.com/reel/..."
-                className="glass-input flex-1 rounded-md px-4 py-2.5 text-[13px]" style={{ color: "#E8E6E1" }}
-                onKeyDown={e => {
-                  if (e.key === "Enter" && instagramInput.trim()) {
-                    const v = instagramInput.trim();
-                    const normalized = v.includes("instagram.com") ? v : `https://www.instagram.com/${v.replace(/^@/, "")}/`;
-                    analyze(normalized);
-                  }
+            <div className="flex-1 flex gap-2 items-center">
+              <div
+                className="flex-1 flex items-center gap-2 rounded-[9px] px-3.5"
+                style={{
+                  background: "rgba(0,0,0,0.6)", backdropFilter: "blur(12px)",
+                  border: "1px solid rgba(255,255,255,0.08)",
                 }}
-              />
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E1306C" strokeWidth="1.8" opacity={0.7}>
+                  <rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="18.5" cy="5.5" r="1.5" fill="#E1306C"/>
+                </svg>
+                <input
+                  type="text" value={instagramInput}
+                  onChange={e => setInstagramInput(e.target.value)}
+                  placeholder="@handle or instagram.com/reel/..."
+                  className="flex-1 bg-transparent border-none outline-none text-[13px] py-2.5"
+                  style={{ color: "#E8E6E1", caretColor: "#E1306C" }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && instagramInput.trim()) {
+                      const v = instagramInput.trim();
+                      analyze(v.includes("instagram.com") ? v : `https://www.instagram.com/${v.replace(/^@/, "")}/`);
+                    }
+                  }}
+                />
+              </div>
               <button
                 onClick={() => {
                   const v = instagramInput.trim();
                   if (!v) return;
-                  const normalized = v.includes("instagram.com") ? v : `https://www.instagram.com/${v.replace(/^@/, "")}/`;
-                  analyze(normalized);
+                  analyze(v.includes("instagram.com") ? v : `https://www.instagram.com/${v.replace(/^@/, "")}/`);
                 }}
                 disabled={loading || !instagramInput.trim()}
-                className="rounded-md px-5 py-2.5 text-[13px] font-semibold shrink-0 transition-opacity"
-                style={{ background: "#E1306C", color: "#fff", opacity: (loading || !instagramInput.trim()) ? 0.4 : 1 }}
+                className="btn-cosmic shrink-0"
+                style={{ background: "linear-gradient(135deg, #9D174D, #E1306C)", height: 40, padding: "0 20px" }}
               >
-                {loading ? "…" : "Analyze"}
+                {loading ? <span className="orbital-loader" style={{ borderTopColor: "#E1306C" }} /> : "Analyze"}
               </button>
               <button
                 onClick={() => saveInstagram(instagramInput.split("\n"))}
                 disabled={!instagramInput.trim()}
-                className="rounded-md px-4 py-2.5 text-[13px] font-medium shrink-0"
-                style={{ background: "#111110", color: "#9E9C97", border: "1px solid #252523" }}
+                className="btn-ghost shrink-0"
+                style={{ height: 40, padding: "0 14px" }}
               >
                 Queue
               </button>
             </div>
           )}
 
-          {/* Status / error chips */}
-          {status && (
-            <span className="glass-pill text-[11px] shrink-0 px-3 py-1 rounded-md" style={{ color: "#2ECC8A" }}>
+          {/* Status + error chips */}
+          {status && !loading && (
+            <span className="status-chip status-success shrink-0">
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#2ECC8A", display: "inline-block" }} />
               {status}
             </span>
           )}
           {error && (
-            <span className="glass-pill text-[11px] shrink-0 px-3 py-1 rounded-md" style={{ color: "#EF4444" }}>
+            <span className="status-chip status-error shrink-0">
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#FF4D6A", display: "inline-block" }} />
               {error}
             </span>
           )}
           {instagramStatus && (
-            <span className="glass-pill text-[11px] shrink-0 px-3 py-1 rounded-md" style={{ color: "#2ECC8A" }}>
-              {instagramStatus}
-            </span>
+            <span className="status-chip status-success shrink-0">{instagramStatus}</span>
           )}
         </div>
 
-        {/* ── Page content ── */}
-        <div className="flex-1 p-6" style={{ position: "relative", zIndex: 2 }}>
+        {/* ── Page body ── */}
+        <div className="flex-1 p-5" style={{ position: "relative", zIndex: 2 }}>
 
-          {/* Loading skeleton */}
+          {/* ── Loading skeleton ── */}
           {loading && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-4 gap-4">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="rounded-lg h-24" style={{ background: "#0D0D0B", border: "1px solid #252523", animation: `glowPulse ${1.8 + i * 0.3}s ease-in-out infinite`, animationDelay: `${i * 0.15}s` }} />
+            <div className="space-y-4 fade-up">
+              <div className="flex items-center gap-2 mb-5">
+                <span className="orbital-loader" />
+                <span className="font-mono text-[11px]" style={{ color: "#6B6860" }}>
+                  {status || "Fetching data…"}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                {[0,1,2,3].map(i => (
+                  <div key={i} className="skeleton" style={{ height: 80, animationDelay: `${i*0.12}s` }} />
                 ))}
               </div>
-              <div className="rounded-lg h-48" style={{ background: "#0D0D0B", border: "1px solid #252523", animation: "glowPulse 2.4s ease-in-out infinite 0.6s" }} />
-              <div className="rounded-lg h-32" style={{ background: "#0D0D0B", border: "1px solid #252523", animation: "glowPulse 2.1s ease-in-out infinite 0.9s" }} />
+              <div className="skeleton" style={{ height: 200, animationDelay: "0.48s" }} />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="skeleton" style={{ height: 140, animationDelay: "0.6s" }} />
+                <div className="skeleton" style={{ height: 140, animationDelay: "0.72s" }} />
+              </div>
             </div>
           )}
 
           {/* ── Reverse Engineer panel ── */}
-          {activePanel === "reverse-engineer" && (
-            <div className="mb-6 fade-up">
+          {!loading && activePanel === "reverse-engineer" && (
+            <div className="mb-5 fade-up">
               <ReverseEngineerPanel
                 platform={inputTab === "youtube_short" ? "youtube_short" : inputTab}
                 result={result}
@@ -1105,31 +1249,42 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* ── Tool panels (Libraries / Reference Tools) ── */}
-          {activePanel === "libraries" && (
-            <div className="mb-6 space-y-4 fade-up">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-[15px] font-semibold" style={{ color: "#E8E6E1" }}>Libraries</h2>
-                <button onClick={() => setActivePanel(null)} className="text-[11px] px-3 py-1 rounded-md" style={{ background: "#111110", color: "#9E9C97", border: "1px solid #252523" }}>✕ Close</button>
+          {/* ── Libraries panel ── */}
+          {!loading && activePanel === "libraries" && (
+            <div className="mb-5 space-y-4 fade-up">
+              <div className="flex items-center justify-between mb-1">
+                <div>
+                  <h2 className="font-semibold" style={{ fontSize: 15, color: "#E8E6E1" }}>Libraries</h2>
+                  <p className="font-mono" style={{ fontSize: 10, color: "#4A4845", marginTop: 2, letterSpacing: "0.06em" }}>
+                    KEYWORDS · HASHTAGS · COMPETITORS · BLOCKLIST
+                  </p>
+                </div>
+                <button onClick={() => setActivePanel(null)} className="btn-ghost">✕ Close</button>
               </div>
-              {keywordBank && <KeywordBankManager bank={keywordBank} onChange={(updated) => setKeywordBank(updated)} />}
+              {keywordBank && <KeywordBankManager bank={keywordBank} onChange={updated => setKeywordBank(updated)} />}
               {hashtagBank && <HashtagBankManager bank={hashtagBank} onChange={setHashtagBank} />}
               <CompetitorBankManager competitors={competitors} onChange={setCompetitors} />
               <CreatorBlocklist refreshKey={blocklistKey} onChange={() => refreshReferenceStore()} />
             </div>
           )}
 
-          {activePanel === "ref-tools" && (
-            <div className="mb-6 space-y-4 fade-up">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-[15px] font-semibold" style={{ color: "#E8E6E1" }}>Reference Tools</h2>
-                <button onClick={() => setActivePanel(null)} className="text-[11px] px-3 py-1 rounded-md" style={{ background: "#111110", color: "#9E9C97", border: "1px solid #252523" }}>✕ Close</button>
+          {/* ── Reference Tools panel ── */}
+          {!loading && activePanel === "ref-tools" && (
+            <div className="mb-5 space-y-4 fade-up">
+              <div className="flex items-center justify-between mb-1">
+                <div>
+                  <h2 className="font-semibold" style={{ fontSize: 15, color: "#E8E6E1" }}>Reference Tools</h2>
+                  <p className="font-mono" style={{ fontSize: 10, color: "#4A4845", marginTop: 2, letterSpacing: "0.06em" }}>
+                    UPLOAD · BROWSE · BUILD POOL
+                  </p>
+                </div>
+                <button onClick={() => setActivePanel(null)} className="btn-ghost">✕ Close</button>
               </div>
               <ReferenceUpload onUploadComplete={() => { setRefStoreStatus("saved"); refreshReferenceStore(); }} />
               {referenceStore && referenceStore.entries.length > 0 && (
                 <ReferenceSearch
                   entries={referenceStore.entries}
-                  onRemove={(ids) => {
+                  onRemove={ids => {
                     setReferenceStore(prev => prev ? { ...prev, entries: prev.entries.filter(e => !ids.includes(e.id)) } : prev);
                   }}
                   onBlockCreator={() => { setBlocklistKey(k => k + 1); refreshReferenceStore(); }}
@@ -1145,149 +1300,147 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Empty state */}
+          {/* ── Empty state ── */}
           {!result && !loading && activePanel === null && (
-            <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-              <div className="text-[56px]" style={{ opacity: 0.08, filter: "grayscale(1)" }}>
-                {inputTab === "youtube" ? "▶" : inputTab === "tiktok" ? "♪" : "◎"}
+            <div className="flex flex-col items-center justify-center" style={{ minHeight: "60vh" }}>
+              {/* Nebula glow */}
+              <div style={{
+                position: "absolute", width: 500, height: 500, borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(96,165,250,0.05) 0%, rgba(123,79,255,0.03) 40%, transparent 68%)",
+                pointerEvents: "none", animation: "glowPulse 6s ease-in-out infinite",
+              }} />
+
+              {/* Platform mega-icon */}
+              <div
+                className="relative mb-6 flex items-center justify-center"
+                style={{
+                  width: 80, height: 80,
+                  borderRadius: 20,
+                  background: `${activePlatform.color}0E`,
+                  border: `1px solid ${activePlatform.color}22`,
+                  boxShadow: `0 0 40px ${activePlatform.color}18, 0 0 80px ${activePlatform.color}0A`,
+                  animation: "glowPulse 4s ease-in-out infinite",
+                }}
+              >
+                <span style={{ fontSize: 32, opacity: 0.6, color: activePlatform.color }}>{activePlatform.icon}</span>
               </div>
-              <div className="text-center">
-                <div className="text-[18px] font-semibold mb-2" style={{ color: "#E8E6E1" }}>
-                  {inputTab === "youtube" ? "Analyze any YouTube video or channel" : inputTab === "tiktok" ? "Analyze TikTok creators" : inputTab === "youtube_short" ? "Analyze YouTube Shorts" : "Analyze Instagram accounts"}
-                </div>
-                <div className="text-[13px] max-w-[400px] leading-relaxed" style={{ color: "#6B6860" }}>
-                  {inputTab === "youtube" ? "Paste a video URL, channel URL, or @handle above. Get view forecast, virality score, and growth signals." : inputTab === "tiktok" ? "Enter a handle or profile URL to pull creator analytics and virality signals." : inputTab === "youtube_short" ? "Paste a Shorts URL or @channel to analyze short-form performance." : "Enter a handle or reel URL to pull Instagram analytics."}
-                </div>
-              </div>
-              {/* Quick stat cards when pool has data */}
+
+              <h2 className="font-semibold mb-2 fade-up-1" style={{ fontSize: 20, color: "#E8E6E1" }}>
+                {inputTab === "youtube"       ? "Analyze any YouTube content"
+                 : inputTab === "tiktok"      ? "Analyze TikTok creators"
+                 : inputTab === "youtube_short"? "Analyze YouTube Shorts"
+                 :                              "Analyze Instagram accounts"}
+              </h2>
+              <p className="text-center fade-up-2" style={{ fontSize: 13, color: "#6B6860", maxWidth: 380, lineHeight: 1.7 }}>
+                {inputTab === "youtube"
+                  ? "Paste a video URL, channel URL, or @handle above. Get view forecast, VRS score, and growth signals."
+                  : inputTab === "tiktok"
+                  ? "Enter a handle or profile URL to pull creator analytics and virality signals."
+                  : inputTab === "youtube_short"
+                  ? "Paste a Shorts URL or @channel to analyze short-form performance."
+                  : "Enter a handle or reel URL to pull Instagram analytics."}
+              </p>
+
+              {/* Pool quick stats */}
               {referenceStore && referenceStore.entries.length > 0 && (
-                <div className="mt-4 grid grid-cols-3 gap-3 w-full max-w-lg">
+                <div className="grid grid-cols-3 gap-3 mt-8 w-full max-w-sm fade-up-3">
                   {[
-                    { label: "Videos in Pool", value: referenceStore.entries.length, color: "#2ECC8A", tip: "Total reference videos analyzed" },
-                    { label: "Avg Views", value: Math.round(referenceStore.entries.reduce((s, e) => s + (e.metrics?.views || 0), 0) / Math.max(referenceStore.entries.length, 1)).toLocaleString(), color: "#60A5FA", tip: "Mean views across the reference pool" },
-                    { label: "Creators", value: new Set(referenceStore.entries.map(e => e.channelName)).size, color: "#F59E0B", tip: "Unique creators tracked" },
-                  ].map(({ label, value, color, tip }) => (
-                    <div
-                      key={label}
-                      title={tip}
-                      className="glass-card cursor-default"
-                      style={{ padding: "16px" }}
-                    >
-                      <div className="text-[22px] font-bold font-mono" style={{ color, fontFamily: "var(--font-mono)" }}>{value}</div>
-                      <div className="text-[11px] mt-0.5" style={{ color: "#6B6860" }}>{label}</div>
-                    </div>
+                    { label: "Pool videos",  value: referenceStore.entries.length, color: "#2ECC8A" },
+                    { label: "Avg views",    value: Math.round(referenceStore.entries.reduce((s, e) => s + (e.metrics?.views || 0), 0) / Math.max(referenceStore.entries.length, 1)).toLocaleString(), color: "#60A5FA" },
+                    { label: "Creators",     value: new Set(referenceStore.entries.map(e => e.channelName)).size, color: "#F59E0B" },
+                  ].map(({ label, value, color }, i) => (
+                    <MetricCard key={label} label={label} value={String(value)} color={color} index={i} />
                   ))}
                 </div>
               )}
             </div>
           )}
 
-          {/* ── Video result: metric cards + forecast + panels ── */}
-          {result?.type === "video" && (() => {
-            const v = result.video;
+          {/* ── Video result ── */}
+          {!loading && result?.type === "video" && (() => {
+            const v  = result.video;
             const ch = result.channel;
             const metrics = [
-              { label: "Total Views", value: v.views.toLocaleString(), color: "#2ECC8A", tip: "Total lifetime views on this video" },
-              { label: "Likes", value: v.likes.toLocaleString(), color: "#60A5FA", tip: "Total likes" },
-              { label: "Engagement", value: `${v.engagement.toFixed(2)}%`, color: "#F59E0B", tip: "Likes + comments as % of views" },
-              { label: "Velocity", value: `${v.velocity.toLocaleString()}/d`, color: "#6366F1", tip: "Average views per day since publish" },
-              ...(ch ? [{ label: "Subscribers", value: (ch.subs / 1000).toFixed(0) + "K", color: "#EF4444", tip: "Channel subscriber count" }] : []),
-              ...(ch ? [{ label: "Ch. Median", value: result.channelMedian.toLocaleString(), color: "#06B6D4", tip: "Median views per video on this channel" }] : []),
+              { label: "Total Views",  value: v.views.toLocaleString(),         color: "#2ECC8A", tip: "Total lifetime views" },
+              { label: "Likes",        value: v.likes.toLocaleString(),         color: "#60A5FA", tip: "Total likes" },
+              { label: "Engagement",   value: `${v.engagement.toFixed(2)}%`,    color: "#F59E0B", tip: "Likes + comments / views" },
+              { label: "Velocity",     value: `${v.velocity.toLocaleString()}/d`,color: "#A78BFA", tip: "Avg views/day since publish" },
+              ...(ch ? [{ label: "Subscribers", value: `${(ch.subs/1000).toFixed(0)}K`, color: "#EF4444", tip: "Channel subs" }] : []),
+              ...(ch ? [{ label: "Ch. Median",  value: result.channelMedian.toLocaleString(), color: "#06B6D4", tip: "Median views/video on channel" }] : []),
             ];
             return (
               <div className="space-y-5">
-                {/* Metric cards row */}
-                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
-                  {metrics.map(({ label, value, color, tip }) => (
-                    <div
-                      key={label}
-                      title={tip}
-                      className="glass-card cursor-default"
-                      style={{ padding: "16px" }}
-                    >
-                      <div className="text-[11px] mb-1.5" style={{ color: "#6B6860" }}>{label}</div>
-                      <div className="text-[22px] font-bold leading-none font-mono" style={{ color, fontFamily: "var(--font-mono)" }}>{value}</div>
-                    </div>
-                  ))}
+                <div className="grid gap-3 fade-up" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))" }}>
+                  {metrics.map((m, i) => <MetricCard key={m.label} {...m} index={i} />)}
                 </div>
-
-                {/* Forecast panel (chart-forward) */}
-                <ViewForecastPanel video={v} forecastDate={forecastDate} onDateChange={setForecastDate} />
-
-                {/* Full analysis panels */}
-                <VideoResult
-                  video={v}
-                  channel={ch}
-                  channelMedian={result.channelMedian}
-                  recentVideos={result.recentVideos}
-                  activeModes={activeModes}
-                  url={lastUrl}
-                  deepAnalysis={result.deepAnalysis}
-                  referenceContext={result.referenceContext}
-                  adjacentVideos={adjacentCtx}
-                  nicheRanking={nicheRanking}
-                  languageCPA={languageCPA}
-                  referenceCount={referenceStore?.entries.length || 0}
-                  descriptionSEO={descSEO}
-                  engagementDecay={engDecay}
-                  thumbnailAnalysis={thumbAnalysis}
-                  crossPromotion={crossPromo}
-                  keywordBank={keywordBank}
-                  publishTimeHeatmap={publishTime}
-                  competitorGap={competitorGap}
-                  tagCorrelation={tagCorrelation}
-                  uploadCadence={uploadCadence}
-                />
+                <div className="fade-up-1">
+                  <ViewForecastPanel video={v} forecastDate={forecastDate} onDateChange={setForecastDate} />
+                </div>
+                <div className="fade-up-2">
+                  <VideoResult
+                    video={v} channel={ch}
+                    channelMedian={result.channelMedian}
+                    recentVideos={result.recentVideos}
+                    activeModes={activeModes} url={lastUrl}
+                    deepAnalysis={result.deepAnalysis}
+                    referenceContext={result.referenceContext}
+                    adjacentVideos={adjacentCtx}
+                    nicheRanking={nicheRanking}
+                    languageCPA={languageCPA}
+                    referenceCount={referenceStore?.entries.length || 0}
+                    descriptionSEO={descSEO}
+                    engagementDecay={engDecay}
+                    thumbnailAnalysis={thumbAnalysis}
+                    crossPromotion={crossPromo}
+                    keywordBank={keywordBank}
+                    publishTimeHeatmap={publishTime}
+                    competitorGap={competitorGap}
+                    tagCorrelation={tagCorrelation}
+                    uploadCadence={uploadCadence}
+                  />
+                </div>
               </div>
             );
           })()}
 
-          {/* Channel result */}
-          {result?.type === "channel" && (
-            <ChannelResult
-              health={result.health}
-              activeModes={activeModes}
-              deepAnalysis={result.deepAnalysis}
-              referenceContext={result.referenceContext}
-            />
+          {/* ── Channel result ── */}
+          {!loading && result?.type === "channel" && (
+            <div className="fade-up">
+              <ChannelResult
+                health={result.health}
+                activeModes={activeModes}
+                deepAnalysis={result.deepAnalysis}
+                referenceContext={result.referenceContext}
+              />
+            </div>
           )}
 
-          {/* TikTok / Instagram batch result */}
-          {result?.type === "tiktok-batch" && (() => {
-            const videos = result.videos;
-            const totalViews = videos.reduce((s, v) => s + v.views, 0);
-            const avgEng = videos.reduce((s, v) => s + v.engagement, 0) / Math.max(videos.length, 1);
+          {/* ── TikTok / Instagram batch ── */}
+          {!loading && result?.type === "tiktok-batch" && (() => {
+            const videos   = result.videos;
+            const total    = videos.reduce((s, v) => s + v.views, 0);
+            const avgEng   = videos.reduce((s, v) => s + v.engagement, 0) / Math.max(videos.length, 1);
             const topVideo = videos[0];
-            const batchMetrics = [
-              { label: "Videos Analyzed", value: videos.length.toLocaleString(), color: "#2ECC8A", tip: "Number of posts scraped" },
-              { label: "Total Views", value: (totalViews / 1000).toFixed(0) + "K", color: "#60A5FA", tip: "Combined view count across all videos" },
-              { label: "Avg Engagement", value: `${avgEng.toFixed(2)}%`, color: "#F59E0B", tip: "Average engagement rate across all posts" },
-              { label: "Top Views", value: topVideo ? (topVideo.views / 1000).toFixed(0) + "K" : "—", color: "#6366F1", tip: "Highest view count in this batch" },
-              { label: "Creators", value: new Set(videos.map(v => v.channel)).size.toLocaleString(), color: "#EF4444", tip: "Unique creators in this batch" },
+            const metrics  = [
+              { label: "Videos",       value: videos.length.toLocaleString(), color: "#2ECC8A", tip: "Posts scraped" },
+              { label: "Total Views",  value: `${(total/1000).toFixed(0)}K`,  color: "#60A5FA", tip: "Combined views" },
+              { label: "Avg Engage",   value: `${avgEng.toFixed(2)}%`,         color: "#F59E0B", tip: "Avg engagement rate" },
+              { label: "Top Views",    value: topVideo ? `${(topVideo.views/1000).toFixed(0)}K` : "—", color: "#A78BFA", tip: "Highest view count" },
+              { label: "Creators",     value: new Set(videos.map(v => v.channel)).size.toLocaleString(), color: "#EF4444", tip: "Unique creators" },
             ];
             return (
               <div className="space-y-5">
-                {/* Metric cards */}
-                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
-                  {batchMetrics.map(({ label, value, color, tip }) => (
-                    <div
-                      key={label}
-                      title={tip}
-                      className="glass-card cursor-default"
-                      style={{ padding: "16px" }}
-                    >
-                      <div className="text-[11px] mb-1.5" style={{ color: "#6B6860" }}>{label}</div>
-                      <div className="text-[22px] font-bold leading-none font-mono" style={{ color, fontFamily: "var(--font-mono)" }}>{value}</div>
-                    </div>
-                  ))}
+                <div className="grid gap-3 fade-up" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))" }}>
+                  {metrics.map((m, i) => <MetricCard key={m.label} {...m} index={i} />)}
                 </div>
-
-                {/* Forecast for top video */}
                 {topVideo && (
-                  <ViewForecastPanel video={topVideo} forecastDate={forecastDate} onDateChange={setForecastDate} />
+                  <div className="fade-up-1">
+                    <ViewForecastPanel video={topVideo} forecastDate={forecastDate} onDateChange={setForecastDate} />
+                  </div>
                 )}
-
-                <TikTokBatchResult result={result} activeModes={activeModes} />
+                <div className="fade-up-2">
+                  <TikTokBatchResult result={result} activeModes={activeModes} />
+                </div>
               </div>
             );
           })()}

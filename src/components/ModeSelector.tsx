@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { ModeId } from "@/lib/types";
 import { MODES } from "@/lib/modes";
@@ -13,70 +13,57 @@ interface ModeSelectorProps {
 }
 
 const MODE_DESCRIPTIONS: Record<string, string> = {
-  A: "Explains how the platform algorithm works — distribution logic, ranking signals, and what drives reach in 2026.",
-  B: "Surfaces the latest algorithm changes and platform updates affecting content performance.",
-  C: "Identifies why a specific video outperformed the channel median — hook, format, timing, or topic signals.",
-  D: "Reverse-engineers viral content to extract the exact formula: structure, pacing, title, thumbnail patterns.",
-  E: "Analyzes competitor strategies — what they post, how often, what's working, and gaps you can exploit.",
-  F: "Full URL breakdown — pulls every signal from a video or channel link for a deep virality audit.",
-  G: "Virality Readiness Score (0–100) — rates how likely content is to be pushed by the algorithm.",
-  H: "Updates the platform intelligence knowledge base with fresh algorithm briefing data.",
+  A: "Explains distribution logic, ranking signals, and what drives reach in 2026.",
+  B: "Surfaces the latest algorithm changes affecting content performance.",
+  C: "Identifies why a video outperformed the channel median — hook, format, timing.",
+  D: "Reverse-engineers viral content: structure, pacing, title, thumbnail patterns.",
+  E: "Analyzes competitor strategies — what they post, how often, what's working.",
+  F: "Full URL breakdown — pulls every signal for a deep virality audit.",
+  G: "Virality Readiness Score (0–100) — rates algorithm push likelihood.",
+  H: "Updates the platform intelligence knowledge base with fresh briefing data.",
 };
 
 const TOOLTIP_WIDTH = 220;
 
 function ModeTooltip({ mode, anchorRect }: { mode: typeof MODES[number]; anchorRect: DOMRect }) {
-  // Place tooltip to the right of the sidebar (left edge = anchorRect.right + gap)
-  const left = anchorRect.right + 10;
-  const top = anchorRect.top + anchorRect.height / 2;
+  const left = anchorRect.right + 12;
+  const top  = anchorRect.top + anchorRect.height / 2;
 
   return createPortal(
     <div
       className="pointer-events-none"
-      style={{
-        position: "fixed",
-        left,
-        top,
-        transform: "translateY(-50%)",
-        width: TOOLTIP_WIDTH,
-        zIndex: 9999,
-      }}
+      style={{ position: "fixed", left, top, transform: "translateY(-50%)", width: TOOLTIP_WIDTH, zIndex: 9999 }}
     >
-      {/* Left arrow */}
-      <div
-        style={{
-          position: "absolute",
-          left: -5,
-          top: "50%",
-          transform: "translateY(-50%) rotate(45deg)",
-          width: 9,
-          height: 9,
-          background: "#0E0E2A",
-          borderLeft: `1px solid color-mix(in srgb, ${mode.color} 35%, transparent)`,
-          borderBottom: `1px solid color-mix(in srgb, ${mode.color} 35%, transparent)`,
-        }}
-      />
+      {/* Arrow */}
+      <div style={{
+        position: "absolute", left: -5, top: "50%",
+        transform: "translateY(-50%) rotate(45deg)",
+        width: 8, height: 8,
+        background: "#0A0A08",
+        borderLeft: `1px solid rgba(255,255,255,0.1)`,
+        borderBottom: `1px solid rgba(255,255,255,0.1)`,
+      }} />
       {/* Card */}
-      <div
-        className="rounded-xl px-3 py-2.5"
-        style={{
-          background: "#0E0E2A",
-          border: `1px solid color-mix(in srgb, ${mode.color} 35%, transparent)`,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.7), 0 0 0 1px rgba(139,92,246,0.08)",
-        }}
-      >
+      <div style={{
+        background: "rgba(10,10,8,0.97)",
+        border: `1px solid rgba(255,255,255,0.10)`,
+        borderRadius: 10,
+        padding: "10px 12px",
+        boxShadow: `0 8px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04), 0 0 20px ${mode.color}18`,
+        backdropFilter: "blur(16px)",
+      }}>
         <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-base leading-none">{mode.icon}</span>
+          <span style={{ fontSize: 14 }}>{mode.icon}</span>
           <div>
-            <span className="text-[11px] font-bold leading-none block" style={{ color: mode.color }}>
-              Mode {mode.id}
+            <span className="text-[10px] font-bold font-mono tracking-widest block" style={{ color: mode.color }}>
+              MODE {mode.id}
             </span>
-            <span className="text-[10px] font-semibold leading-none" style={{ color: "#F0F0FF" }}>
+            <span className="text-[11px] font-semibold" style={{ color: "#E8E6E1" }}>
               {mode.label}
             </span>
           </div>
         </div>
-        <p className="text-[11px] leading-relaxed m-0" style={{ color: "#9090C0" }}>
+        <p className="text-[11px] leading-relaxed m-0" style={{ color: "#9E9C97" }}>
           {MODE_DESCRIPTIONS[mode.id] || mode.desc}
         </p>
       </div>
@@ -85,50 +72,53 @@ function ModeTooltip({ mode, anchorRect }: { mode: typeof MODES[number]; anchorR
   );
 }
 
-export default function ModeSelector({
-  activeModes,
-  onToggle,
-  onSelectAll,
-  onClear,
-}: ModeSelectorProps) {
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
-  const [mounted, setMounted] = useState(false);
+export default function ModeSelector({ activeModes, onToggle, onSelectAll, onClear }: ModeSelectorProps) {
+  const [hoveredId, setHoveredId]     = useState<string | null>(null);
+  const [anchorRect, setAnchorRect]   = useState<DOMRect | null>(null);
+  const [mounted, setMounted]         = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
   const hoveredMode = MODES.find(m => m.id === hoveredId) ?? null;
 
   return (
-    <div className="px-1 py-1">
-      <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="px-1 py-0.5">
+      <div className="flex flex-wrap gap-1">
         {MODES.map((m) => {
-          const active = activeModes.includes(m.id);
+          const active   = activeModes.includes(m.id);
           const isHovered = hoveredId === m.id;
 
           return (
             <button
               key={m.id}
               onClick={() => onToggle(m.id)}
-              onMouseEnter={(e) => {
-                setHoveredId(m.id);
-                setAnchorRect(e.currentTarget.getBoundingClientRect());
-              }}
+              onMouseEnter={(e) => { setHoveredId(m.id); setAnchorRect(e.currentTarget.getBoundingClientRect()); }}
               onMouseLeave={() => { setHoveredId(null); setAnchorRect(null); }}
-              className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-semibold font-mono border cursor-pointer"
+              className="flex items-center gap-1 font-mono cursor-pointer"
               style={{
+                padding: "3px 8px",
+                borderRadius: 6,
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: "0.05em",
+                border: `1px solid`,
                 background: active
                   ? `color-mix(in srgb, ${m.color} 12%, transparent)`
-                  : "transparent",
+                  : "rgba(255,255,255,0.03)",
                 borderColor: active
-                  ? `color-mix(in srgb, ${m.color} 30%, transparent)`
-                  : "rgba(139,92,246,0.18)",
-                color: active ? m.color : "rgba(139,92,246,0.50)",
-                transform: isHovered ? "scale(1.08)" : "scale(1)",
-                transition: "transform 0.15s ease",
+                  ? `color-mix(in srgb, ${m.color} 35%, transparent)`
+                  : "rgba(255,255,255,0.08)",
+                color: active ? m.color : "#6B6860",
+                transform: isHovered ? "scale(1.06)" : "scale(1)",
+                transition: "all 0.15s ease",
+                boxShadow: active
+                  ? `0 0 8px color-mix(in srgb, ${m.color} 18%, transparent), inset 0 1px 0 rgba(255,255,255,0.1)`
+                  : isHovered
+                    ? `0 0 0 1px rgba(255,255,255,0.1), 0 0 10px rgba(255,255,255,0.04)`
+                    : "none",
               }}
             >
-              <span className="text-xs">{m.icon}</span>
+              <span style={{ fontSize: 9 }}>{m.icon}</span>
               {m.id}
             </button>
           );
@@ -136,25 +126,34 @@ export default function ModeSelector({
 
         <button
           onClick={onSelectAll}
-          className="rounded px-1.5 py-0.5 text-[8px] font-mono border cursor-pointer"
-          style={{ color: "rgba(139,92,246,0.45)", borderColor: "rgba(139,92,246,0.18)" }}
-          onMouseEnter={e => (e.currentTarget.style.color = "#F0F0FF")}
-          onMouseLeave={e => (e.currentTarget.style.color = "rgba(139,92,246,0.45)")}
+          className="font-mono cursor-pointer"
+          style={{
+            padding: "3px 7px", borderRadius: 6, fontSize: 9, fontWeight: 600,
+            border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.03)",
+            color: "#6B6860", letterSpacing: "0.08em",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "#E8E6E1"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.14)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "#6B6860"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.07)"; }}
         >
           ALL
         </button>
         <button
           onClick={onClear}
-          className="rounded px-1.5 py-0.5 text-[8px] font-mono border cursor-pointer"
-          style={{ color: "rgba(139,92,246,0.45)", borderColor: "rgba(139,92,246,0.18)" }}
-          onMouseEnter={e => (e.currentTarget.style.color = "#F0F0FF")}
-          onMouseLeave={e => (e.currentTarget.style.color = "rgba(139,92,246,0.45)")}
+          className="font-mono cursor-pointer"
+          style={{
+            padding: "3px 7px", borderRadius: 6, fontSize: 9, fontWeight: 600,
+            border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.03)",
+            color: "#6B6860", letterSpacing: "0.08em",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "#FF4D6A"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,77,106,0.25)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "#6B6860"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.07)"; }}
         >
           CLR
         </button>
       </div>
 
-      {/* Portal tooltip — rendered into document.body, never clips */}
       {mounted && hoveredMode && anchorRect && (
         <ModeTooltip mode={hoveredMode} anchorRect={anchorRect} />
       )}
