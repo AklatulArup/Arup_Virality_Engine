@@ -1549,22 +1549,68 @@ export default function Dashboard() {
             const ttPct  = poolTotal > 0 ? ttCount  / poolTotal : 0.25;
             const igPct  = poolTotal > 0 ? igCount  / poolTotal : 0.15;
 
+            // ── Real pool-derived platform signals ──
+            const entries = referenceStore?.entries ?? [];
+
+            function poolSignal(platformEntries: typeof entries) {
+              if (platformEntries.length === 0) return null;
+              const avgVRS   = platformEntries.reduce((s, e) => s + (e.metrics?.vrsScore  ?? 0), 0) / platformEntries.length;
+              const avgEng   = platformEntries.reduce((s, e) => s + (e.metrics?.engagement ?? 0), 0) / platformEntries.length;
+              const avgVel   = platformEntries.reduce((s, e) => s + (e.metrics?.velocity   ?? 0), 0) / platformEntries.length;
+              const outlierRate = platformEntries.filter(e => (e.metrics?.vrsScore ?? 0) >= 75).length / platformEntries.length;
+              // Composite score: 50% avg VRS, 30% outlier rate (0-100), 20% engagement signal
+              const engScore = Math.min(avgEng * 10, 100);
+              const score    = Math.round(avgVRS * 0.5 + outlierRate * 100 * 0.3 + engScore * 0.2);
+              const status   = score >= 88 ? "PEAK" : score >= 78 ? "OPTIMAL" : score >= 65 ? "STRONG" : score >= 50 ? "ACTIVE" : "LOW";
+              // Trend: compare newest 30% vs oldest 30%
+              const sorted   = [...platformEntries].sort((a, b) => new Date(b.analyzedAt).getTime() - new Date(a.analyzedAt).getTime());
+              const third    = Math.max(1, Math.floor(sorted.length / 3));
+              const newAvg   = sorted.slice(0, third).reduce((s,e) => s+(e.metrics?.vrsScore??0),0)/third;
+              const oldAvg   = sorted.slice(-third).reduce((s,e) => s+(e.metrics?.vrsScore??0),0)/third;
+              const trendPct = oldAvg > 0 ? ((newAvg - oldAvg) / oldAvg * 100) : 0;
+              const trend    = (trendPct >= 0 ? "+" : "") + trendPct.toFixed(1) + "%";
+              return { score: Math.min(score, 100), status, trend, count: platformEntries.length, avgVRS: Math.round(avgVRS), avgEng: parseFloat(avgEng.toFixed(2)), avgVel: Math.round(avgVel) };
+            }
+
+            const ytEntries  = entries.filter(e => e.platform === "youtube" && (e.metrics?.durationSeconds ?? 999) > 60);
+            const ytsEntries = entries.filter(e => e.platform === "youtube_short" || (e.platform === "youtube" && (e.metrics?.durationSeconds ?? 999) <= 60) || (e.durationSeconds ?? 999) <= 60);
+            const ttEntries  = entries.filter(e => e.platform === "tiktok");
+            const igEntries  = entries.filter(e => e.platform === "instagram" || (e.platform !== "youtube" && e.platform !== "tiktok" && e.platform !== "youtube_short"));
+
+            const ytSig  = poolSignal(ytEntries)  ?? { score: 0, status: "NO DATA", trend: "—", count: 0, avgVRS: 0, avgEng: 0, avgVel: 0 };
+            const ytsSig = poolSignal(ytsEntries) ?? { score: 0, status: "NO DATA", trend: "—", count: 0, avgVRS: 0, avgEng: 0, avgVel: 0 };
+            const ttSig  = poolSignal(ttEntries)  ?? { score: 0, status: "NO DATA", trend: "—", count: 0, avgVRS: 0, avgEng: 0, avgVel: 0 };
+            const igSig  = poolSignal(igEntries)  ?? { score: 0, status: "NO DATA", trend: "—", count: 0, avgVRS: 0, avgEng: 0, avgVel: 0 };
+
             const PLATFORMS_STATUS = [
-              { label: "YouTube Long-form", short: "YTL", color: "#EF4444", signal: 92, trend: "+3.2%", status: "OPTIMAL" },
-              { label: "YouTube Shorts",    short: "YTS", color: "#EC4899", signal: 87, trend: "+1.8%", status: "STRONG"  },
-              { label: "TikTok",            short: "TTK", color: "#06B6D4", signal: 95, trend: "+5.1%", status: "PEAK"    },
-              { label: "Instagram Reels",   short: "IGR", color: "#E1306C", signal: 78, trend: "-0.9%", status: "ACTIVE"  },
+              { label: "YouTube Long-form", short: "YTL", color: "#EF4444", sig: ytSig  },
+              { label: "YouTube Shorts",    short: "YTS", color: "#EC4899", sig: ytsSig },
+              { label: "TikTok",            short: "TTK", color: "#06B6D4", sig: ttSig  },
+              { label: "Instagram Reels",   short: "IGR", color: "#E1306C", sig: igSig  },
             ];
 
+            // ── Real pool-derived signal feed ──
+            const topCreators = referenceStore
+              ? [...new Map(referenceStore.entries.map(e => [e.channelName, e])).values()]
+                  .sort((a,b) => (b.metrics?.vrsScore ?? 0) - (a.metrics?.vrsScore ?? 0))
+                  .slice(0, 3)
+              : [];
+            const avgPoolVRS   = poolTotal > 0
+              ? Math.round(entries.reduce((s,e)=>s+(e.metrics?.vrsScore??0),0)/poolTotal) : 0;
+            const avgPoolEng   = poolTotal > 0
+              ? (entries.reduce((s,e)=>s+(e.metrics?.engagement??0),0)/poolTotal).toFixed(2) : "0";
+            const outlierCount = entries.filter(e=>(e.metrics?.vrsScore??0)>=80).length;
+            const growingCount = entries.filter(e=>e.metrics?.trend==="growing").length;
+
             const TICKER_ITEMS = [
-              { label: "TikTok FYP weight shift", value: "+12%", color: "#06B6D4" },
-              { label: "YouTube Shorts retention signal", value: "▲ RISING", color: "#EC4899" },
-              { label: "Hook window optimal length", value: "2.1s", color: "#60A5FA" },
-              { label: "Instagram Reels reach multiplier", value: "3.4×", color: "#E1306C" },
-              { label: "YT algo comment weight", value: "+8%", color: "#EF4444" },
-              { label: "Cross-platform repost signal", value: "ACTIVE", color: "#2ECC8A" },
-              { label: "Keyword velocity index", value: `${kwCount} tracked`, color: "#F59E0B" },
-              { label: "Reference pool depth", value: `${poolTotal} videos`, color: "#A78BFA" },
+              { label: "Reference pool depth",      value: `${poolTotal} videos`,              color: "#A78BFA" },
+              { label: "Pool avg VRS score",        value: avgPoolVRS > 0 ? `${avgPoolVRS}/100` : "—",    color: "#60A5FA" },
+              { label: "Pool avg engagement",       value: parseFloat(avgPoolEng) > 0 ? `${avgPoolEng}%` : "—", color: "#F59E0B" },
+              { label: "High-VRS content (≥80)",   value: outlierCount > 0 ? `${outlierCount} videos` : "—", color: "#2ECC8A" },
+              { label: "Growing creators tracked", value: growingCount > 0 ? `${growingCount}` : "—",   color: "#06B6D4" },
+              { label: "Keyword bank size",         value: `${kwCount} keywords`,               color: "#E879F9" },
+              { label: "Creators in pool",          value: `${poolCreators}`,                   color: "#EF4444" },
+              ...(topCreators[0] ? [{ label: `Top VRS · ${topCreators[0].channelName}`, value: `${topCreators[0].metrics?.vrsScore ?? "—"}/100`, color: "#2ECC8A" }] : []),
             ];
 
             return (
@@ -1725,32 +1771,56 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
-                    {PLATFORMS_STATUS.map(({ label, short, color, signal, trend, status }) => {
-                      const trendUp = trend.startsWith("+");
+                    {PLATFORMS_STATUS.map(({ label, short, color, sig }) => {
+                      const noData   = sig.count === 0;
+                      const trendUp  = sig.trend.startsWith("+");
                       return (
                         <div key={short}>
+                          {/* Header row */}
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-1.5">
-                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, display: "inline-block", boxShadow: `0 0 6px ${color}` }} />
-                              <span className="font-mono" style={{ fontSize: 10, color: "#B8B6B1" }}>{short}</span>
+                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: noData ? "#3A3835" : color, display: "inline-block", boxShadow: noData ? "none" : `0 0 6px ${color}` }} />
+                              <span className="font-mono" style={{ fontSize: 10, color: noData ? "#5E5A57" : "#B8B6B1" }}>{short}</span>
+                              {!noData && <span className="font-mono" style={{ fontSize: 9, color: "#5E5A57" }}>{sig.count}v</span>}
                             </div>
-                            <span className="font-mono" style={{ fontSize: 9, color: trendUp ? "#2ECC8A" : "#FF4D6A", fontWeight: 600 }}>{trend}</span>
+                            {noData
+                              ? <span className="font-mono" style={{ fontSize: 8, color: "#5E5A57" }}>NO POOL DATA</span>
+                              : <span className="font-mono font-bold" style={{ fontSize: 9, color: trendUp ? "#2ECC8A" : "#FF4D6A" }}>{sig.trend}</span>
+                            }
                           </div>
-                          {/* Signal bar */}
+                          {/* Score bar */}
                           <div className="signal-bar mb-1.5">
                             <div className="signal-bar-fill" style={{
-                              width: `${signal}%`,
-                              background: `linear-gradient(90deg, ${color}88, ${color})`,
-                              boxShadow: `0 0 14px ${color}CC, 0 0 28px ${color}44`,
+                              width: noData ? "0%" : `${sig.score}%`,
+                              background: noData ? "rgba(255,255,255,0.04)" : `linear-gradient(90deg, ${color}88, ${color})`,
+                              boxShadow: noData ? "none" : `0 0 14px ${color}CC, 0 0 28px ${color}44`,
+                              transition: "width 1.2s cubic-bezier(0.16,1,0.3,1)",
                             }} />
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono" style={{ fontSize: 9, color: "#5E5A57" }}>{signal}/100</span>
-                            <span className="font-mono" style={{
-                              fontSize: 8, fontWeight: 700, letterSpacing: "0.08em",
-                              color: signal >= 90 ? "#2ECC8A" : signal >= 80 ? "#F59E0B" : "#9E9C97",
-                            }}>{status}</span>
+                          {/* Footer row */}
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-mono" style={{ fontSize: 9, color: "#5E5A57" }}>{noData ? "—/100" : `${sig.score}/100`}</span>
+                            <span className="font-mono font-bold" style={{ fontSize: 8, letterSpacing: "0.08em", color: noData ? "#5E5A57" : sig.score >= 88 ? "#2ECC8A" : sig.score >= 78 ? "#F59E0B" : "#9E9C97" }}>
+                              {sig.status}
+                            </span>
                           </div>
+                          {/* Sub-metrics */}
+                          {!noData && (
+                            <div className="flex gap-3">
+                              {[
+                                { label: "AVG VRS",  value: sig.avgVRS,           unit: "" },
+                                { label: "AVG ENG",  value: sig.avgEng,           unit: "%" },
+                                { label: "AVG VEL",  value: sig.avgVel >= 1000 ? `${(sig.avgVel/1000).toFixed(1)}K` : sig.avgVel, unit: "/d" },
+                              ].map(({ label, value, unit }) => (
+                                <div key={label}>
+                                  <div className="font-mono" style={{ fontSize: 7, color: "#4A4845", letterSpacing: "0.1em" }}>{label}</div>
+                                  <div className="font-mono font-semibold" style={{ fontSize: 10, color }}>
+                                    {value}{unit}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1802,15 +1872,29 @@ export default function Dashboard() {
                     <div className="glass-card" style={{ padding: "20px 24px" }}>
                       <div className="panel-label mb-3">VRS Score Range — Pool</div>
                       <div className="space-y-2">
-                        {[
-                          { label: "Excellent  90–100", color: "#2ECC8A", pct: 28 },
-                          { label: "Strong     75–89",  color: "#60A5FA", pct: 35 },
-                          { label: "Competitive 60–74", color: "#F59E0B", pct: 22 },
-                          { label: "Needs Work  40–59", color: "#F97316", pct: 10 },
-                          { label: "Rework      0–39",  color: "#FF4D6A", pct: 5  },
-                        ].map(({ label, color, pct }) => (
+                        {(() => {
+                          const total = entries.length || 1;
+                          const tiers = [
+                            { label: "Excellent  90–100", color: "#2ECC8A", min: 90, max: 100 },
+                            { label: "Strong     75–89",  color: "#60A5FA", min: 75, max: 89  },
+                            { label: "Competitive 60–74", color: "#F59E0B", min: 60, max: 74  },
+                            { label: "Needs Work  40–59", color: "#F97316", min: 40, max: 59  },
+                            { label: "Rework       0–39", color: "#FF4D6A", min: 0,  max: 39  },
+                          ].map(t => ({
+                            ...t,
+                            count: entries.filter(e => {
+                              const v = e.metrics?.vrsScore ?? 0;
+                              return v >= t.min && v <= t.max;
+                            }).length,
+                            pct: poolTotal > 0
+                              ? Math.round(entries.filter(e => { const v = e.metrics?.vrsScore ?? 0; return v >= t.min && v <= t.max; }).length / total * 100)
+                              : 0,
+                          }));
+                          return tiers;
+                        })().map(({ label, color, pct, count }) => (
                           <div key={label} className="flex items-center gap-2">
                             <span className="font-mono shrink-0" style={{ fontSize: 9, color: "#5E5A57", width: 120 }}>{label}</span>
+                            {poolTotal === 0 && <span className="font-mono" style={{ fontSize: 8, color: "#4A4845" }}>no data</span>}
                             <div className="flex-1 signal-bar" style={{ height: 4 }}>
                               <div className="signal-bar-fill" style={{
                                 width: `${pct}%`,
