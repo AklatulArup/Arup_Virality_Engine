@@ -337,6 +337,8 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
   const [forecastDays, setForecast] = useState(30);
   const [activeExpert, setActive]   = useState<string|null>(null);
   const [expanded, setExpanded]     = useState<string|null>(null);
+  const [speakOrder, setSpeakOrder] = useState<string[]>([]);
+  const [crossTalk, setCrossTalk]   = useState<{from:string;to:string;word:string}|null>(null);
   const intervals                   = useRef<ReturnType<typeof setInterval>[]>([]);
 
   useEffect(()=>()=>{ intervals.current.forEach(clearInterval); },[]);
@@ -358,28 +360,73 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
   async function runWarRoom() {
     intervals.current.forEach(clearInterval); intervals.current = [];
     setRunning(true); setPhase("experts"); setOpinions({}); setVerdict(null); setVW([]); setExpanded(null);
+    setSpeakOrder([]); setCrossTalk(null);
     updateSessionMemory(video, channel, plt, "WAR_ROOM");
+
+    // Init all as queued
     const init: Record<string,ExpertOpinion> = {};
     EXPERTS.forEach(e=>{ init[e.id]={ persona:e.id, text:"", words:[], loading:true, done:false }; });
     setOpinions({...init});
+
+    // Fire all API calls in parallel (fast) but stream results sequentially (visual drama)
     const results: Record<string,string> = {};
+    const fetched: Record<string,string> = {};
+
+    // Start all fetches simultaneously
     await Promise.all(EXPERTS.map(async(expert)=>{
-      setActive(expert.id);
       try {
         const prompt = buildDeepPrompt(video,channel,channelMedian,recentVideos,referenceStore,keywordBank,expert.id,forecastDays,{});
-        const text = await callExpert(prompt, expert.id);
-        results[expert.id] = text;
-        const iv = streamWords(
-          text,
-          (w)=>setOpinions(p=>({...p,[expert.id]:{...p[expert.id],words:w,loading:false}})),
-          ()=>setOpinions(p=>({...p,[expert.id]:{...p[expert.id],text,words:text.split(" "),loading:false,done:true}}))
-        );
-        intervals.current.push(iv);
+        fetched[expert.id] = await callExpert(prompt, expert.id);
       } catch(err) {
-        const msg = err instanceof Error ? err.message : "Analysis failed";
-        setOpinions(p=>({...p,[expert.id]:{persona:expert.id,text:msg,words:msg.split(" "),loading:false,done:true,error:msg}}));
+        fetched[expert.id] = "__error__" + (err instanceof Error ? err.message : "failed");
       }
     }));
+
+    // Stream results one at a time — sequential deliberation feel
+    const order = [...EXPERTS];
+    setSpeakOrder([]);
+
+    for(let i=0; i<order.length; i++){
+      const expert = order[i];
+      setActive(expert.id);
+      setSpeakOrder(prev=>[...prev, expert.id]);
+
+      const raw = fetched[expert.id] ?? "";
+      if(raw.startsWith("__error__")){
+        const msg = raw.replace("__error__","");
+        setOpinions(p=>({...p,[expert.id]:{persona:expert.id,text:msg,words:msg.split(" "),loading:false,done:true,error:msg}}));
+        continue;
+      }
+
+      results[expert.id] = raw;
+
+      // Trigger cross-talk pulse to previous expert (they're reacting)
+      if(i>0){
+        const prev = order[i-1];
+        const triggerWord = raw.split(" ").slice(0,3).join(" ");
+        setCrossTalk({from:expert.id, to:prev.id, word:triggerWord});
+        await new Promise(r=>setTimeout(r, 600));
+        setCrossTalk(null);
+      }
+
+      // Stream this expert's words
+      await new Promise<void>(resolve=>{
+        const iv = streamWords(
+          raw,
+          (w)=>setOpinions(p=>({...p,[expert.id]:{...p[expert.id],words:w,loading:false}})),
+          ()=>{
+            setOpinions(p=>({...p,[expert.id]:{...p[expert.id],text:raw,words:raw.split(" "),loading:false,done:true}}));
+            resolve();
+          }
+        );
+        intervals.current.push(iv);
+      });
+
+      // Brief pause between experts — feels like they're considering each other
+      if(i < order.length-1) await new Promise(r=>setTimeout(r,400));
+    }
+
+    setActive(null);
 
     setPhase("verdict"); setActive("verdict");
     setVerdict({ persona:"verdict", text:"", words:[], loading:true, done:false });
@@ -545,18 +592,27 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
               const isExp    = expanded===expert.id;
               const preview  = op?.words?.slice(0,20).join(" ") ?? "";
 
+              const isSpeaking = activeExpert === expert.id && !op?.done;
+              const isQueued   = !op?.done && !isSpeaking && speakOrder.indexOf(expert.id) === -1 && phase === "experts";
+              const isCrossTalkFrom = crossTalk?.from === expert.id;
+              const isCrossTalkTo   = crossTalk?.to   === expert.id;
+              const borderColor = isSpeaking ? `${expert.color}55` : isCrossTalkTo ? `${expert.color}80` : op?.done && !op?.error ? `${expert.color}22` : "rgba(255,255,255,0.06)";
               return (
                 <div key={expert.id}
                   style={{
-                    background:"rgba(0,0,0,0.25)",
-                    border:`1px solid ${op?.done&&!op?.error ? `${expert.color}22` : isActive ? `${expert.color}45` : "rgba(255,255,255,0.06)"}`,
+                    background: isSpeaking ? `rgba(0,0,0,0.35)` : "rgba(0,0,0,0.22)",
+                    border:`1px solid ${borderColor}`,
                     borderRadius:10,overflow:"hidden",
-                    boxShadow:isActive?`0 0 18px ${expert.glow}`:"none",
-                    transition:"border-color 0.25s,box-shadow 0.25s",
+                    boxShadow: isSpeaking ? `0 0 22px ${expert.glow}` : isCrossTalkTo ? `0 0 10px ${expert.color}44` : "none",
+                    opacity: isQueued ? 0.45 : 1,
+                    transform: isCrossTalkTo ? "translateX(2px)" : "none",
+                    transition:"border-color 0.2s,box-shadow 0.2s,opacity 0.3s,transform 0.15s",
                   }}
                 >
-                  {/* Active scan line */}
-                  {isActive && <div style={{height:1,background:`linear-gradient(90deg,transparent,${expert.color},transparent)`,backgroundSize:"200% 100%",animation:"cosmicShimmer 1.2s linear infinite"}} />}
+                  {/* Speaking scan line */}
+                  {isSpeaking && <div style={{height:1,background:`linear-gradient(90deg,transparent,${expert.color},transparent)`,backgroundSize:"200% 100%",animation:"cosmicShimmer 1.0s linear infinite"}} />}
+                  {/* Cross-talk reaction pulse */}
+                  {isCrossTalkTo && <div style={{height:1,background:`linear-gradient(90deg,transparent,${expert.color}88,transparent)`,backgroundSize:"200% 100%",animation:"cosmicShimmer 0.5s linear infinite"}} />}
 
                   {/* Header row — always visible, clickable to expand */}
                   <button
@@ -586,10 +642,21 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
                           {preview}{preview.length > 0 ? "…" : ""}
                         </div>
                       )}
-                      {isActive && (
+                      {isSpeaking && (
                         <div className="flex items-center gap-1.5" style={{marginTop:2}}>
                           <ThinkingDots color={expert.color} />
-                          <span className="font-mono" style={{fontSize:8,color:expert.color,letterSpacing:"0.08em"}}>DELIBERATING</span>
+                          <span className="font-mono" style={{fontSize:8,color:expert.color,letterSpacing:"0.08em"}}>SPEAKING</span>
+                        </div>
+                      )
+                      }
+                      {!isSpeaking && !op?.done && phase==="experts" && speakOrder.indexOf(expert.id)===-1 && (
+                        <div style={{fontSize:8,color:"#4A4845",marginTop:2,fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>QUEUED…</div>
+                      )
+                      }
+                      {isCrossTalkTo && (
+                        <div className="flex items-center gap-1.5" style={{marginTop:2}}>
+                          <span style={{fontSize:9,color:expert.color,animation:"glowPulse 0.4s ease-in-out infinite"}}>↩</span>
+                          <span className="font-mono" style={{fontSize:8,color:expert.color,letterSpacing:"0.08em"}}>REACTING…</span>
                         </div>
                       )}
                     </div>
@@ -597,6 +664,7 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
                     {/* Right state indicator */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       {op?.done && !op?.error && <CircuitNode color={expert.color} size={6} />}
+                      {isSpeaking && !op?.done && <CircuitNode color={expert.color} size={5} />}
                       {op?.done && (
                         <span className="font-mono" style={{fontSize:9,color:isExp?"#E8E6E1":"#4A4845",transition:"color 0.15s"}}>
                           {isExp?"▲":"▼"}
