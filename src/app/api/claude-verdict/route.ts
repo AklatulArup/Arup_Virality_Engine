@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     process.env.Claude_AI_Summary_API_KEY ||
     process.env.ANTHROPIC_API_KEY;
   if (anthropicKey) {
-    for (const model of ["claude-3-haiku-20240307", "claude-haiku-4-5-20251001"]) {
+    for (const model of ["claude-haiku-4-5-20251001", "claude-3-5-haiku-20241022", "claude-3-haiku-20240307"]) {
       try {
         const r = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
