@@ -83,6 +83,7 @@ import type { Competitor } from "./CompetitorBankManager";
 import CreatorBlocklist from "./CreatorBlocklist";
 import ViewForecastPanel from "./ViewForecastPanel";
 import BulkCSVImportPanel from "./BulkCSVImportPanel";
+import ReportDownloadButton from "./ReportDownloadButton";
 import StarfieldCanvas from "./StarfieldCanvas";
 import CursorGlow from "./CursorGlow";
 import MetricCard from "./MetricCard";
@@ -1313,6 +1314,21 @@ export default function Dashboard() {
           )}
           {instagramStatus && (
             <span className="status-chip status-success shrink-0">{instagramStatus}</span>
+          )}
+
+          {/* ── PDF Report download button ── */}
+          {result && !loading && (
+            <ReportDownloadButton
+              compact
+              data={{
+                result,
+                platform: inputTab,
+                generatedAt: new Date().toISOString(),
+                channelMedian: result.type === "video" ? result.channelMedian : undefined,
+                referenceStore,
+                keywordBank,
+              }}
+            />
           )}
         </div>
 
