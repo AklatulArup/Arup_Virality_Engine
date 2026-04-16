@@ -201,7 +201,7 @@ export default function ViralityVerdictPanel({ video, channel, channelMedian, re
       }
     } catch { /* fall through */ }
 
-    // ── Try 2: Puter.js (free, client-side, no API key) ──
+    // ── Try 2: Puter.js fallback (if available) ──
     if (!success) {
       try {
         const text = await puterAIChat(prompt, systemPrompt);
@@ -210,7 +210,7 @@ export default function ViralityVerdictPanel({ video, channel, channelMedian, re
           success = true;
           updateSessionMemory(video, channel, detectedPlatform, phase.label, text.slice(0, 200));
         }
-      } catch { /* fall through */ }
+      } catch { /* Puter not available, fall through to computed */ }
     }
 
     // ── Try 3: Computed verdict from data ──
