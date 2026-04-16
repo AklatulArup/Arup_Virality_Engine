@@ -14,102 +14,130 @@ function trimPrompt(prompt: string, maxChars = 2500): string {
   return prompt.slice(0, maxChars) + "\n\n[context trimmed]";
 }
 
-export async function POST(req: NextRequest) {
-  // Parse body
-  let body: { prompt?: string; persona?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+// ── Google Gemini (free tier — 15 requests/min, no credit card) ──────────────
+async function callGemini(prompt: string, systemPrompt: string, apiKey: string): Promise<string> {
+  const model = "gemini-1.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  if (!body.prompt) {
-    return NextResponse.json({ error: "prompt required" }, { status: 400 });
-  }
+  const r = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: "user", parts: [{ text: trimPrompt(prompt) }] }],
+      generationConfig: { maxOutputTokens: 400, temperature: 0.7 },
+    }),
+  });
+
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error?.message ?? `Gemini HTTP ${r.status}`);
+  const text = d.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  if (!text) throw new Error("Gemini returned empty response");
+  return text;
+}
+
+// ── Anthropic direct ──────────────────────────────────────────────────────────
+async function callAnthropic(prompt: string, systemPrompt: string, apiKey: string): Promise<string> {
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 400,
+      system: systemPrompt,
+      messages: [{ role: "user", content: trimPrompt(prompt) }],
+    }),
+  });
+
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error?.message ?? `Anthropic HTTP ${r.status}`);
+  const text = d.content?.find((b: { type: string }) => b.type === "text")?.text ?? "";
+  if (!text) throw new Error("Anthropic returned empty response");
+  return text;
+}
+
+// ── Groq (free tier — fast Llama inference) ───────────────────────────────────
+async function callGroq(prompt: string, systemPrompt: string, apiKey: string): Promise<string> {
+  const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      max_tokens: 400,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user",   content: trimPrompt(prompt) },
+      ],
+    }),
+  });
+
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error?.message ?? `Groq HTTP ${r.status}`);
+  const text = d.choices?.[0]?.message?.content ?? "";
+  if (!text) throw new Error("Groq returned empty response");
+  return text;
+}
+
+export async function POST(req: NextRequest) {
+  let body: { prompt?: string; persona?: string };
+  try { body = await req.json(); }
+  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+
+  if (!body.prompt) return NextResponse.json({ error: "prompt required" }, { status: 400 });
 
   const systemPrompt = PERSONA_SYSTEMS[body.persona ?? "default"] ?? PERSONA_SYSTEMS.default;
-  const prompt = trimPrompt(body.prompt);
+  const geminiKey    = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.Claude_AI_Summary_API_KEY;
+  const groqKey      = process.env.GROQ_API_KEY;
 
-  const openRouterKey = process.env.OPENROUTER_API_KEY;
-  const anthropicKey  = process.env.ANTHROPIC_API_KEY || process.env.Claude_AI_Summary_API_KEY;
+  const errors: string[] = [];
 
-  // ── OpenRouter ──────────────────────────────────────────────────────────────
-  if (openRouterKey) {
-    for (const model of [
-      "meta-llama/llama-3.2-3b-instruct:free",
-      "meta-llama/llama-3.1-70b-instruct:free",
-      "google/gemma-3-1b-it:free",
-      "mistralai/mistral-small-3.1-24b-instruct:free",
-      "deepseek/deepseek-r1-zero:free",
-      "qwen/qwen-2.5-7b-instruct:free",
-    ]) {
-      try {
-        const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${openRouterKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://virality-engin.vercel.app",
-            "X-Title": "FundedNext Intelligence",
-          },
-          body: JSON.stringify({
-            model,
-            max_tokens: 400,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user",   content: prompt },
-            ],
-          }),
-        });
-
-        const d = await r.json();
-        const text = d.choices?.[0]?.message?.content ?? "";
-        if (text.length > 10) {
-          return NextResponse.json({ text, source: `openrouter:${model}` });
-        }
-        // If error, log and continue to next model
-        if (!r.ok) {
-          console.error(`OpenRouter ${model} failed:`, d.error?.message ?? r.status);
-        }
-      } catch (e) {
-        console.error(`OpenRouter ${model} exception:`, e);
-      }
+  // ── 1. Gemini (primary — free, reliable) ──
+  if (geminiKey) {
+    try {
+      const text = await callGemini(body.prompt, systemPrompt, geminiKey);
+      return NextResponse.json({ text, source: "gemini" });
+    } catch (e) {
+      errors.push(`Gemini: ${e instanceof Error ? e.message : String(e)}`);
     }
+  } else {
+    errors.push("Gemini: GEMINI_API_KEY not set");
   }
 
-  // ── Anthropic direct ────────────────────────────────────────────────────────
+  // ── 2. Anthropic (fallback) ──
   if (anthropicKey) {
     try {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 400,
-          system: systemPrompt,
-          messages: [{ role: "user", content: prompt }],
-        }),
-      });
-      const d = await r.json();
-      const text = d.content?.find((b: {type:string}) => b.type === "text")?.text ?? "";
-      if (text.length > 10) {
-        return NextResponse.json({ text, source: "anthropic" });
-      }
-      console.error("Anthropic failed:", d.error?.message ?? r.status);
+      const text = await callAnthropic(body.prompt, systemPrompt, anthropicKey);
+      return NextResponse.json({ text, source: "anthropic" });
     } catch (e) {
-      console.error("Anthropic exception:", e);
+      errors.push(`Anthropic: ${e instanceof Error ? e.message : String(e)}`);
     }
+  } else {
+    errors.push("Anthropic: no key set");
   }
 
-  // ── Both failed — return diagnostic ────────────────────────────────────────
+  // ── 3. Groq (second fallback — free) ──
+  if (groqKey) {
+    try {
+      const text = await callGroq(body.prompt, systemPrompt, groqKey);
+      return NextResponse.json({ text, source: "groq" });
+    } catch (e) {
+      errors.push(`Groq: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  } else {
+    errors.push("Groq: GROQ_API_KEY not set");
+  }
+
   return NextResponse.json({
     error: "All AI providers failed",
-    openrouter_key_set: !!openRouterKey,
-    anthropic_key_set: !!anthropicKey,
-    tip: "Check Vercel logs for detailed error. Visit /api/test-ai to diagnose.",
+    details: errors,
+    tip: "Add GEMINI_API_KEY to Vercel env vars. Get a free key at aistudio.google.com",
   }, { status: 503 });
 }
