@@ -32,11 +32,21 @@ const EXPERTS = [
 ];
 
 const PERSONA_SYSTEMS: Record<string, string> = {
-  algorithm:    "You are a razor-sharp Algorithm Analyst. Care only about platform distribution signals: VRS, velocity, retention, CTR, algorithmic amplification. Use exact numbers. 2-3 paragraphs. No bullet points.",
-  strategist:   "You are a Content Strategist obsessed with hook construction, title engineering, format. DISAGREE with algorithm-first views where warranted. 2-3 paragraphs. No bullet points.",
-  psychologist: "You are an Audience Psychologist. Read comment rates and engagement to understand WHY people watch emotionally. Contradict other analysts where your expertise leads elsewhere. 2-3 paragraphs. No bullet points.",
-  competitor:   "You are a Competitive Intelligence Analyst. Benchmark against competing channels. Be brutal about where this content loses ground. 2-3 paragraphs. No bullet points.",
-  verdict:      "You are the Chief Intelligence Officer. NAME the strongest disagreement between the 4 experts and RESOLVE it with evidence. Give a decisive recommendation. 3 paragraphs. No headers, no bullets, no markdown.",
+  algorithm:    "You are an Algorithm Analyst. State what the platform algorithm is doing to this video RIGHT NOW based on the exact signals in the data. Use the numbers. Name the mechanism. Say what breaks it or accelerates it. 2 paragraphs. No hedging. No bullet points.",
+  strategist:   "You are a Content Strategist. State whether the hook, title, and format are working or failing — and why the numbers prove it. Say what one change would move the needle most. 2 paragraphs. Disagree with algorithm-only thinking where the data justifies it. No bullet points.",
+  psychologist: "You are an Audience Psychologist. State what emotional need this content is meeting and how the comment and engagement pattern confirms it. Say what the audience will do next as a result. 2 paragraphs. No bullet points.",
+  competitor:   "You are a Competitive Intelligence Analyst. State where this video is winning and losing against comparable creators in this niche — use the pool data. Say what the channel is leaving on the table. 2 paragraphs. Be blunt. No bullet points.",
+  verdict: `You are a Chief Intelligence Officer delivering a 3-part operational brief. You have received analysis from 4 experts. Ignore the debate. Extract what matters.
+
+Write EXACTLY 3 sections, each 2-3 sentences. No headers. No bullets. No markdown. No expert attribution. Plain prose only.
+
+SECTION 1 — WHAT IS HAPPENING RIGHT NOW: State what the algorithm is doing to this video at this moment and why, based on the specific signals in the data. Be precise about the mechanism.
+
+SECTION 2 — WHAT WILL HAPPEN NEXT BECAUSE OF THIS: State the most likely outcome in the forecast window and the specific condition that will either accelerate or kill it. One sentence on the risk, one on the opportunity.
+
+SECTION 3 — WHAT TO DO WITH THIS INFORMATION: Give one clear directive the creator should act on within 48 hours. Then state the one specific mistake they must not make right now.
+
+No waffle. No hedging. This is a decision brief, not an analysis.`,
 };
 
 const TIMEFRAME_OPTIONS = [
@@ -276,7 +286,19 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
     setPhase("verdict"); setActive("verdict");
     setVerdict({ persona:"verdict", text:"", words:[], loading:true, done:false });
     try {
-      const vp = buildDeepPrompt(video,channel,channelMedian,recentVideos,referenceStore,keywordBank,"verdict",forecastDays,results);
+      // Build verdict prompt — strip debate recap, focus on operational brief
+      const verdictContext = Object.entries(results)
+        .map(([persona, text]) => {
+          // Take only first 200 chars of each expert — their core signal, not their full essay
+          const signal = text.replace(/\n/g, " ").slice(0, 220).trim();
+          return `[${persona.toUpperCase()} SIGNAL]: ${signal}…`;
+        })
+        .join("\n\n");
+
+      const vp = buildDeepPrompt(video,channel,channelMedian,recentVideos,referenceStore,keywordBank,"verdict",forecastDays,{}) +
+        `\n\n═══ EXPERT SIGNALS (summarised) ═══\n${verdictContext}\n\n` +
+        `YOUR BRIEF: Ignore who said what. Write the 3-section operational brief as instructed. What is happening. What will happen next. What to do.`;
+
       const vtRaw = await callExpert(vp,"verdict");
       const vt = stripMd(vtRaw);
       const iv = streamWords(
@@ -517,7 +539,7 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
               <div style={{width:36,height:36,borderRadius:10,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,rgba(255,77,106,0.2),rgba(245,158,11,0.15))",border:"1px solid rgba(255,77,106,0.3)",fontSize:18,boxShadow:verdict.loading?"0 0 22px rgba(255,77,106,0.4)":"0 0 10px rgba(255,77,106,0.15)",transition:"box-shadow 0.4s"}}>⚖</div>
               <div>
                 <div style={{fontSize:13,fontWeight:700,color:"#E8E6E1"}}>Chief Intelligence Verdict</div>
-                <div className="font-mono" style={{fontSize:8,color:"#5E5A57",letterSpacing:"0.1em"}}>FINAL DELIBERATION · EXPERT SYNTHESIS · {forecastDays}D HORIZON</div>
+                <div className="font-mono" style={{fontSize:8,color:"#5E5A57",letterSpacing:"0.1em"}}>OPERATIONAL BRIEF · {forecastDays}D HORIZON · WHAT IS HAPPENING → WHAT WILL HAPPEN → WHAT TO DO</div>
               </div>
               {verdict.loading&&<div className="ml-auto flex items-center gap-2"><span className="orbital-loader" style={{borderTopColor:"#FF4D6A"}} /><ThinkingDots color="#FF4D6A" /></div>}
               {verdict.done&&<span className="ml-auto font-mono font-bold" style={{fontSize:9,letterSpacing:"0.1em",padding:"3px 9px",borderRadius:6,background:"rgba(46,204,138,0.12)",border:"1px solid rgba(46,204,138,0.3)",color:"#2ECC8A",boxShadow:"0 0 8px rgba(46,204,138,0.2)"}}>DELIVERED</span>}
@@ -528,16 +550,60 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
                   {[92,85,96,78,88].map((w,i)=><div key={i} className="skeleton" style={{height:11,width:`${w}%`,animationDelay:`${i*0.1}s`}} />)}
                 </div>
               )}
-              {verdictWords.length>0&&(
-                <div>
-                  {verdictWords.join(" ").split("\n\n").map((para,i,arr)=>para.trim()?(
-                    <p key={i} style={{fontSize:13.5,color:verdict.done?"#D8D6D1":"#D0CEC9",lineHeight:1.82,marginBottom:i<arr.length-1?18:0,fontWeight:i===0?500:400,transition:"color 0.3s"}}>
-                      {para.trim()}
-                      {!verdict.done&&i===arr.length-1&&<span style={{display:"inline-block",width:10,height:15,verticalAlign:"middle",background:"#FF4D6A",marginLeft:3,opacity:0.85,animation:"glowPulse 0.7s ease-in-out infinite"}} />}
-                    </p>
-                  ):null)}
-                </div>
-              )}
+              {verdictWords.length>0&&(()=>{
+                const fullText = verdictWords.join(" ");
+                const paras = fullText.split("\n\n").map(p=>p.trim()).filter(Boolean);
+                const SECTION_LABELS = [
+                  { label: "WHAT IS HAPPENING", color: "#60A5FA" },
+                  { label: "WHAT WILL HAPPEN NEXT", color: "#F59E0B" },
+                  { label: "WHAT TO DO", color: "#2ECC8A" },
+                ];
+                return (
+                  <div className="space-y-4">
+                    {paras.map((para, i) => {
+                      const section = SECTION_LABELS[i];
+                      const isLast = i === paras.length - 1;
+                      return (
+                        <div key={i} style={{
+                          position: "relative",
+                          padding: "14px 16px",
+                          borderRadius: 10,
+                          background: section ? `${section.color}06` : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${section ? section.color + "20" : "rgba(255,255,255,0.06)"}`,
+                          borderLeft: `3px solid ${section ? section.color : "rgba(255,255,255,0.15)"}`,
+                        }}>
+                          {section && (
+                            <div className="font-mono font-bold mb-2" style={{
+                              fontSize: 8, letterSpacing: "0.14em",
+                              color: section.color,
+                            }}>
+                              {section.label}
+                            </div>
+                          )}
+                          <p style={{
+                            fontSize: 13.5,
+                            color: verdict.done ? "#D8D6D1" : "#D0CEC9",
+                            lineHeight: 1.82,
+                            fontWeight: i === 0 ? 500 : 400,
+                            transition: "color 0.3s",
+                            margin: 0,
+                          }}>
+                            {para}
+                            {!verdict.done && isLast && (
+                              <span style={{
+                                display: "inline-block", width: 10, height: 15,
+                                verticalAlign: "middle", background: "#FF4D6A",
+                                marginLeft: 3, opacity: 0.85,
+                                animation: "glowPulse 0.7s ease-in-out infinite",
+                              }} />
+                            )}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
