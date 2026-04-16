@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { puterAIChat } from "@/lib/puter-ai";
 import type { EnrichedVideo, ChannelData, ReferenceStore, KeywordBank } from "@/lib/types";
 
 interface VerdictProps {

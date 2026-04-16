@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { puterAIChat } from "@/lib/puter-ai";
 import type { EnrichedVideo, ChannelData, ReferenceStore, KeywordBank } from "@/lib/types";
 
 interface ExpertWarRoomProps {
@@ -55,15 +56,29 @@ const EXPERTS = [
   },
 ];
 
+const PERSONA_PROMPTS: Record<string, string> = {
+  algorithm:   "You are an Algorithm Analyst. ONLY care about platform distribution signals: VRS, velocity, retention, algorithmic amplification. Be opinionated and specific. 2 paragraphs.",
+  strategist:  "You are a Content Strategist focused on format, hook quality, title, thumbnail. Often DISAGREE with algorithm analysts. Believe content quality drives everything. 2 paragraphs.",
+  psychologist:"You are an Audience Psychologist reading comment patterns and engagement ratios. Contradict algorithmic and content-first analysts. Focus on human motivation. 2 paragraphs.",
+  competitor:  "You are a Competitive Intelligence Analyst benchmarking against competing channels. Be brutal about where this content loses ground. Data-driven and comparative. 2 paragraphs.",
+  verdict:     "You are a Chief Intelligence Officer synthesising 4 expert analyses. Acknowledge the strongest disagreement, resolve it, give a decisive recommendation. 3 paragraphs.",
+};
+
 async function callExpert(prompt: string, persona: string): Promise<string> {
-  const res = await fetch("/api/claude-verdict", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, persona }),
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data.text;
+  // Try server route first
+  try {
+    const res = await fetch("/api/claude-verdict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, persona }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.text && data.text.length > 10) return data.text;
+  } catch { /* fall through */ }
+
+  // Puter.js fallback — free, no API key
+  const systemPrompt = PERSONA_PROMPTS[persona] ?? PERSONA_PROMPTS.algorithm;
+  return await puterAIChat(prompt, systemPrompt);
 }
 
 function buildPrompt(
