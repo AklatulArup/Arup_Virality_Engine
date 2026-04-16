@@ -162,31 +162,64 @@ export default function ViralityVerdictPanel({ video, channel, channelMedian, re
   async function generateAIVerdict() {
     setAiLoading(true);
     setAiTriggered(true);
+
+    const secs = video.durationSeconds ?? 0;
+    const detectedPlatform = secs <= 60 ? "youtube_short" : "youtube";
+
+    // Build rich contextual prompt — session memory + platform intel + creator history
+    const prompt = buildContextualPrompt({
+      video,
+      channel,
+      channelMedian: chMedianViews,
+      platform: detectedPlatform,
+      phase: phase.label,
+      recentVideos,
+      referenceStore,
+      keywordBank,
+      persona: "default",
+    });
+
+    // Update session memory BEFORE calling AI
+    updateSessionMemory(video, channel, detectedPlatform, phase.label);
+
+    const systemPrompt = "You are a sharp, data-driven content intelligence analyst. You have been given rich structured context including session history, creator patterns, algorithm intelligence, and cross-platform data. Use ALL of it in your analysis. Write in flowing paragraphs, 3 max. Be specific with numbers. No bullet points.";
+
+    let success = false;
+
+    // ── Try 1: Server-side Claude API ──
     try {
-      const prompt = `Video: "${video.title}"
-Channel: ${video.channel} (${channel?.subs ? `${channel.subs >= 1000000 ? (channel.subs/1000000).toFixed(1).replace(/\.0$/,"")+"M" : (channel.subs/1000).toFixed(0)+"K"} subs` : "unknown subs"}, ${recentVideos.length} recent videos, channel median ${chMedianViews.toLocaleString()} views)
-Platform: YouTube | Format: ${format.label} | Niche: ${niche}
-Performance: ${video.views.toLocaleString()} views in ${video.days} days → ${video.velocity.toLocaleString()} views/day velocity
-vs Channel Median: ${video.vsBaseline}x (${perfVsChannel > 0 ? "+" : ""}${perfVsChannel}%)
-Engagement: ${likeRate}% like rate, ${commentRate} comments per 1000 views
-VRS Score: ${video.vrs.estimatedFullScore}/100 | Phase: ${phase.label}
-${pool ? `Pool comparison: ${pool.pct > 0 ? "+" : ""}${pool.pct}% vs pool median of ${pool.poolMedian.toLocaleString()} views (${pool.poolSize} tracked videos)` : ""}
-${channel ? `Channel trend: ${recentVideos.slice(0,3).map(v => v.views.toLocaleString()).join(" → ")} (recent 3 videos)` : ""}
-Comment signal: ${commentStrength}
-
-Write a plain-English performance verdict. 3 paragraphs max. Cover: (1) what the phase means for this specific video and why it's performing this way, (2) how it stacks up against the creator's catalogue and competing channels in this niche, (3) what the comment rate and engagement pattern tells you about the audience relationship and what it means for future growth.`;
-
       const res = await fetch("/api/claude-verdict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, persona: "default" }),
       });
-      const data = await res.json();
-      setAiVerdict(data.text || "Unable to generate verdict.");
-    } catch {
-      setAiVerdict("Analysis unavailable. Check ANTHROPIC_API_KEY is set in Vercel environment variables.");
+      const data: { text?: string; error?: string } = await res.json().catch(() => ({}));
+      if (data.text && data.text.length > 20) {
+        setAiVerdict(data.text);
+        success = true;
+        updateSessionMemory(video, channel, detectedPlatform, phase.label, data.text.slice(0, 200));
+      }
+    } catch { /* fall through */ }
+
+    // ── Try 2: Puter.js (free, client-side, no API key) ──
+    if (!success) {
+      try {
+        const text = await puterAIChat(prompt, systemPrompt);
+        if (text && text.length > 20) {
+          setAiVerdict(text);
+          success = true;
+          updateSessionMemory(video, channel, detectedPlatform, phase.label, text.slice(0, 200));
+        }
+      } catch { /* fall through */ }
     }
+
+    // ── Try 3: Computed verdict from data ──
+    if (!success) {
+      setAiVerdict(buildComputedVerdict());
+    }
+
     setAiLoading(false);
+  }
   }
 
   return (
