@@ -32,10 +32,10 @@ const EXPERTS = [
 ];
 
 const PERSONA_SYSTEMS: Record<string, string> = {
-  algorithm:    "You are an Algorithm Analyst. State what the platform algorithm is doing to this video RIGHT NOW based on the exact signals in the data. Use the numbers. Name the mechanism. Say what breaks it or accelerates it. 2 paragraphs. No hedging. No bullet points.",
-  strategist:   "You are a Content Strategist. State whether the hook, title, and format are working or failing — and why the numbers prove it. Say what one change would move the needle most. 2 paragraphs. Disagree with algorithm-only thinking where the data justifies it. No bullet points.",
-  psychologist: "You are an Audience Psychologist. State what emotional need this content is meeting and how the comment and engagement pattern confirms it. Say what the audience will do next as a result. 2 paragraphs. No bullet points.",
-  competitor:   "You are a Competitive Intelligence Analyst. State where this video is winning and losing against comparable creators in this niche — use the pool data. Say what the channel is leaving on the table. 2 paragraphs. Be blunt. No bullet points.",
+  algorithm:    "You are an Algorithm Analyst. Write EXACTLY 3 sentences. Sentence 1: what the algorithm is doing to this video right now and why. Sentence 2: the specific signal that is limiting or driving distribution. Sentence 3: the one thing that would change the algorithm's decision. Numbers only. No fluff.",
+  strategist:   "You are a Content Strategist. Write EXACTLY 3 sentences. Sentence 1: whether the hook and title are working — cite the engagement number as proof. Sentence 2: the structural reason the content is succeeding or failing. Sentence 3: the single highest-leverage change. Disagree with algorithm-first thinking where warranted.",
+  psychologist: "You are an Audience Psychologist. Write EXACTLY 3 sentences. Sentence 1: the emotional need this content is meeting — cite comment density as proof. Sentence 2: what this audience type does after watching. Sentence 3: the retention risk based on emotional pattern.",
+  competitor:   "You are a Competitive Intelligence Analyst. Write EXACTLY 3 sentences. Sentence 1: where this video is outperforming comparable creators — cite pool data. Sentence 2: where it is losing ground and why. Sentence 3: the one thing being left on the table.",
   verdict: `You are a Chief Intelligence Officer delivering a 3-part operational brief. You have received analysis from 4 experts. Ignore the debate. Extract what matters.
 
 Write EXACTLY 3 sections, each 2-3 sentences. No headers. No bullets. No markdown. No expert attribution. Plain prose only.
@@ -336,15 +336,29 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
   const [phase, setPhase]           = useState<"idle"|"experts"|"verdict"|"done">("idle");
   const [forecastDays, setForecast] = useState(30);
   const [activeExpert, setActive]   = useState<string|null>(null);
+  const [expanded, setExpanded]     = useState<string|null>(null);
   const intervals                   = useRef<ReturnType<typeof setInterval>[]>([]);
 
   useEffect(()=>()=>{ intervals.current.forEach(clearInterval); },[]);
 
+  // Computed values
+  const secs = video.durationSeconds ?? 0;
+  const plt  = secs <= 60 ? "youtube_short" : "youtube";
+  const lifecycle   = getLifecycleStage(video, plt);
+  const viralTier   = getViralityTier(video);
+  const contentType = getContentTypeTier(video, plt);
+  const currentTier = getVRSTier(video.vrs.estimatedFullScore);
+  const predicted   = getPredictedTier(video, forecastDays);
+  const decayRate   = 0.95;
+  let fv = video.views; let fvel = video.velocity;
+  for(let d=0;d<forecastDays;d++){fvel*=decayRate;fv+=fvel;}
+  const fTotal = Math.round(fv);
+  const fAdd   = Math.round(fv - video.views);
+
   async function runWarRoom() {
     intervals.current.forEach(clearInterval); intervals.current = [];
-    setRunning(true); setPhase("experts"); setOpinions({}); setVerdict(null); setVW([]);
-    const secs = video.durationSeconds??0;
-    updateSessionMemory(video, channel, secs<=60?"youtube_short":"youtube", "WAR_ROOM");
+    setRunning(true); setPhase("experts"); setOpinions({}); setVerdict(null); setVW([]); setExpanded(null);
+    updateSessionMemory(video, channel, plt, "WAR_ROOM");
     const init: Record<string,ExpertOpinion> = {};
     EXPERTS.forEach(e=>{ init[e.id]={ persona:e.id, text:"", words:[], loading:true, done:false }; });
     setOpinions({...init});
@@ -353,8 +367,7 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
       setActive(expert.id);
       try {
         const prompt = buildDeepPrompt(video,channel,channelMedian,recentVideos,referenceStore,keywordBank,expert.id,forecastDays,{});
-        const rawText = await callExpert(prompt, expert.id);
-        const text = stripMd(rawText);
+        const text = await callExpert(prompt, expert.id);
         results[expert.id] = text;
         const iv = streamWords(
           text,
@@ -363,26 +376,19 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
         );
         intervals.current.push(iv);
       } catch(err) {
-        const msg=err instanceof Error?err.message:"Analysis failed";
+        const msg = err instanceof Error ? err.message : "Analysis failed";
         setOpinions(p=>({...p,[expert.id]:{persona:expert.id,text:msg,words:msg.split(" "),loading:false,done:true,error:msg}}));
       }
     }));
+
     setPhase("verdict"); setActive("verdict");
     setVerdict({ persona:"verdict", text:"", words:[], loading:true, done:false });
     try {
-      // Build verdict prompt — strip debate recap, focus on operational brief
       const verdictContext = Object.entries(results)
-        .map(([persona, text]) => {
-          // Take only first 200 chars of each expert — their core signal, not their full essay
-          const signal = text.replace(/\n/g, " ").slice(0, 220).trim();
-          return `[${persona.toUpperCase()} SIGNAL]: ${signal}…`;
-        })
+        .map(([p,t])=>`[${p.toUpperCase()}]: ${t.replace(/\n/g," ").slice(0,200)}…`)
         .join("\n\n");
-
       const vp = buildDeepPrompt(video,channel,channelMedian,recentVideos,referenceStore,keywordBank,"verdict",forecastDays,{}) +
-        `\n\n═══ EXPERT SIGNALS (summarised) ═══\n${verdictContext}\n\n` +
-        `YOUR BRIEF: Ignore who said what. Write the 3-section operational brief as instructed. What is happening. What will happen next. What to do.`;
-
+        `\n\n═══ EXPERT SIGNALS ═══\n${verdictContext}\n\nYOUR BRIEF: Write the 3-section operational brief. What is happening. What will happen next. What to do.`;
       const vtRaw = await callExpert(vp,"verdict");
       const vt = stripMd(vtRaw);
       const iv = streamWords(
@@ -392,388 +398,306 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
       );
       intervals.current.push(iv);
     } catch {
-      setVerdict({ persona:"verdict", text:"Verdict failed.", words:["Verdict","failed."], loading:false, done:true, error:"failed" });
+      setVerdict({ persona:"verdict", text:"Verdict unavailable.", words:["Verdict","unavailable."], loading:false, done:true, error:"failed" });
       setPhase("done");
     }
     setRunning(false);
   }
 
-  const decayRate = 0.95; let fv=video.views; let fvel=video.velocity;
-  for(let d=0;d<forecastDays;d++){fvel*=decayRate;fv+=fvel;}
-  const fTotal=Math.round(fv); const fAdd=Math.round(fv-video.views);
+  const allDone = EXPERTS.every(e => opinions[e.id]?.done);
 
   return (
-    <div className="glass-card" style={{ overflow:"hidden" }}>
-      <div style={{ height:2, background:"linear-gradient(90deg,transparent,#60A5FA,#2ECC8A,#A78BFA,#F59E0B,transparent)", backgroundSize:"200% 100%", animation:"cosmicShimmer 4s linear infinite" }} />
-      {/* Subtle grid overlay */}
-      <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,0.015) 39px,rgba(255,255,255,0.015) 40px),repeating-linear-gradient(90deg,transparent,transparent 79px,rgba(255,255,255,0.015) 79px,rgba(255,255,255,0.015) 80px)",pointerEvents:"none",zIndex:0}} />
-      <div style={{ padding:"20px 24px" }}>
+    <div className="glass-card" style={{ overflow:"hidden", position:"relative" }}>
+      {/* Animated top border */}
+      <div style={{ height:2, background:"linear-gradient(90deg,transparent,#60A5FA,#2ECC8A,#A78BFA,#F59E0B,transparent)", backgroundSize:"300% 100%", animation: phase!=="idle" ? "cosmicShimmer 3s linear infinite" : "none" }} />
 
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <div style={{
-                width:32,height:32,borderRadius:8,
-                display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,
-                background:"linear-gradient(135deg,rgba(255,77,106,0.2),rgba(245,158,11,0.12))",
-                border:"1px solid rgba(255,77,106,0.35)",
-                boxShadow:phase!=="idle"?"0 0 24px rgba(255,77,106,0.35)":"0 0 10px rgba(255,77,106,0.12)",
-                transition:"box-shadow 0.4s",
-              }}>⚔</div>
-              <div>
-                <h3 style={{fontSize:15,fontWeight:700,color:"#E8E6E1",letterSpacing:"-0.01em",lineHeight:1}}>Expert War Room</h3>
-                <div className="font-mono flex items-center gap-1.5" style={{fontSize:8,color:"#5E5A57",letterSpacing:"0.1em",marginTop:2}}>
-                  {["ALGORITHM","STRATEGY","PSYCHOLOGY","COMPETITION"].map((l,i)=>(
-                    <span key={i} style={{color:["#60A5FA","#2ECC8A","#A78BFA","#F59E0B"][i],opacity:phase!=="idle"?1:0.4,transition:"opacity 0.3s",transitionDelay:`${i*0.1}s`}}>{l}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap justify-end">
-            <div className="flex items-center gap-2">
-              <span className="font-mono" style={{fontSize:9,color:"#5E5A57",letterSpacing:"0.08em"}}>FORECAST</span>
-              <div className="flex gap-1">
-                {TIMEFRAME_OPTIONS.map(opt=>(
-                  <button key={opt.days} onClick={()=>setForecast(opt.days)} className="font-mono font-semibold" style={{
-                    padding:"3px 8px",borderRadius:5,fontSize:9,cursor:"pointer",transition:"all 0.15s",
-                    background:forecastDays===opt.days?"rgba(96,165,250,0.15)":"rgba(255,255,255,0.04)",
-                    border:`1px solid ${forecastDays===opt.days?"rgba(96,165,250,0.4)":"rgba(255,255,255,0.08)"}`,
-                    color:forecastDays===opt.days?"#60A5FA":"#5E5A57",
-                    boxShadow:forecastDays===opt.days?"0 0 8px rgba(96,165,250,0.2)":"none",
-                  }}>{opt.label}</button>
+      <div style={{ padding:"18px 20px" }}>
+
+        {/* ── HEADER ROW ── */}
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div style={{
+              width:34,height:34,borderRadius:9,flexShrink:0,
+              display:"flex",alignItems:"center",justifyContent:"center",
+              background:"linear-gradient(135deg,rgba(255,77,106,0.18),rgba(245,158,11,0.10))",
+              border:"1px solid rgba(255,77,106,0.3)",fontSize:15,
+              boxShadow: phase!=="idle" ? "0 0 22px rgba(255,77,106,0.4)" : "0 0 8px rgba(255,77,106,0.15)",
+              transition:"box-shadow 0.4s",
+            }}>⚔</div>
+            <div>
+              <div style={{fontSize:14,fontWeight:700,color:"#E8E6E1",letterSpacing:"-0.02em"}}>Expert War Room</div>
+              <div className="flex items-center gap-1.5" style={{marginTop:2}}>
+                {["ALGO","STRATEGY","PSYCH","INTEL"].map((l,i)=>(
+                  <span key={i} className="font-mono" style={{
+                    fontSize:7,letterSpacing:"0.1em",padding:"1px 5px",borderRadius:3,
+                    background:`${["#60A5FA","#2ECC8A","#A78BFA","#F59E0B"][i]}15`,
+                    border:`1px solid ${["#60A5FA","#2ECC8A","#A78BFA","#F59E0B"][i]}30`,
+                    color:["#60A5FA","#2ECC8A","#A78BFA","#F59E0B"][i],
+                    opacity: phase!=="idle" ? 1 : 0.35,
+                    transition:"opacity 0.4s", transitionDelay:`${i*80}ms`,
+                  }}>{l}</span>
                 ))}
               </div>
             </div>
-            {phase==="idle"&&(
-              <button onClick={runWarRoom} className="flex items-center gap-2 font-semibold rounded-xl" style={{
-                height:38,padding:"0 18px",fontSize:12,cursor:"pointer",
-                background:"linear-gradient(135deg,rgba(255,77,106,0.15),rgba(245,158,11,0.08))",
-                border:"1px solid rgba(255,77,106,0.35)",color:"#E8E6E1",
-                boxShadow:"0 0 20px rgba(255,77,106,0.15),inset 0 1px 0 rgba(255,255,255,0.10)",transition:"all 0.2s",
-              }}
-              onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.boxShadow="0 0 32px rgba(255,77,106,0.35),inset 0 1px 0 rgba(255,255,255,0.15)";}}
-              onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.boxShadow="0 0 20px rgba(255,77,106,0.15),inset 0 1px 0 rgba(255,255,255,0.10)";}}
-              ><span>⚡</span> Run Analysis</button>
+          </div>
+
+          {/* Right controls */}
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Forecast selector */}
+            <div className="flex items-center gap-1 rounded-lg p-1" style={{background:"rgba(0,0,0,0.3)",border:"1px solid rgba(255,255,255,0.07)"}}>
+              {TIMEFRAME_OPTIONS.map(opt=>(
+                <button key={opt.days} onClick={()=>setForecast(opt.days)}
+                  className="font-mono font-bold rounded-md"
+                  style={{
+                    padding:"3px 7px",fontSize:9,cursor:"pointer",transition:"all 0.15s",
+                    background:forecastDays===opt.days?"rgba(96,165,250,0.15)":"transparent",
+                    border:`1px solid ${forecastDays===opt.days?"rgba(96,165,250,0.4)":"transparent"}`,
+                    color:forecastDays===opt.days?"#60A5FA":"#5E5A57",
+                    boxShadow:forecastDays===opt.days?"0 0 8px rgba(96,165,250,0.2)":"none",
+                  }}>{opt.label}</button>
+              ))}
+            </div>
+
+            {/* Action button — changes per state */}
+            {phase==="idle" && (
+              <button onClick={runWarRoom} className="flex items-center gap-1.5 font-semibold rounded-lg"
+                style={{
+                  height:32,padding:"0 14px",fontSize:11,cursor:"pointer",
+                  background:"linear-gradient(135deg,rgba(255,77,106,0.18),rgba(245,158,11,0.10))",
+                  border:"1px solid rgba(255,77,106,0.4)",color:"#E8E6E1",
+                  boxShadow:"0 0 16px rgba(255,77,106,0.18),inset 0 1px 0 rgba(255,255,255,0.10)",
+                  transition:"all 0.2s",
+                }}
+                onMouseEnter={e=>(e.currentTarget as HTMLButtonElement).style.boxShadow="0 0 28px rgba(255,77,106,0.38),inset 0 1px 0 rgba(255,255,255,0.15)"}
+                onMouseLeave={e=>(e.currentTarget as HTMLButtonElement).style.boxShadow="0 0 16px rgba(255,77,106,0.18),inset 0 1px 0 rgba(255,255,255,0.10)"}
+              >
+                <span style={{fontSize:12}}>⚡</span> Run Analysis
+              </button>
             )}
-            {(running||phase==="experts"||phase==="verdict")&&(
-              <div className="flex items-center gap-2">
-                <span className="orbital-loader" style={{borderTopColor:phase==="verdict"?"#FF4D6A":"#60A5FA"}} />
-                <span className="font-mono" style={{fontSize:9,color:"#6B6860",letterSpacing:"0.08em"}}>
-                  {phase==="experts"?"EXPERTS DELIBERATING…":"CHIEF VERDICT…"}
+            {(phase==="experts"||phase==="verdict") && (
+              <div className="flex items-center gap-2 rounded-lg px-3 py-1.5" style={{background:"rgba(0,0,0,0.3)",border:"1px solid rgba(255,255,255,0.07)"}}>
+                <span className="orbital-loader" style={{width:12,height:12,borderTopColor:phase==="verdict"?"#FF4D6A":"#60A5FA",borderWidth:1.5}} />
+                <span className="font-mono" style={{fontSize:9,color:phase==="verdict"?"#FF4D6A":"#60A5FA",letterSpacing:"0.08em"}}>
+                  {phase==="experts" ? "DELIBERATING" : "VERDICT"}
                 </span>
               </div>
             )}
-            {phase==="done"&&(
-              <button onClick={runWarRoom} className="font-mono" style={{
-                fontSize:9,color:"#5E5A57",background:"none",border:"1px solid rgba(255,255,255,0.08)",
-                borderRadius:6,padding:"4px 10px",cursor:"pointer",letterSpacing:"0.08em"
-              }}>↻ RE-RUN</button>
+            {phase==="done" && (
+              <button onClick={runWarRoom} className="font-mono rounded-md"
+                style={{padding:"4px 10px",fontSize:9,color:"#5E5A57",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.09)",cursor:"pointer",letterSpacing:"0.08em"}}
+                onMouseEnter={e=>(e.currentTarget as HTMLButtonElement).style.color="#E8E6E1"}
+                onMouseLeave={e=>(e.currentTarget as HTMLButtonElement).style.color="#5E5A57"}
+              >↻ RE-RUN</button>
             )}
           </div>
         </div>
 
-        {/* Forecast strip + VRS tiers */}
-        {phase!=="idle"&&(()=>{
-          const currentTier = getVRSTier(video.vrs.estimatedFullScore);
-          const predicted   = getPredictedTier(video, forecastDays);
-          return (
-            <div className="space-y-2 mb-5">
-              {/* Forecast numbers */}
-              <div className="flex items-center gap-4 px-4 py-2.5 rounded-lg" style={{background:"rgba(0,0,0,0.3)",border:"1px solid rgba(255,255,255,0.08)",position:"relative",overflow:"hidden"}}>
-                <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(96,165,250,0.3),transparent)"}} />
-                <span className="font-mono" style={{fontSize:9,color:"#5E5A57",letterSpacing:"0.1em"}}>{forecastDays}D FORECAST</span>
-                <div className="flex items-center gap-1.5">
-                  <CircuitNode color="#2ECC8A" />
-                  <span className="font-mono font-bold" style={{fontSize:14,color:"#2ECC8A",textShadow:"0 0 12px #2ECC8A88"}}>{formatNumber(fTotal)}</span>
-                  <span className="font-mono" style={{fontSize:10,color:"#5E5A57"}}>projected total</span>
-                </div>
-                <div style={{width:1,height:16,background:"rgba(255,255,255,0.08)"}} />
-                <div className="flex items-center gap-1.5">
-                  <span className="font-mono font-bold" style={{fontSize:13,color:"#60A5FA",textShadow:"0 0 10px #60A5FA77"}}>+{formatNumber(fAdd)}</span>
-                  <span className="font-mono" style={{fontSize:10,color:"#5E5A57"}}>additional views</span>
-                </div>
-                <div style={{width:1,height:16,background:"rgba(255,255,255,0.08)"}} />
-                <span className="font-mono" style={{fontSize:9,color:video.days<3?"#F59E0B":video.days<7?"#60A5FA":"#2ECC8A"}}>
-                  ◆ {video.days<3?"LOW CONFIDENCE":video.days<7?"MEDIUM CONFIDENCE":"HIGH CONFIDENCE"}
-                </span>
-              </div>
-              {/* VRS Tier row */}
-              <div className="flex items-stretch gap-2">
-                {/* Current tier */}
-                <div className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg" style={{background:"rgba(0,0,0,0.25)",border:`1px solid ${currentTier.color}30`,boxShadow:`0 0 20px ${currentTier.glow.replace("0.4","0.08")}`}}>
-                  <div style={{width:2,alignSelf:"stretch",borderRadius:99,background:currentTier.color,boxShadow:`0 0 8px ${currentTier.color}`,flexShrink:0}} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-mono" style={{fontSize:8,color:"#5E5A57",letterSpacing:"0.12em",marginBottom:3}}>CURRENT VRS TIER</div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono font-bold" style={{fontSize:11,color:currentTier.color,textShadow:`0 0 10px ${currentTier.color}88`,letterSpacing:"0.08em"}}>{currentTier.label}</span>
-                      <span className="font-mono font-bold" style={{fontSize:13,color:currentTier.color}}>{video.vrs.estimatedFullScore}/100</span>
-                    </div>
-                    <div className="font-mono" style={{fontSize:9,color:"#6B6860",lineHeight:1.5}}>{currentTier.desc}</div>
-                  </div>
-                </div>
-                {/* Arrow */}
-                <div className="flex items-center justify-center shrink-0" style={{color:predicted.delta>0?"#2ECC8A":predicted.delta<0?"#FF4D6A":"#5E5A57",fontSize:18}}>
-                  {predicted.delta>0?"→":predicted.delta<0?"↘":"→"}
-                </div>
-                {/* Predicted tier */}
-                <div className="flex-1 flex items-center gap-3 px-4 py-3 rounded-lg" style={{background:"rgba(0,0,0,0.25)",border:`1px solid ${predicted.tier.color}25`,position:"relative",overflow:"hidden"}}>
-                  <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse at 0% 50%, ${predicted.tier.color}06, transparent 70%)`,pointerEvents:"none"}} />
-                  <div style={{width:2,alignSelf:"stretch",borderRadius:99,background:`${predicted.tier.color}66`,flexShrink:0}} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-mono" style={{fontSize:8,color:"#5E5A57",letterSpacing:"0.12em",marginBottom:3}}>PREDICTED IN {forecastDays}D</div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono font-bold" style={{fontSize:11,color:predicted.tier.color,letterSpacing:"0.08em"}}>{predicted.tier.label}</span>
-                      <span className="font-mono font-bold" style={{fontSize:13,color:predicted.tier.color}}>{predicted.score}/100</span>
-                      {predicted.delta!==0&&<span className="font-mono" style={{fontSize:10,color:predicted.delta>0?"#2ECC8A":"#FF4D6A"}}>({predicted.delta>0?"+":""}{predicted.delta})</span>}
-                    </div>
-                    <div className="font-mono" style={{fontSize:9,color:"#6B6860",lineHeight:1.5}}>{predicted.tier.desc}</div>
-                  </div>
-                </div>
+        {/* ── INTELLIGENCE CHIPS (always visible once phase starts) ── */}
+        {phase!=="idle" && (
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {/* Lifecycle */}
+            <div className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5" style={{background:`${lifecycle.color}10`,border:`1px solid ${lifecycle.color}28`}}>
+              <span style={{fontSize:10}}>{lifecycle.icon}</span>
+              <div>
+                <div className="font-mono" style={{fontSize:7,color:lifecycle.color,letterSpacing:"0.1em"}}>{lifecycle.stage}</div>
+                <div className="font-mono" style={{fontSize:8,color:"#9E9C97"}}>Day {video.days}</div>
               </div>
             </div>
-          );
-        })()}
-
-        {/* ── Intelligence Chips ── */}
-        {(()=>{
-          const secs = video.durationSeconds ?? 0;
-          const plt  = secs <= 60 ? "youtube_short" : "youtube";
-          const lifecycle  = getLifecycleStage(video, plt);
-          const viralTier  = getViralityTier(video);
-          const contentType = getContentTypeTier(video, plt);
-          return (
-            <div className="flex flex-wrap gap-2 mb-5">
-
-              {/* Lifecycle chip */}
-              <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{
-                background: `${lifecycle.color}10`,
-                border: `1px solid ${lifecycle.color}30`,
-                boxShadow: `0 0 12px ${lifecycle.color}18`,
-              }}>
-                <span style={{ fontSize: 12 }}>{lifecycle.icon}</span>
-                <div>
-                  <div className="font-mono font-bold" style={{ fontSize: 8, color: lifecycle.color, letterSpacing: "0.12em" }}>
-                    VIDEO LIFECYCLE
-                  </div>
-                  <div className="font-mono" style={{ fontSize: 10, color: "#E8E6E1", fontWeight: 600 }}>
-                    {lifecycle.stage}
-                  </div>
-                  <div className="font-mono" style={{ fontSize: 8, color: "#6B6860" }}>{lifecycle.desc}</div>
-                </div>
+            {/* Virality Tier */}
+            <div className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5" style={{background:`${viralTier.color}10`,border:`1px solid ${viralTier.color}28`,boxShadow:viralTier.level<=2?`0 0 10px ${viralTier.glow}`:"none"}}>
+              <span style={{fontSize:11}}>{viralTier.icon}</span>
+              <div>
+                <div className="font-mono" style={{fontSize:7,color:viralTier.color,letterSpacing:"0.1em"}}>TIER {viralTier.level}</div>
+                <div className="font-mono font-bold" style={{fontSize:8,color:"#E8E6E1"}}>{viralTier.tier}</div>
               </div>
-
-              {/* Virality tier chip */}
-              <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{
-                background: `${viralTier.color}10`,
-                border: `1px solid ${viralTier.color}30`,
-                boxShadow: `0 0 16px ${viralTier.glow}`,
-                position: "relative", overflow: "hidden",
-              }}>
-                {viralTier.level <= 2 && (
-                  <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 0% 50%, ${viralTier.color}08, transparent 70%)`, pointerEvents: "none" }} />
-                )}
-                <span style={{ fontSize: 13 }}>{viralTier.icon}</span>
-                <div>
-                  <div className="font-mono font-bold" style={{ fontSize: 8, color: viralTier.color, letterSpacing: "0.12em" }}>
-                    VIRALITY — TIER {viralTier.level}
-                  </div>
-                  <div className="font-mono" style={{ fontSize: 10, color: "#E8E6E1", fontWeight: 600 }}>
-                    {viralTier.tier}
-                  </div>
-                  <div className="font-mono" style={{ fontSize: 8, color: "#6B6860" }}>{viralTier.desc}</div>
-                </div>
-              </div>
-
-              {/* Content format + fit chip */}
-              <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{
-                background: `${contentType.fitColor}08`,
-                border: `1px solid ${contentType.fitColor}25`,
-              }}>
-                <div style={{ width: 8, height: 28, borderRadius: 99, background: contentType.fitColor, boxShadow: `0 0 8px ${contentType.fitColor}`, flexShrink: 0 }} />
-                <div>
-                  <div className="font-mono font-bold" style={{ fontSize: 8, color: contentType.fitColor, letterSpacing: "0.12em" }}>
-                    {contentType.format} · {contentType.archetype}
-                  </div>
-                  <div className="font-mono" style={{ fontSize: 10, color: "#E8E6E1", fontWeight: 600 }}>
-                    {contentType.fitLabel}
-                  </div>
-                  <div className="font-mono" style={{ fontSize: 8, color: "#6B6860" }}>
-                    {contentType.fit}% platform-format fit
-                  </div>
-                </div>
-              </div>
-
-              {/* Day marker chip */}
-              <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}>
-                <div style={{ textAlign: "center" }}>
-                  <div className="font-mono font-bold" style={{ fontSize: 20, color: "#E8E6E1", lineHeight: 1 }}>
-                    {video.days}
-                  </div>
-                  <div className="font-mono" style={{ fontSize: 8, color: "#5E5A57", letterSpacing: "0.1em" }}>DAYS OLD</div>
-                </div>
-                <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.08)" }} />
-                <div>
-                  <div className="font-mono font-bold" style={{ fontSize: 11, color: "#60A5FA" }}>
-                    {video.vrs.estimatedFullScore}/100
-                  </div>
-                  <div className="font-mono" style={{ fontSize: 8, color: "#5E5A57", letterSpacing: "0.08em" }}>VRS SCORE</div>
-                </div>
-              </div>
-
             </div>
-          );
-        })()}
+            {/* Content format */}
+            <div className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5" style={{background:`${contentType.fitColor}08`,border:`1px solid ${contentType.fitColor}22`}}>
+              <div style={{width:2,height:20,borderRadius:99,background:contentType.fitColor,flexShrink:0}} />
+              <div>
+                <div className="font-mono" style={{fontSize:7,color:contentType.fitColor,letterSpacing:"0.08em"}}>{contentType.format}</div>
+                <div className="font-mono font-bold" style={{fontSize:8,color:"#E8E6E1"}}>{contentType.archetype} · {contentType.fit}%</div>
+              </div>
+            </div>
+            {/* VRS tier */}
+            <div className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5" style={{background:`${currentTier.color}08`,border:`1px solid ${currentTier.color}22`}}>
+              <div>
+                <div className="font-mono" style={{fontSize:7,color:currentTier.color,letterSpacing:"0.08em"}}>VRS NOW</div>
+                <div className="font-mono font-bold" style={{fontSize:8,color:"#E8E6E1"}}>{video.vrs.estimatedFullScore} → {predicted.score} <span style={{color:predicted.delta>0?"#2ECC8A":predicted.delta<0?"#FF4D6A":"#6B6860"}}>{predicted.delta>0?"+":""}{predicted.delta}</span></div>
+              </div>
+            </div>
+            {/* Forecast */}
+            <div className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5" style={{background:"rgba(46,204,138,0.06)",border:"1px solid rgba(46,204,138,0.18)"}}>
+              <div>
+                <div className="font-mono" style={{fontSize:7,color:"#2ECC8A",letterSpacing:"0.08em"}}>{forecastDays}D PROJECTED</div>
+                <div className="font-mono font-bold" style={{fontSize:8,color:"#E8E6E1"}}>{formatNumber(fTotal)} <span style={{color:"#5E5A57"}}>+{formatNumber(fAdd)}</span></div>
+              </div>
+            </div>
+          </div>
+        )}
 
-        {/* Expert cards */}
-        {Object.keys(opinions).length>0&&(
-          <div className="grid gap-3 mb-5" style={{gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))"}}>
+        {/* ── EXPERT DELIBERATION ── 4 compact horizontal strips */}
+        {Object.keys(opinions).length>0 && (
+          <div className="space-y-2 mb-4">
             {EXPERTS.map(expert=>{
-              const op=opinions[expert.id];
-              const isActive=activeExpert===expert.id&&!op?.done;
+              const op       = opinions[expert.id];
+              const isActive = activeExpert===expert.id && !op?.done;
+              const isExp    = expanded===expert.id;
+              const preview  = op?.words?.slice(0,20).join(" ") ?? "";
+
               return (
-                <div key={expert.id} style={{
-                  position:"relative",
-                  background:"rgba(0,0,0,0.3)",
-                  border:`1px solid ${op?.done&&!op?.error?`${expert.color}28`:isActive?`${expert.color}55`:"rgba(255,255,255,0.07)"}`,
-                  borderRadius:12,overflow:"hidden",transition:"border-color 0.3s,box-shadow 0.3s",
-                  boxShadow:isActive?`0 0 28px ${expert.glow}`:"none",
-                }}>
-                  {isActive&&<div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${expert.color},transparent)`,animation:"cosmicShimmer 1.5s linear infinite",backgroundSize:"200% 100%"}} />}
-                  <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",background:`linear-gradient(135deg, ${expert.color}10, ${expert.color}04)`,borderBottom:`1px solid ${expert.color}22`,position:"relative"}}>
-                    {/* Corner circuit decoration */}
-                    <div style={{position:"absolute",top:6,right:6,width:20,height:20,opacity:0.3}}>
-                      <div style={{position:"absolute",top:0,right:0,width:8,height:1,background:expert.color}} />
-                      <div style={{position:"absolute",top:0,right:0,width:1,height:8,background:expert.color}} />
-                      <div style={{position:"absolute",bottom:0,left:0,width:8,height:1,background:expert.color}} />
-                      <div style={{position:"absolute",bottom:0,left:0,width:1,height:8,background:expert.color}} />
-                    </div>
+                <div key={expert.id}
+                  style={{
+                    background:"rgba(0,0,0,0.25)",
+                    border:`1px solid ${op?.done&&!op?.error ? `${expert.color}22` : isActive ? `${expert.color}45` : "rgba(255,255,255,0.06)"}`,
+                    borderRadius:10,overflow:"hidden",
+                    boxShadow:isActive?`0 0 18px ${expert.glow}`:"none",
+                    transition:"border-color 0.25s,box-shadow 0.25s",
+                  }}
+                >
+                  {/* Active scan line */}
+                  {isActive && <div style={{height:1,background:`linear-gradient(90deg,transparent,${expert.color},transparent)`,backgroundSize:"200% 100%",animation:"cosmicShimmer 1.2s linear infinite"}} />}
+
+                  {/* Header row — always visible, clickable to expand */}
+                  <button
+                    onClick={()=>op?.done ? setExpanded(isExp ? null : expert.id) : undefined}
+                    className="w-full flex items-center gap-2.5"
+                    style={{padding:"9px 12px",background:"transparent",border:"none",cursor:op?.done?"pointer":"default",textAlign:"left"}}
+                  >
+                    {/* Icon */}
                     <div style={{
-                      width:36,height:36,borderRadius:10,flexShrink:0,
+                      width:28,height:28,borderRadius:7,flexShrink:0,
                       display:"flex",alignItems:"center",justifyContent:"center",
-                      background:`linear-gradient(135deg, ${expert.color}22, ${expert.color}08)`,
-                      border:`1px solid ${expert.color}40`,fontSize:15,color:expert.color,
-                      boxShadow:isActive?`0 0 20px ${expert.color}80, inset 0 1px 0 rgba(255,255,255,0.15)`:`0 0 8px ${expert.color}30, inset 0 1px 0 rgba(255,255,255,0.08)`,
+                      background:`linear-gradient(135deg,${expert.color}20,${expert.color}08)`,
+                      border:`1px solid ${expert.color}35`,fontSize:13,
+                      boxShadow:isActive?`0 0 14px ${expert.color}70`:"none",
                       transition:"box-shadow 0.3s",
                     }}>{expert.icon}</div>
+
+                    {/* Name + status */}
                     <div className="flex-1 min-w-0">
-                      <div style={{fontSize:12,fontWeight:700,color:"#E8E6E1",letterSpacing:"-0.01em"}}>{expert.name}</div>
-                      <div className="font-mono" style={{fontSize:8,color:expert.color,opacity:0.7,letterSpacing:"0.1em"}}>{expert.role.toUpperCase()}</div>
-                    </div>
-                    {op?.loading&&!op?.done&&<ThinkingDots color={expert.color} />}
-                    {op?.done&&!op?.error&&<CircuitNode color={expert.color} size={7} />}
-                  </div>
-                  <div style={{padding:"5px 14px",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
-                    <span className="font-mono" style={{fontSize:8,color:"#5E5A57",fontStyle:"italic"}}>"{expert.stance}"</span>
-                  </div>
-                  <div style={{padding:"12px 14px",minHeight:80,position:"relative",overflow:"visible"}}>
-                    {/* Floating keyword particles during streaming */}
-                    {isActive&&!op?.done&&(EXPERT_KEYWORDS[expert.id]??[]).map((kw,ki)=>(
-                      <FloatingKeyword key={ki+Date.now()} word={kw} color={expert.color} delay={ki*280+Math.random()*200} />
-                    ))}
-                    {op?.loading&&(op?.words??[]).length===0&&(
-                      <div>
-                        {/* Deliberating animation */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <ThinkingDots color={expert.color} />
-                          <span className="font-mono" style={{fontSize:9,color:expert.color,letterSpacing:"0.08em",animation:"glowPulse 2s infinite"}}>DELIBERATING…</span>
-                        </div>
-                        <div className="space-y-2">
-                          {[85,95,72,88].map((w,i)=><div key={i} className="skeleton" style={{height:9,width:`${w}%`,animationDelay:`${i*0.15}s`}} />)}
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <span style={{fontSize:11,fontWeight:700,color:"#E8E6E1"}}>{expert.name}</span>
+                        <span className="font-mono" style={{fontSize:7,color:expert.color,opacity:0.65,letterSpacing:"0.08em"}}>{expert.role.toUpperCase()}</span>
                       </div>
-                    )}
-                    {(op?.words??[]).length>0&&(
-                      <p style={{fontSize:12,color:op?.done?"#B8B6B1":"#D0CEC9",lineHeight:1.75}}>
-                        {(op?.words??[]).join(" ")}
-                        {!op?.done&&<span style={{display:"inline-block",width:8,height:13,verticalAlign:"middle",background:expert.color,marginLeft:2,opacity:0.8,animation:"glowPulse 0.7s ease-in-out infinite"}} />}
+                      {/* Preview text — 1 line when collapsed */}
+                      {op?.done && !isExp && (
+                        <div style={{fontSize:11,color:"#6B6860",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%"}}>
+                          {preview}{preview.length > 0 ? "…" : ""}
+                        </div>
+                      )}
+                      {isActive && (
+                        <div className="flex items-center gap-1.5" style={{marginTop:2}}>
+                          <ThinkingDots color={expert.color} />
+                          <span className="font-mono" style={{fontSize:8,color:expert.color,letterSpacing:"0.08em"}}>DELIBERATING</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right state indicator */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {op?.done && !op?.error && <CircuitNode color={expert.color} size={6} />}
+                      {op?.done && (
+                        <span className="font-mono" style={{fontSize:9,color:isExp?"#E8E6E1":"#4A4845",transition:"color 0.15s"}}>
+                          {isExp?"▲":"▼"}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Expanded full analysis — collapsible */}
+                  {op?.done && isExp && (
+                    <div style={{padding:"0 12px 12px",borderTop:`1px solid ${expert.color}15`}}>
+                      <p style={{fontSize:12,color:"#B8B6B1",lineHeight:1.72,paddingTop:10,margin:0}}>
+                        {op.text}
                       </p>
-                    )}
-                    {op?.error&&!(op?.words??[]).length&&<p style={{fontSize:11,color:"#FF4D6A"}}>⚠ {op.error}</p>}
-                  </div>
+                    </div>
+                  )}
+
+                  {/* Streaming text — visible while loading */}
+                  {!op?.done && (op?.words??[]).length>0 && (
+                    <div style={{padding:"0 12px 10px"}}>
+                      <p style={{fontSize:11.5,color:"#9E9C97",lineHeight:1.65,margin:0}}>
+                        {(op?.words??[]).join(" ")}
+                        <span style={{display:"inline-block",width:7,height:12,verticalAlign:"middle",background:expert.color,marginLeft:2,opacity:0.8,animation:"glowPulse 0.7s ease-in-out infinite"}} />
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         )}
 
-        {/* Chief Verdict */}
-        {verdict&&(
+        {/* ── CHIEF INTELLIGENCE VERDICT ── */}
+        {verdict && (
           <div style={{
-            background:"rgba(0,0,0,0.35)",
-            border:`1px solid ${verdict.done?"rgba(255,255,255,0.14)":"rgba(255,77,106,0.4)"}`,
-            borderRadius:14,overflow:"hidden",
-            boxShadow:verdict.done?"none":"0 0 36px rgba(255,77,106,0.12)",
+            borderRadius:12,overflow:"hidden",
+            border:`1px solid ${verdict.done?"rgba(255,255,255,0.12)":"rgba(255,77,106,0.35)"}`,
+            background:"rgba(0,0,0,0.3)",
+            boxShadow:verdict.done?"none":"0 0 28px rgba(255,77,106,0.10)",
             transition:"border-color 0.4s,box-shadow 0.4s",
           }}>
-            {!verdict.done&&<div style={{height:2,background:"linear-gradient(90deg,#FF4D6A,#F59E0B,#2ECC8A,#60A5FA,#FF4D6A)",backgroundSize:"300% 100%",animation:"cosmicShimmer 2s linear infinite"}} />}
-            {verdict.done&&<div style={{height:2,background:"linear-gradient(90deg,transparent,#FF4D6A,#F59E0B,#2ECC8A,transparent)"}} />}
-            <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 20px",background:"linear-gradient(135deg,rgba(255,77,106,0.06),rgba(245,158,11,0.04),rgba(46,204,138,0.03))",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
-              <div style={{width:36,height:36,borderRadius:10,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,rgba(255,77,106,0.2),rgba(245,158,11,0.15))",border:"1px solid rgba(255,77,106,0.3)",fontSize:18,boxShadow:verdict.loading?"0 0 22px rgba(255,77,106,0.4)":"0 0 10px rgba(255,77,106,0.15)",transition:"box-shadow 0.4s"}}>⚖</div>
-              <div>
-                <div style={{fontSize:13,fontWeight:700,color:"#E8E6E1"}}>Chief Intelligence Verdict</div>
-                <div className="font-mono" style={{fontSize:8,color:"#5E5A57",letterSpacing:"0.1em"}}>OPERATIONAL BRIEF · {forecastDays}D HORIZON · WHAT IS HAPPENING → WHAT WILL HAPPEN → WHAT TO DO</div>
+            {/* Top border */}
+            {!verdict.done && <div style={{height:2,background:"linear-gradient(90deg,#FF4D6A,#F59E0B,#2ECC8A,#60A5FA,#FF4D6A)",backgroundSize:"300% 100%",animation:"cosmicShimmer 2s linear infinite"}} />}
+            {verdict.done  && <div style={{height:2,background:"linear-gradient(90deg,transparent,#FF4D6A88,#F59E0B88,#2ECC8A88,transparent)"}} />}
+
+            {/* Verdict header */}
+            <div className="flex items-center gap-2.5" style={{padding:"10px 14px",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+              <div style={{
+                width:28,height:28,borderRadius:7,flexShrink:0,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                background:"linear-gradient(135deg,rgba(255,77,106,0.2),rgba(245,158,11,0.12))",
+                border:"1px solid rgba(255,77,106,0.3)",fontSize:13,
+                boxShadow:verdict.loading?"0 0 16px rgba(255,77,106,0.4)":"0 0 6px rgba(255,77,106,0.15)",
+                transition:"box-shadow 0.4s",
+              }}>⚖</div>
+              <div className="flex-1">
+                <div style={{fontSize:11,fontWeight:700,color:"#E8E6E1"}}>Chief Intelligence Verdict</div>
+                <div className="font-mono" style={{fontSize:7,color:"#5E5A57",letterSpacing:"0.1em"}}>
+                  {forecastDays}D HORIZON · WHAT IS HAPPENING → WHAT WILL HAPPEN → WHAT TO DO
+                </div>
               </div>
-              {verdict.loading&&<div className="ml-auto flex items-center gap-2"><span className="orbital-loader" style={{borderTopColor:"#FF4D6A"}} /><ThinkingDots color="#FF4D6A" /></div>}
-              {verdict.done&&<span className="ml-auto font-mono font-bold" style={{fontSize:9,letterSpacing:"0.1em",padding:"3px 9px",borderRadius:6,background:"rgba(46,204,138,0.12)",border:"1px solid rgba(46,204,138,0.3)",color:"#2ECC8A",boxShadow:"0 0 8px rgba(46,204,138,0.2)"}}>DELIVERED</span>}
+              {verdict.loading && <span className="orbital-loader" style={{width:14,height:14,borderTopColor:"#FF4D6A",borderWidth:1.5}} />}
+              {verdict.done   && (
+                <span className="font-mono font-bold" style={{fontSize:8,padding:"2px 8px",borderRadius:5,background:"rgba(46,204,138,0.12)",border:"1px solid rgba(46,204,138,0.28)",color:"#2ECC8A",letterSpacing:"0.1em"}}>
+                  DELIVERED
+                </span>
+              )}
             </div>
-            <div style={{padding:"20px 22px"}}>
-              {verdict.loading&&verdictWords.length===0&&(
-                <div className="space-y-3">
-                  {[92,85,96,78,88].map((w,i)=><div key={i} className="skeleton" style={{height:11,width:`${w}%`,animationDelay:`${i*0.1}s`}} />)}
+
+            {/* Verdict body */}
+            <div style={{padding:"14px 16px"}}>
+              {/* Loading skeletons */}
+              {verdict.loading && verdictWords.length===0 && (
+                <div className="space-y-2">
+                  {[90,78,95,72,85].map((w,i)=><div key={i} className="skeleton" style={{height:10,width:`${w}%`,animationDelay:`${i*0.08}s`}} />)}
                 </div>
               )}
-              {verdictWords.length>0&&(()=>{
-                const fullText = verdictWords.join(" ");
-                const paras = fullText.split("\n\n").map(p=>p.trim()).filter(Boolean);
-                const SECTION_LABELS = [
-                  { label: "WHAT IS HAPPENING", color: "#60A5FA" },
-                  { label: "WHAT WILL HAPPEN NEXT", color: "#F59E0B" },
-                  { label: "WHAT TO DO", color: "#2ECC8A" },
+
+              {/* Streaming / done verdict in 3 labelled blocks */}
+              {verdictWords.length>0 && (()=>{
+                const paras = verdictWords.join(" ").split("\n\n").map(p=>p.trim()).filter(Boolean);
+                const LABELS = [
+                  { label:"HAPPENING NOW", color:"#60A5FA" },
+                  { label:"WHAT'S NEXT",   color:"#F59E0B" },
+                  { label:"YOUR MOVE",     color:"#2ECC8A" },
                 ];
                 return (
-                  <div className="space-y-4">
-                    {paras.map((para, i) => {
-                      const section = SECTION_LABELS[i];
-                      const isLast = i === paras.length - 1;
+                  <div className="space-y-3">
+                    {paras.map((para,i)=>{
+                      const L = LABELS[i];
+                      const isLast = i===paras.length-1;
                       return (
                         <div key={i} style={{
-                          position: "relative",
-                          padding: "14px 16px",
-                          borderRadius: 10,
-                          background: section ? `${section.color}06` : "rgba(255,255,255,0.02)",
-                          border: `1px solid ${section ? section.color + "20" : "rgba(255,255,255,0.06)"}`,
-                          borderLeft: `3px solid ${section ? section.color : "rgba(255,255,255,0.15)"}`,
+                          padding:"10px 12px",borderRadius:8,
+                          background: L ? `${L.color}07` : "rgba(255,255,255,0.02)",
+                          borderLeft:`2px solid ${L ? L.color : "rgba(255,255,255,0.12)"}`,
                         }}>
-                          {section && (
-                            <div className="font-mono font-bold mb-2" style={{
-                              fontSize: 8, letterSpacing: "0.14em",
-                              color: section.color,
-                            }}>
-                              {section.label}
-                            </div>
-                          )}
-                          <p style={{
-                            fontSize: 13.5,
-                            color: verdict.done ? "#D8D6D1" : "#D0CEC9",
-                            lineHeight: 1.82,
-                            fontWeight: i === 0 ? 500 : 400,
-                            transition: "color 0.3s",
-                            margin: 0,
-                          }}>
+                          {L && <div className="font-mono font-bold mb-1.5" style={{fontSize:7,color:L.color,letterSpacing:"0.14em"}}>{L.label}</div>}
+                          <p style={{fontSize:12.5,color:verdict.done?"#C8C6C1":"#B8B6B1",lineHeight:1.75,margin:0,fontWeight:i===0?500:400}}>
                             {para}
-                            {!verdict.done && isLast && (
-                              <span style={{
-                                display: "inline-block", width: 10, height: 15,
-                                verticalAlign: "middle", background: "#FF4D6A",
-                                marginLeft: 3, opacity: 0.85,
-                                animation: "glowPulse 0.7s ease-in-out infinite",
-                              }} />
-                            )}
+                            {!verdict.done&&isLast&&<span style={{display:"inline-block",width:8,height:13,verticalAlign:"middle",background:"#FF4D6A",marginLeft:3,opacity:0.85,animation:"glowPulse 0.7s ease-in-out infinite"}} />}
                           </p>
                         </div>
                       );
@@ -785,14 +709,20 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
           </div>
         )}
 
-        {/* Empty state */}
-        {phase==="idle"&&(
-          <div style={{textAlign:"center",padding:"28px 0 8px"}}>
-            <div style={{fontSize:36,marginBottom:12,opacity:0.3}}>⚔</div>
-            <p className="font-mono" style={{fontSize:11,color:"#5E5A57",lineHeight:1.8}}>
-              Select a forecast window, then run the War Room.<br/>
-              4 experts deliberate in parallel, contradict each other,<br/>
-              then deliver a verdict rooted in your data.
+        {/* ── IDLE EMPTY STATE ── */}
+        {phase==="idle" && (
+          <div style={{padding:"24px 0 6px",textAlign:"center"}}>
+            <div style={{
+              width:48,height:48,borderRadius:14,margin:"0 auto 14px",
+              display:"flex",alignItems:"center",justifyContent:"center",
+              background:"linear-gradient(135deg,rgba(255,77,106,0.08),rgba(96,165,250,0.05))",
+              border:"1px solid rgba(255,255,255,0.07)",fontSize:22,
+            }}>⚔</div>
+            <p style={{fontSize:12,color:"#4A4845",lineHeight:1.7,margin:0}}>
+              Select a forecast window · Click Run Analysis
+            </p>
+            <p className="font-mono" style={{fontSize:9,color:"#3A3835",letterSpacing:"0.06em",marginTop:4}}>
+              4 EXPERTS · DELIBERATE IN PARALLEL · OPERATIONAL VERDICT
             </p>
           </div>
         )}
