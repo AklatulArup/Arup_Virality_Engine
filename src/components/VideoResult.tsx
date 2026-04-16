@@ -88,16 +88,6 @@ export default function VideoResult({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* ── Virality Verdict — shown first ── */}
-      <ViralityVerdictPanel
-        video={video}
-        channel={channel}
-        channelMedian={channelMedian}
-        recentVideos={recentVideos}
-        referenceStore={referenceStore}
-        keywordBank={keywordBank}
-      />
-
       {/* ── Expert War Room ── */}
       <ExpertWarRoomPanel
         video={video}

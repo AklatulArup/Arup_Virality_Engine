@@ -83,6 +83,7 @@ import type { Competitor } from "./CompetitorBankManager";
 import CreatorBlocklist from "./CreatorBlocklist";
 import ViewForecastPanel from "./ViewForecastPanel";
 import BulkCSVImportPanel from "./BulkCSVImportPanel";
+import ExpertWarRoomPanel from "./ExpertWarRoomPanel";
 import ReportDownloadButton from "./ReportDownloadButton";
 import StarfieldCanvas from "./StarfieldCanvas";
 import CursorGlow from "./CursorGlow";
@@ -140,6 +141,7 @@ export default function Dashboard() {
   const [youtubeShortInput, setYoutubeShortInput] = useState("");
   const [activePanel, setActivePanel] = useState<"libraries" | "ref-tools" | "reverse-engineer" | "bulk-import" | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [warRoomTimeframe, setWarRoomTimeframe] = useState<"7d"|"30d"|"90d"|"6m">("30d");
   const [history, setHistory]   = useState<HistoryEntry[]>([]);
   const [historyPanel, setHistoryPanel] = useState(false);
 
@@ -1240,62 +1242,55 @@ export default function Dashboard() {
               </button>
               <div className="shrink-0">
                 <CsvUpload onUpload={analyzeTikTok} loading={loading} lastUpload={tiktokUploadInfo} />
-              </div>
             </div>
           )}
 
           {inputTab === "instagram" && (
-            <div className="flex-1 flex items-center gap-3">
-              {/* Full-width Instagram notice — replaces input since scraping is unreliable */}
-              <div
-                className="flex-1 flex items-center gap-4 rounded-xl px-4"
-                style={{ height: 44, background: "rgba(225,48,108,0.06)", border: "1px solid rgba(225,48,108,0.22)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" }}
-              >
-                <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <span className="font-mono" style={{ fontSize: 10, color: "#F0A0B8", letterSpacing: "0.04em" }}>
-                    <strong style={{ color: "#F59E0B" }}>Instagram scraping returns public data only</strong>
-                    <span style={{ color: "rgba(240,160,184,0.7)" }}> — Plays, Reach & Saves are unavailable via URL. </span>
-                    <span style={{ color: "#2ECC8A", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
-                      onClick={() => setActivePanel("bulk-import" as typeof activePanel)}>
-                      Use Bulk CSV Import
-                    </span>
-                    <span style={{ color: "rgba(240,160,184,0.5)" }}> to import your Instagram Insights export.</span>
-                  </span>
+            <div className="flex-1 flex items-center gap-2.5">
+                <div
+                  className="flex-1 flex items-center gap-3 rounded-xl px-3.5"
+                  style={{ height: 44, background: "rgba(4,4,2,0.90)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.10)" }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E1306C" strokeWidth="1.8" style={{ flexShrink: 0, opacity: 0.7 }}>
+                    <rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="18.5" cy="5.5" r="1.5" fill="#E1306C"/>
+                  </svg>
+                  <input
+                    type="text"
+                    value={instagramInput}
+                    onChange={e => setInstagramInput(e.target.value)}
+                    placeholder="@handle or instagram.com/reel/… (public data only)"
+                    className="flex-1 bg-transparent border-none outline-none"
+                    style={{ fontSize: 13, color: "#E8E6E1", caretColor: "#E1306C" }}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && instagramInput.trim()) {
+                        const v = instagramInput.trim();
+                        analyze(v.includes("instagram.com") ? v : `https://www.instagram.com/${v.replace(/^@/, "")}/`);
+                      }
+                    }}
+                  />
                 </div>
-              </div>
-              {/* Still allow URL entry in a compact secondary input */}
-              <div
-                className="flex items-center gap-2 rounded-xl px-3 shrink-0"
-                style={{ height: 44, width: 260, background: "rgba(4,4,2,0.90)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.08)" }}
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#E1306C" strokeWidth="1.8" style={{ flexShrink: 0, opacity: 0.6 }}>
-                  <rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="18.5" cy="5.5" r="1.5" fill="#E1306C"/>
-                </svg>
-                <input type="text" value={instagramInput}
-                  onChange={e => setInstagramInput(e.target.value)}
-                  placeholder="@handle (limited data)"
-                  className="flex-1 bg-transparent border-none outline-none"
-                  style={{ fontSize: 12, color: "#9E9C97", caretColor: "#E1306C" }}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && instagramInput.trim()) {
-                      const v = instagramInput.trim();
-                      analyze(v.includes("instagram.com") ? v : `https://www.instagram.com/${v.replace(/^@/, "")}/`);
-                    }
+                <button
+                  onClick={() => { const v = instagramInput.trim(); if (!v) return; analyze(v.includes("instagram.com") ? v : `https://www.instagram.com/${v.replace(/^@/, "")}/`); }}
+                  disabled={loading || !instagramInput.trim()}
+                  className="shrink-0 flex items-center gap-2 font-semibold rounded-xl"
+                  style={{ height: 44, padding: "0 20px", fontSize: 13, cursor: loading || !instagramInput.trim() ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "all 0.2s",
+                    background: instagramInput.trim() ? "linear-gradient(135deg, #9D174D, #E1306C)" : "rgba(255,255,255,0.06)",
+                    color: instagramInput.trim() ? "#fff" : "#4A4845",
+                    border: instagramInput.trim() ? "1px solid rgba(225,48,108,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                    boxShadow: instagramInput.trim() ? "inset 0 1px 0 rgba(255,255,255,0.22), 0 0 20px rgba(225,48,108,0.45), 0 0 48px rgba(225,48,108,0.18)" : "none",
                   }}
-                />
-              </div>
-              <button
-                onClick={() => { const v = instagramInput.trim(); if (!v) return; analyze(v.includes("instagram.com") ? v : `https://www.instagram.com/${v.replace(/^@/, "")}/`); }}
-                disabled={loading || !instagramInput.trim()}
-                className="shrink-0 flex items-center gap-2 font-semibold rounded-xl"
-                style={{ height: 44, padding: "0 16px", fontSize: 12, cursor: loading || !instagramInput.trim() ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "all 0.2s",
-                  background: "rgba(225,48,108,0.12)", color: "#E1306C",
-                  border: "1px solid rgba(225,48,108,0.3)",
-                }}
-              >
-                {loading ? <span className="orbital-loader" style={{ borderTopColor: "#E1306C", width: 12, height: 12 }} /> : "Analyze"}
-              </button>
+                >
+                  {loading ? <span className="orbital-loader" style={{ borderTopColor: "#E1306C", width: 14, height: 14 }} /> : "Analyze"}
+                </button>
+                <button
+                  onClick={() => saveInstagram(instagramInput.split("
+"))}
+                  disabled={!instagramInput.trim()}
+                  className="btn-ghost shrink-0"
+                  style={{ height: 44, padding: "0 14px" }}
+                >
+                  Queue
+                </button>
             </div>
           )}
 
@@ -1331,6 +1326,63 @@ export default function Dashboard() {
             />
           )}
         </div>
+
+        {/* ── Instagram data warning banner ── */}
+        {inputTab === "instagram" && (
+          <div className="flex items-center gap-3 px-5 py-2.5" style={{
+            background: "rgba(245,158,11,0.06)",
+            borderBottom: "1px solid rgba(245,158,11,0.18)",
+            backdropFilter: "blur(8px)",
+          }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)",
+              fontSize: 12, color: "#F59E0B",
+            }}>⚠</div>
+            <div className="flex-1">
+              <span className="font-mono font-semibold" style={{ fontSize: 10, color: "#F59E0B", letterSpacing: "0.06em" }}>
+                INSTAGRAM SCRAPING RETURNS PUBLIC DATA ONLY.
+              </span>
+              <span className="font-mono" style={{ fontSize: 10, color: "#8A8885", marginLeft: 6 }}>
+                For accurate Plays, Reach & Saves, export your analytics CSV from Instagram Insights and use
+              </span>
+              <button
+                onClick={() => setActivePanel("bulk-import" as typeof activePanel)}
+                className="font-mono font-semibold"
+                style={{ fontSize: 10, color: "#2ECC8A", background: "none", border: "none", cursor: "pointer",
+                  textDecoration: "underline", textUnderlineOffset: 3, marginLeft: 4, padding: 0 }}
+              >
+                Bulk CSV Import →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Instagram accuracy notice — full-width, below topbar ── */}
+        {inputTab === "instagram" && (
+          <div
+            className="flex items-center gap-3 px-5 py-2"
+            style={{
+              background: "rgba(245,158,11,0.06)",
+              borderBottom: "1px solid rgba(245,158,11,0.18)",
+              borderTop: "none",
+            }}
+          >
+            <span style={{ fontSize: 13, flexShrink: 0 }}>⚠</span>
+            <span className="font-mono" style={{ fontSize: 10, color: "#F59E0B", lineHeight: 1.6 }}>
+              <strong style={{ color: "#FFB830" }}>Public data only.</strong> Scraping returns what's visible on the profile page — not your private Insights (Plays, Reach, Saves).
+              Export your CSV from <strong style={{ color: "#FFB830" }}>Instagram Professional Dashboard → Insights</strong> and use{" "}
+              <button
+                onClick={() => setActivePanel("bulk-import" as typeof activePanel)}
+                className="font-mono font-bold underline"
+                style={{ color: "#2ECC8A", background: "none", border: "none", cursor: "pointer", fontSize: 10 }}
+              >
+                Bulk CSV Import
+              </button>{" "}for accurate data.
+            </span>
+          </div>
+        )}
 
         {/* ── Page body ── */}
         <div className="flex-1 p-6" style={{ position: "relative", zIndex: 2 }}>
@@ -2075,6 +2127,18 @@ export default function Dashboard() {
                 <div className="fade-up-2">
                   <TikTokBatchResult result={result} activeModes={activeModes} />
                 </div>
+                {result.topPerformers?.[0] && (
+                  <div className="fade-up-3">
+                    <ExpertWarRoomPanel
+                      video={result.topPerformers[0]}
+                      channel={null}
+                      channelMedian={result.videos.reduce((s,v)=>s+v.views,0)/Math.max(result.videos.length,1)}
+                      recentVideos={result.videos.slice(0,10)}
+                      referenceStore={referenceStore}
+                      keywordBank={keywordBank}
+                    />
+                  </div>
+                )}
               </div>
             );
           })()}

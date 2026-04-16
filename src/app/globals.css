@@ -513,3 +513,11 @@ aside { will-change: width; }
 
 /* Smooth topbar at all sizes */
 .glass-nav { flex-wrap: nowrap; overflow: hidden; }
+
+/* ── Floating keyword animation (War Room chat bubbles) ── */
+@keyframes floatKw {
+  0%   { opacity: 0; transform: translateX(var(--kw-x, 0px)) translateY(0); }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(var(--kw-x, 0px)) translateY(-55px); }
+}
