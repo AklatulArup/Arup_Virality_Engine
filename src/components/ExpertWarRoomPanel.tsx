@@ -391,7 +391,8 @@ export default function ExpertWarRoomPanel({ video, channel, channelMedian, rece
       const raw = fetched[expert.id] ?? "";
       if(raw.startsWith("__error__")){
         const msg = raw.replace("__error__","");
-        setOpinions(p=>({...p,[expert.id]:{persona:expert.id,text:msg,words:msg.split(" "),loading:false,done:true,error:msg}}));
+        const displayMsg = msg.slice(0, 120);
+        setOpinions(p=>({...p,[expert.id]:{persona:expert.id,text:displayMsg,words:displayMsg.split(" "),loading:false,done:true,error:displayMsg}}));
         continue;
       }
 

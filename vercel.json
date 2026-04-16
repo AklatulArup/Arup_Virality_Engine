@@ -1,10 +1,13 @@
 {
   "functions": {
-    "src/app/api/claude-verdict/route.ts": {
+    "app/api/claude-verdict/route": {
       "maxDuration": 60
     },
-    "src/app/api/bulk-import/route.ts": {
+    "app/api/bulk-import/route": {
       "maxDuration": 300
+    },
+    "app/api/test-ai/route": {
+      "maxDuration": 30
     }
   }
 }
