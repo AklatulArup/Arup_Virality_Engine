@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import type { EnrichedVideo, ChannelData, ReferenceStore, KeywordBank } from "@/lib/types";
-import { puterAIChat } from "@/lib/puter-ai";
 import { buildContextualPrompt, updateSessionMemory } from "@/lib/context-memory";
 import { formatNumber } from "@/lib/formatters";
 
@@ -58,16 +57,14 @@ const TIMEFRAME_OPTIONS = [
 ];
 
 async function callExpert(prompt: string, persona: string): Promise<string> {
-  try {
-    const res = await fetch("/api/claude-verdict", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, persona }),
-    });
-    const data: { text?: string } = await res.json().catch(() => ({}));
-    if (data.text && data.text.length > 20) return data.text;
-  } catch { /* fall through */ }
-  return await puterAIChat(prompt, PERSONA_SYSTEMS[persona] ?? PERSONA_SYSTEMS.algorithm);
+  const res = await fetch("/api/claude-verdict", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, persona }),
+  });
+  const data: { text?: string; error?: string } = await res.json().catch(() => ({}));
+  if (data.text && data.text.length > 20) return data.text;
+  throw new Error(data.error ?? "No response from AI provider");
 }
 
 function buildDeepPrompt(

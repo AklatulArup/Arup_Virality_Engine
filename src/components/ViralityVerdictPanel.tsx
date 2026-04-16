@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { puterAIChat } from "@/lib/puter-ai";
 import { buildContextualPrompt, updateSessionMemory } from "@/lib/context-memory";
 import type { EnrichedVideo, ChannelData, ReferenceStore, KeywordBank } from "@/lib/types";
 
@@ -201,17 +200,7 @@ export default function ViralityVerdictPanel({ video, channel, channelMedian, re
       }
     } catch { /* fall through */ }
 
-    // ── Try 2: Puter.js fallback (if available) ──
-    if (!success) {
-      try {
-        const text = await puterAIChat(prompt, systemPrompt);
-        if (text && text.length > 20) {
-          setAiVerdict(text);
-          success = true;
-          updateSessionMemory(video, channel, detectedPlatform, phase.label, text.slice(0, 200));
-        }
-      } catch { /* Puter not available, fall through to computed */ }
-    }
+    // Puter removed — OpenRouter is the sole AI provider via /api/claude-verdict
 
     // ── Try 3: Computed verdict from data ──
     if (!success) {
