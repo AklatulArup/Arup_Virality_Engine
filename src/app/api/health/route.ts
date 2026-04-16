@@ -1,28 +1,19 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  function mask(v: string | undefined) { return v ? `✓ ${v.slice(0,10)}...` : "❌ NOT SET"; }
-
-  const geminiKey    = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.Claude_AI_Summary_API_KEY;
-  const groqKey      = process.env.GROQ_API_KEY;
-  const youtubeKey   = process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY_2;
-  const instagramKey = process.env.Instagram_API_KEY_2 || process.env.Instagram_API_Key;
-  const tiktokKey    = process.env.TikTok_API_Key;
-
-  const aiResolved = geminiKey ? "gemini" : anthropicKey ? "anthropic" : groqKey ? "groq" : null;
+  const mask = (v?: string) => v ? `✓ ${v.slice(0,10)}...` : "❌ NOT SET";
+  const gemini   = process.env.GEMINI_API_KEY;
+  const youtube  = process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY_2;
+  const instagram= process.env.Instagram_API_KEY_2 || process.env.Instagram_API_Key;
+  const tiktok   = process.env.TikTok_API_Key;
 
   return NextResponse.json({
-    status: aiResolved && youtubeKey ? `✅ Ready — AI via ${aiResolved.toUpperCase()}` : !aiResolved ? "❌ No AI key — add GEMINI_API_KEY to Vercel" : "⚠️ No YouTube key",
-    ai_provider: aiResolved ?? "none",
+    status: gemini && youtube ? "✅ All critical keys loaded" : !gemini ? "❌ Add GEMINI_API_KEY to Vercel" : "⚠️ YouTube key missing",
     keys: {
-      "🤖 Gemini (GEMINI_API_KEY)":          mask(geminiKey),
-      "🤖 Anthropic (Claude_AI_Summary_API_KEY)": mask(anthropicKey),
-      "🤖 Groq (GROQ_API_KEY)":              mask(groqKey),
-      "🤖 AI resolved":                       aiResolved ? `Using ${aiResolved}` : "❌ NONE",
-      "▶ YouTube":                            mask(youtubeKey),
-      "◎ Instagram":                          mask(instagramKey),
-      "♪ TikTok":                             mask(tiktokKey),
+      "🤖 AI (GEMINI_API_KEY)": mask(gemini),
+      "▶ YouTube":              mask(youtube),
+      "◎ Instagram":            mask(instagram),
+      "♪ TikTok":               mask(tiktok),
     },
     timestamp: new Date().toISOString(),
   }, { headers: { "Cache-Control": "no-store" } });
