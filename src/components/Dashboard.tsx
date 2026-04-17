@@ -1167,6 +1167,36 @@ export default function Dashboard() {
 
         <div className="flex-1" />
 
+        {/* ── Admin link ── */}
+        <div className="px-4 py-2">
+          <a
+            href="/admin/calibration"
+            className="block"
+            style={{
+              fontSize: 11,
+              color: "#A78BFA",
+              fontFamily: "IBM Plex Mono, monospace",
+              letterSpacing: "0.06em",
+              padding: "6px 10px",
+              borderRadius: 6,
+              border: "1px solid rgba(167,139,250,0.2)",
+              background: "rgba(167,139,250,0.04)",
+              textDecoration: "none",
+              transition: "background 0.15s, border-color 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(167,139,250,0.1)";
+              e.currentTarget.style.borderColor = "rgba(167,139,250,0.4)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(167,139,250,0.04)";
+              e.currentTarget.style.borderColor = "rgba(167,139,250,0.2)";
+            }}
+          >
+            → forecast calibration
+          </a>
+        </div>
+
         {/* ── Footer ── */}
         <div className="px-4 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
           <div className="font-mono" style={{ fontSize: 9, color: "#5E5A57", letterSpacing: "0.08em" }}>
