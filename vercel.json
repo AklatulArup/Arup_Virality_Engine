@@ -23,7 +23,7 @@
     },
     {
       "path": "/api/cron/track-velocity",
-      "schedule": "15 * * * *"
+      "schedule": "30 5 * * *"
     }
   ]
 }
