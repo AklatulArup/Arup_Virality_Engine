@@ -83,6 +83,7 @@ import CompetitorBankManager from "./CompetitorBankManager";
 import type { Competitor } from "./CompetitorBankManager";
 import CreatorBlocklist from "./CreatorBlocklist";
 import ViewForecastPanel from "./ViewForecastPanel";
+import ViewPredictorPanel from "./ViewPredictorPanel";
 import BulkCSVImportPanel from "./BulkCSVImportPanel";
 import HistoryCalendar from "./HistoryCalendar";
 import ExpertWarRoomPanel from "./ExpertWarRoomPanel";
@@ -2128,6 +2129,13 @@ export default function Dashboard() {
                 <div className="fade-up-1">
                   <ViewForecastPanel video={v} forecastDate={forecastDate} onDateChange={setForecastDate} />
                 </div>
+                <div className="fade-up-1">
+                  <ViewPredictorPanel
+                    video={v}
+                    creatorHistory={result.recentVideos.filter(r => r.id !== v.id)}
+                    platform={(v.platform as "youtube" | "youtube_short" | "tiktok" | "instagram" | "x") || "youtube"}
+                  />
+                </div>
                 <div className="fade-up-2">
                   <VideoResult
                     video={v} channel={ch}
@@ -2220,6 +2228,15 @@ export default function Dashboard() {
                 {topVideo && (
                   <div className="fade-up-1">
                     <ViewForecastPanel video={topVideo} forecastDate={forecastDate} onDateChange={setForecastDate} />
+                  </div>
+                )}
+                {topVideo && (
+                  <div className="fade-up-1">
+                    <ViewPredictorPanel
+                      video={topVideo}
+                      creatorHistory={result.videos.filter(r => r.id !== topVideo.id)}
+                      platform={(topVideo.platform as "youtube" | "youtube_short" | "tiktok" | "instagram" | "x") || "tiktok"}
+                    />
                   </div>
                 )}
                 <div className="fade-up-2">
