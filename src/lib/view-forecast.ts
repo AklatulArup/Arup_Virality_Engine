@@ -16,7 +16,7 @@
 
 import type { EnrichedVideo } from "./types";
 
-export type ForecastPlatform = "youtube" | "youtube_short" | "tiktok" | "instagram";
+export type ForecastPlatform = "youtube" | "youtube_short" | "tiktok" | "instagram" | "x";
 
 export interface PlatformScore {
   platform: ForecastPlatform;
@@ -75,6 +75,7 @@ const PLATFORM_LABELS: Record<ForecastPlatform, string> = {
   youtube_short: "YouTube Shorts",
   tiktok: "TikTok",
   instagram: "Instagram Reels",
+  x: "X (Twitter)",
 };
 
 // ─── DECAY CURVES — platform-specific cumulative fraction of lifetime views ─
@@ -126,6 +127,20 @@ function cumulativeShare(day: number, platform: ForecastPlatform): number {
     if (day <= 180) return 0.82;
     if (day <= 365) return 0.90;
     return 0.90 + (day - 365) / 365 * 0.10;
+  }
+
+  // X (Twitter): 6-hour half-life. 95% of reach in 24 hours, near-total by day 3.
+  // Post loses half its visibility score every 6 hours per open-source docs.
+  // Rare long-tail via quote-cascades or search, modelled up to day 14.
+  if (platform === "x") {
+    if (day >= 14) return 1.0;
+    if (day <= 0.25) return 0.35;  // 6 hours
+    if (day <= 0.5)  return 0.60;  // 12 hours
+    if (day <= 1)    return 0.82;  // 24 hours
+    if (day <= 2)    return 0.93;
+    if (day <= 3)    return 0.97;
+    if (day <= 7)    return 0.99;
+    return 0.99 + (day - 7) / 7 * 0.01;
   }
 
   // YouTube Long-Form: evergreen; search long-tail runs for years
@@ -216,6 +231,30 @@ function computePlatformScore(video: EnrichedVideo, platform: ForecastPlatform):
     };
   }
 
+  // ── X (Twitter) 2026 — verified open-source weights ────────────────────
+  // Heavy Ranker: reply +13.5 (27x a like), retweet +1.0 (2x), like +0.5 baseline.
+  // Reply engaged by author = +75 (150x a like) — the highest positive weight.
+  // 6-hour time decay, ~1,500 candidates per feed refresh (50/50 in/out-of-network).
+  if (platform === "x") {
+    const replyRate  = video.comments / Math.max(1, video.views);
+    const retweetRate = (video.shares ?? 0) / Math.max(1, video.views);
+    const likeRate   = video.likes / Math.max(1, video.views);
+    // Target thresholds informed by top-decile X engagement benchmarks
+    const replies  = Math.min(1, replyRate  / 0.005);
+    const retweets = Math.min(1, retweetRate / 0.005);
+    const likes    = Math.min(1, likeRate   / 0.02);
+    const score = replies * 0.55 + retweets * 0.25 + likes * 0.20;
+    return {
+      platform, score, platformLabel: PLATFORM_LABELS[platform],
+      formula: "X 2026 = (Reply×0.55) + (Retweet×0.25) + (Like×0.20)",
+      signals: [
+        { label: "Reply rate  [weight +13.5 / 27x a like — unlocks +75 author-reply loop]", value: replies,  weight: 0.55, description: `${(replyRate*100).toFixed(3)}% reply rate → ${(replies*100).toFixed(0)}%` },
+        { label: "Retweet rate  [weight +1.0 / 2x a like — amplifier signal]",               value: retweets, weight: 0.25, description: `${(retweetRate*100).toFixed(3)}% retweet rate → ${(retweets*100).toFixed(0)}%` },
+        { label: "Like rate  [weight +0.5 baseline — lowest positive signal]",               value: likes,    weight: 0.20, description: `${(likeRate*100).toFixed(2)}% like rate → ${(likes*100).toFixed(0)}%` },
+      ],
+    };
+  }
+
   // ── Instagram Reels (2026 — Mosseri's confirmed three signals) ─────────
   // Formula: (Watch_time×0.45) + (Sends_per_reach×0.35) + (Likes_per_reach×0.20)
   // CONFIRMED by Adam Mosseri, January 2025 + reiterated February 2026:
@@ -266,6 +305,11 @@ function computeK(
     // External shares (WhatsApp/Discord) are the primary K driver
     i = Math.max(shareRate * 1000, likeRate * 0.10 * 1000);
     c = Math.min(1, platformScore * (video.vsBaseline / 3));
+  } else if (platform === "x") {
+    // X: replies drive both K (each reply exposes the post to replier's network)
+    // AND are worth 27× a like in the ranker. Retweets amplify but post lifespan is ~6h.
+    i = ((video.comments / Math.max(1, video.views)) * 1000 * 13.5 + shareRate * 1000 * 1.0);
+    c = Math.min(1, platformScore * (video.vsBaseline / 3) * 0.7); // 6h decay caps conversion window
   } else {
     // YouTube LF: slower spread but search creates separate K-independent distribution
     i = (likeRate * 0.10 + engRate * 0.03) * 1000;
@@ -374,6 +418,13 @@ function buildReplicationSignals(
     if (likeRate >= 4) signals.push(`Like rate ${likeRate.toFixed(1)}% — strong satisfaction (20% formula weight). Pin a comment with the FN link now while engagement is high.`);
   }
 
+  if (platform === "x") {
+    signals.push("X: 6-hour window is the entire life of most posts. Reply to every reply in the first 30 min — each author-reply-back scores +75 (150× a like), the highest-weighted signal in the open-source ranker.");
+    signals.push("Put external links in the first reply, never the main post. Free-account link posts see near-zero median engagement since March 2025. Keep the main post self-contained.");
+    signals.push("2-3 posts per day maximum. The Author Diversity Scorer limits posts per account per user feed session — extra posts dilute your average.");
+    if (video.comments / Math.max(1, video.views) > 0.005) signals.push(`Reply rate ${((video.comments/Math.max(1,video.views))*100).toFixed(2)}% — strong. This post is unlocking the 27× reply weight. Post follow-ups within 6h while algorithm sees you as high-engagement.`);
+  }
+
   if (score < 0.4) {
     signals.push("⚠ Low platform score. Before publishing follow-up: refresh hook structure, Frame 1 (Shorts) or thumbnail (YT LF), and the primary CTA.");
   }
@@ -389,6 +440,7 @@ export function detectPlatform(
   if (video.platform === "tiktok")       return "tiktok";
   if (video.platform === "instagram")    return "instagram";
   if (video.platform === "youtube_short") return "youtube_short";
+  if (video.platform === "x" || video.platform === "twitter") return "x";
 
   const secs = video.durationSeconds ??
     (video.duration ? (() => {
@@ -449,7 +501,7 @@ export function forecastViews(video: EnrichedVideo, targetDate: Date): ViewForec
 
   // Spread factor: wider for evergreen YT LF (search unpredictability) vs fast-decay TikTok
   const spreadMap: Record<ForecastPlatform, number> = {
-    tiktok: 0.18, instagram: 0.22, youtube_short: 0.25, youtube: 0.35,
+    tiktok: 0.18, instagram: 0.22, youtube_short: 0.25, youtube: 0.35, x: 0.28,
   };
   const spreadFactor = Math.min(
     spreadMap[platform] * 2,

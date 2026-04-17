@@ -84,6 +84,8 @@ import type { Competitor } from "./CompetitorBankManager";
 import CreatorBlocklist from "./CreatorBlocklist";
 import ViewForecastPanel from "./ViewForecastPanel";
 import ViewPredictorPanel from "./ViewPredictorPanel";
+import UnifiedForecastPanel from "./UnifiedForecastPanel";
+import { xPostToEnrichedVideo } from "@/lib/x-adapter";
 import BulkCSVImportPanel from "./BulkCSVImportPanel";
 import HistoryCalendar from "./HistoryCalendar";
 import ExpertWarRoomPanel from "./ExpertWarRoomPanel";
@@ -2127,13 +2129,12 @@ export default function Dashboard() {
                   {metrics.map((m, i) => <MetricCard key={m.label} {...m} index={i} />)}
                 </div>
                 <div className="fade-up-1">
-                  <ViewForecastPanel video={v} forecastDate={forecastDate} onDateChange={setForecastDate} />
-                </div>
-                <div className="fade-up-1">
-                  <ViewPredictorPanel
+                  <UnifiedForecastPanel
                     video={v}
                     creatorHistory={result.recentVideos.filter(r => r.id !== v.id)}
                     platform={(v.platform as "youtube" | "youtube_short" | "tiktok" | "instagram" | "x") || "youtube"}
+                    forecastDate={forecastDate}
+                    onDateChange={setForecastDate}
                   />
                 </div>
                 <div className="fade-up-2">
@@ -2200,6 +2201,17 @@ export default function Dashboard() {
                     X applies a −75 score penalty (≈ −150 effective likes worth of reach) for links in the main post. Move links to the first reply.
                   </div>
                 )}
+                {posts[0] && (
+                  <div className="fade-up-1">
+                    <UnifiedForecastPanel
+                      video={xPostToEnrichedVideo(posts[0], posts)}
+                      creatorHistory={posts.slice(1).map(p => xPostToEnrichedVideo(p, posts))}
+                      platform="x"
+                      forecastDate={forecastDate}
+                      onDateChange={setForecastDate}
+                    />
+                  </div>
+                )}
                 <div className="fade-up-2">
                   <XBatchResult posts={posts} />
                 </div>
@@ -2227,15 +2239,12 @@ export default function Dashboard() {
                 </div>
                 {topVideo && (
                   <div className="fade-up-1">
-                    <ViewForecastPanel video={topVideo} forecastDate={forecastDate} onDateChange={setForecastDate} />
-                  </div>
-                )}
-                {topVideo && (
-                  <div className="fade-up-1">
-                    <ViewPredictorPanel
+                    <UnifiedForecastPanel
                       video={topVideo}
                       creatorHistory={result.videos.filter(r => r.id !== topVideo.id)}
                       platform={(topVideo.platform as "youtube" | "youtube_short" | "tiktok" | "instagram" | "x") || "tiktok"}
+                      forecastDate={forecastDate}
+                      onDateChange={setForecastDate}
                     />
                   </div>
                 )}
