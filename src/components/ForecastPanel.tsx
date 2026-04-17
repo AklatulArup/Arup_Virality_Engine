@@ -86,6 +86,24 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
   const niche = useMemo(() => classifyCreatorNiche(creatorHistory), [creatorHistory]);
   const nicheAdj = useMemo(() => nicheAdjustment(niche.niche), [niche.niche]);
 
+  // Tuning overrides from admin page — applied on every forecast
+  const [configOverrides, setConfigOverrides] = useState<Record<string, Record<string, number>>>({});
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    fetch("/api/forecast/tuning")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d?.ok || !Array.isArray(d.overrides)) return;
+        const byPlatform: Record<string, Record<string, number>> = {};
+        for (const o of d.overrides as Array<{ platform: string; parameter: string; newValue: number }>) {
+          if (!byPlatform[o.platform]) byPlatform[o.platform] = {};
+          byPlatform[o.platform][o.parameter] = o.newValue;
+        }
+        setConfigOverrides(byPlatform);
+      })
+      .catch(() => {});
+  }, []);
+
   const result = useMemo(
     () => forecast({
       video, creatorHistory, platform, manualInputs, velocitySamples,
@@ -95,8 +113,9 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
       nicheMultiplier: nicheAdj.multiplier,
       nicheLabel: niche.niche,
       nicheRationale: niche.rationale,
+      configOverrides,
     }),
-    [video, creatorHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj],
+    [video, creatorHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj, configOverrides],
   );
 
   // Persist snapshot for later calibration — debounced: only once per video + inputs combo

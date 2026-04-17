@@ -61,6 +61,13 @@ export interface ForecastInput {
   nicheMultiplier?: number;
   nicheLabel?: string;
   nicheRationale?: string;
+  // Optional: platform config parameter overrides (from tuning admin page)
+  configOverrides?: Record<string, Partial<{
+    upsideMultiplier:   number;
+    downsideMultiplier: number;
+    scoreExponent:      number;
+    minBaselinePosts:   number;
+  }>>;
 }
 
 export interface VelocitySampleInput {
@@ -372,12 +379,14 @@ function cv(arr: number[]): number {
 // between good and mediocre content (matches reality — TikTok and X have
 // sharper separation than YouTube LF where predictable subs drive most views).
 
-function scoreToMultiplier(score: number, platform: Platform): {
+function scoreToMultiplier(
+  score: number,
+  effectiveCfg: { scoreExponent: number; downsideMultiplier: number; upsideMultiplier: number },
+): {
   low: number; median: number; high: number; rationale: string;
 } {
   const s = Math.max(0, Math.min(100, score)) / 100;  // normalize 0-1
-  const cfg = PLATFORM_CONFIG[platform];
-  const exp = cfg.scoreExponent;
+  const exp = effectiveCfg.scoreExponent;
 
   // Power curve: s^exp maps 0→0, 1→1, with sharper acceleration at higher scores
   const curved = Math.pow(s, exp);
@@ -388,10 +397,10 @@ function scoreToMultiplier(score: number, platform: Platform): {
   let medianMult: number;
   if (score < 50) {
     const t = score / 50;
-    medianMult = cfg.downsideMultiplier + (1 - cfg.downsideMultiplier) * Math.pow(t, 1.5);
+    medianMult = effectiveCfg.downsideMultiplier + (1 - effectiveCfg.downsideMultiplier) * Math.pow(t, 1.5);
   } else {
     const t = (score - 50) / 50;
-    medianMult = 1 + (cfg.upsideMultiplier - 1) * Math.pow(t, exp);
+    medianMult = 1 + (effectiveCfg.upsideMultiplier - 1) * Math.pow(t, exp);
   }
 
   // Low/high bands widen at extremes (more uncertainty at edges)
@@ -399,7 +408,7 @@ function scoreToMultiplier(score: number, platform: Platform): {
   const edgeness = Math.abs(s - 0.5) * 2;  // 0 at middle, 1 at edges
   const bandWidth = 0.35 + edgeness * 0.35;  // ±35% to ±70% band
 
-  const low  = Math.max(cfg.downsideMultiplier * 0.7, medianMult * (1 - bandWidth));
+  const low  = Math.max(effectiveCfg.downsideMultiplier * 0.7, medianMult * (1 - bandWidth));
   const high = medianMult * (1 + bandWidth);
 
   let rationale: string;
@@ -680,7 +689,17 @@ function computeConfidence(
 
 export function forecast(input: ForecastInput): Forecast {
   const { video, creatorHistory, platform, manualInputs = {}, velocitySamples } = input;
-  const cfg = PLATFORM_CONFIG[platform];
+
+  // Compose tuning overrides from admin-applied adjustments onto the default config
+  const baseCfg = PLATFORM_CONFIG[platform];
+  const override = input.configOverrides?.[platform] ?? {};
+  const cfg = {
+    ...baseCfg,
+    upsideMultiplier:   override.upsideMultiplier   ?? baseCfg.upsideMultiplier,
+    downsideMultiplier: override.downsideMultiplier ?? baseCfg.downsideMultiplier,
+    scoreExponent:      override.scoreExponent      ?? baseCfg.scoreExponent,
+    minBaselinePosts:   override.minBaselinePosts   ?? baseCfg.minBaselinePosts,
+  };
 
   const dataUsed:      DataSource[] = [];
   const dataEstimated: DataSource[] = [];
@@ -756,7 +775,7 @@ export function forecast(input: ForecastInput): Forecast {
     impact: "high",
   });
 
-  const rawMult = scoreToMultiplier(score, platform);
+  const rawMult = scoreToMultiplier(score, cfg);
   const adjMult = applyManualAdjustments(rawMult, platform, manualInputs);
 
   // ── Step 3: Record available vs missing inputs per platform ───────────
