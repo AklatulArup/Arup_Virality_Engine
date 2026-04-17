@@ -51,6 +51,9 @@ export interface ForecastInput {
   manualInputs?: ManualInputs;
   // Optional: velocity time-series from the tracker cron — sharpens the trajectory blend
   velocitySamples?: VelocitySampleInput[];
+  // Optional: combined seasonality multiplier (day-of-week + market volatility)
+  seasonalityMultiplier?: number;
+  seasonalityRationales?: string[];
 }
 
 export interface VelocitySampleInput {
@@ -758,10 +761,14 @@ export function forecast(input: ForecastInput): Forecast {
   }
 
   // ── Step 5: Build prior (lifetime prediction) ─────────────────────────
+  // Seasonality multiplier applies here — day-of-week + market volatility shift
+  // the creator's effective median before the score multiplier range is applied.
+  const seasonality = input.seasonalityMultiplier ?? 1.0;
+  const adjustedBaseline = baseline.median * seasonality;
   const prior = {
-    low:    Math.round(baseline.median * adjMult.low),
-    median: Math.round(baseline.median * adjMult.median),
-    high:   Math.round(baseline.median * adjMult.high),
+    low:    Math.round(adjustedBaseline * adjMult.low),
+    median: Math.round(adjustedBaseline * adjMult.median),
+    high:   Math.round(adjustedBaseline * adjMult.high),
   };
 
   // ── Step 6: Blend with observed trajectory ───────────────────────────
@@ -794,6 +801,12 @@ export function forecast(input: ForecastInput): Forecast {
   // ── Step 10: Notes ────────────────────────────────────────────────────
   notes.push(`Baseline: ${baseline.postsUsed} past posts, median ${baseline.median.toLocaleString()}, CV ${baseline.cv.toFixed(2)}.`);
   notes.push(`Score multiplier: ${adjMult.median.toFixed(2)}× median (VRS ${score.toFixed(0)}, ${rawMult.rationale}).`);
+  if (input.seasonalityMultiplier && Math.abs(input.seasonalityMultiplier - 1) > 0.05) {
+    notes.push(`Seasonality: ${input.seasonalityMultiplier.toFixed(2)}× applied to baseline.`);
+    if (input.seasonalityRationales) {
+      for (const r of input.seasonalityRationales) notes.push(`  · ${r}`);
+    }
+  }
   if (trajectory) {
     notes.push(`Trajectory blend weight: ${(trajectory.blendWeight * 100).toFixed(0)}% observed vs ${((1-trajectory.blendWeight) * 100).toFixed(0)}% prior.`);
     notes.push(`Outperformance: ${trajectory.outperformance.toFixed(2)}× vs what this creator typically does at this stage.`);

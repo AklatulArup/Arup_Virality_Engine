@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { forecast, projectAtDate, type ManualInputs, type Platform, type DataSource, type DateProjection } from "@/lib/forecast";
 import { INPUT_TOOLTIPS, type InputTooltip } from "@/lib/input-tooltips";
 import { recordForecast } from "@/lib/forecast-learning";
+import { computeDayOfWeekProfile, fetchMarketVolatility, combineSeasonality, type DayOfWeekProfile, type MarketVolatilityProfile } from "@/lib/seasonality";
 import type { EnrichedVideo, VideoData } from "@/lib/types";
 import { formatNumber } from "@/lib/formatters";
 
@@ -30,9 +31,32 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
       .catch(() => {});
   }, [video.id]);
 
+  // Day-of-week profile — computed locally from creator history, no fetch
+  const dowProfile: DayOfWeekProfile | null = useMemo(
+    () => computeDayOfWeekProfile(video, creatorHistory),
+    [video, creatorHistory],
+  );
+
+  // Market volatility — fetched once per video analysis, from GNews
+  const [marketVol, setMarketVol] = useState<MarketVolatilityProfile | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    fetchMarketVolatility().then(setMarketVol).catch(() => {});
+  }, []);
+
+  // Combine into single multiplier
+  const seasonality = useMemo(
+    () => combineSeasonality({ dayOfWeek: dowProfile, marketVolatility: marketVol }),
+    [dowProfile, marketVol],
+  );
+
   const result = useMemo(
-    () => forecast({ video, creatorHistory, platform, manualInputs, velocitySamples }),
-    [video, creatorHistory, platform, manualInputs, velocitySamples],
+    () => forecast({
+      video, creatorHistory, platform, manualInputs, velocitySamples,
+      seasonalityMultiplier: seasonality.multiplier,
+      seasonalityRationales: seasonality.rationales,
+    }),
+    [video, creatorHistory, platform, manualInputs, velocitySamples, seasonality],
   );
 
   // Persist snapshot for later calibration — debounced: only once per video + inputs combo
