@@ -77,6 +77,7 @@ export default function ModeSelector({ activeModes, onToggle, onSelectAll, onCle
   const [anchorRect, setAnchorRect]   = useState<DOMRect | null>(null);
   const [mounted, setMounted]         = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMounted(true); }, []);
 
   const hoveredMode = MODES.find(m => m.id === hoveredId) ?? null;

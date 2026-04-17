@@ -985,7 +985,7 @@ export default function ReverseEngineerPanel({ platform, result, loading, onAnal
                       <span className="text-[18px]">{hook.emoji}</span>
                       <span className="text-[14px] font-bold" style={{ color: intel.color }}>{hook.type}</span>
                     </div>
-                    <div className="text-[11px] mt-1.5 italic" style={{ color: "rgba(232,232,255,0.55)" }}>"{video.title}"</div>
+                    <div className="text-[11px] mt-1.5 italic" style={{ color: "rgba(232,232,255,0.55)" }}>&ldquo;{video.title}&rdquo;</div>
                   </div>
                   <div className="px-4 py-3 space-y-3" style={{ background: "rgba(0,0,0,0.2)" }}>
                     <div>
@@ -1181,7 +1181,7 @@ export default function ReverseEngineerPanel({ platform, result, loading, onAnal
       <Section title="Script Formula — Step by Step" accent={intel.color} defaultOpen={false}>
         <div className="space-y-3">
           <p className="text-[12px]" style={{ color: "rgba(232,232,255,0.6)" }}>
-            Every high-performing video on {intel.label} follows this exact structure. Follow these steps in order. Don't skip any of them.
+            Every high-performing video on {intel.label} follows this exact structure. Follow these steps in order. Don&apos;t skip any of them.
           </p>
           {intel.scriptFormula.map(({ step, plain, template, why, mistake }) => (
             <div key={step} className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
@@ -1284,7 +1284,7 @@ export default function ReverseEngineerPanel({ platform, result, loading, onAnal
       <Section title="Common Mistakes — Things to Stop Doing Immediately" accent="#FF453A" defaultOpen={false}>
         <div className="space-y-2">
           <p className="text-[12px] mb-3" style={{ color: "rgba(232,232,255,0.6)" }}>
-            These are the most common reasons why {intel.label} content underperforms. If you're doing any of these, fixing them will improve your numbers faster than anything else.
+            These are the most common reasons why {intel.label} content underperforms. If you&apos;re doing any of these, fixing them will improve your numbers faster than anything else.
           </p>
           {intel.commonMistakes.map((mistake, i) => (
             <div key={i} className="flex items-start gap-3 rounded-xl px-4 py-3" style={{ background: "rgba(255,69,58,0.07)", border: "1px solid rgba(255,69,58,0.15)" }}>

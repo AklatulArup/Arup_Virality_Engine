@@ -1900,7 +1900,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <p className="font-mono" style={{ fontSize: 10, color: "#6B6964", marginBottom: 16, lineHeight: 1.55 }}>
-                        Updates in real-time as you analyse content. The more you analyse, the more accurate the engine's forecasts become.
+                        Updates in real-time as you analyse content. The more you analyse, the more accurate the engine&apos;s forecasts become.
                       </p>
 
                       {/* ── Grand totals: 3 stacked bars toward min/std/mature ── */}

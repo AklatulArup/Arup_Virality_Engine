@@ -17,7 +17,10 @@ export default function UrlInput({ onAnalyze, loading, status, error }: UrlInput
   const hasUrl = url.trim().length > 0;
 
   useEffect(() => {
+    // Derived state: parse input label when URL changes
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (url.trim().length > 5) setLabel(parseInput(url).label);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     else setLabel("");
   }, [url]);
 

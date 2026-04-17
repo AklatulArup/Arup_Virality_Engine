@@ -286,7 +286,7 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
           {inputsOpen && (
             <div style={{ marginTop: 12 }} className="space-y-3">
               <div style={noteStyle}>
-                These fields are not available via any public API. Pull them from the creator's own analytics dashboard. Forecast recalculates as you type.
+                These fields are not available via any public API. Pull them from the creator&apos;s own analytics dashboard. Forecast recalculates as you type.
               </div>
               <ManualInputsForm platform={platform} update={update} />
             </div>
@@ -380,7 +380,9 @@ function DateProjectionCard({
     ? new Date(publishedAt).toISOString().split("T")[0]
     : new Date().toISOString().split("T")[0];
 
-  // Max date: publish + 2× horizon, lets users pick well beyond the confident window
+  // Max date: publish + 2× horizon, lets users pick well beyond the confident window.
+  // Date.now() here is intentional — when no publish date exists we anchor to current time.
+  // eslint-disable-next-line react-hooks/purity
   const anchorMs = publishedAt ? new Date(publishedAt).getTime() : Date.now();
   const maxDate = new Date(anchorMs + horizonDays * 2 * 86_400_000).toISOString().split("T")[0];
 

@@ -115,7 +115,7 @@ export default function CalibrationPage() {
       {report && report.byAgeBand && report.byAgeBand.length > 0 && report.sampleSize > 0 && (
         <section style={{ marginBottom: 28 }}>
           <SectionHeading>Error by age at forecast time</SectionHeading>
-          <div style={{ fontSize: 11, color: "#6B6964", marginBottom: 10 }}>How accurate we are at different stages of a post's life. Younger posts should have higher error; that's normal.</div>
+          <div style={{ fontSize: 11, color: "#6B6964", marginBottom: 10 }}>How accurate we are at different stages of a post&apos;s life. Younger posts should have higher error; that&apos;s normal.</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
             {report.byAgeBand.map((b, i) => (
               <BandCard key={i} label={ageLabel(b.min, b.max)} n={b.n} mdape={b.medianAPE} />
@@ -386,7 +386,7 @@ function AppliedOverrides() {
     <section style={{ marginBottom: 28 }}>
       <SectionHeading>Currently applied overrides</SectionHeading>
       <div style={{ fontSize: 12, color: "#A8A6A1", marginBottom: 12 }}>
-        Tuning adjustments you've approved. Active on all forecasts until reverted.
+        Tuning adjustments you&apos;ve approved. Active on all forecasts until reverted.
       </div>
       {overrides.map((o, i) => (
         <div key={`${o.platform}-${o.parameter}-${i}`} style={appliedOverrideStyle}>

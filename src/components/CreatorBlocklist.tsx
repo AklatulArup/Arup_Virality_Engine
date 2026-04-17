@@ -33,6 +33,8 @@ export default function CreatorBlocklist({
   }
 
   useEffect(() => {
+    // Fire-and-forget mount/dep load — setState happens after async fetch, not synchronously
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [refreshKey]);
 

@@ -1233,7 +1233,7 @@ function RoundTable({ experts, opinions, activeExpert, phase, currentRound, onSe
                   fontSize: 8.5, color: "#8A8883", lineHeight: 1.4,
                   fontStyle: "italic",
                 }}>
-                  "{activeExp.stance}"
+                  &ldquo;{activeExp.stance}&rdquo;
                 </div>
               </>
             ) : (
