@@ -1,324 +1,372 @@
 /**
- * Trend Intelligence Engine
+ * Trend Intelligence Engine — 2026
  * 
- * Detects trend signals from content patterns, niche behavior, and external data.
- * Grades trends on a 5-point likelihood scale from niche early signal to wide adoption.
+ * Trend detection, lifecycle scoring, niche-to-mainstream pathway mapping,
+ * and news/event multiplier calculation for view forecast accuracy.
  * 
- * Sources: Rogers Diffusion of Innovations (adapted for social content),
- *          social-sentiment-intelligence.md, platform research 2024-2026.
- * 
- * Key insight: Trends are predictable. They follow the Innovators (2%) →
- * Early Adopters (13%) → Early Majority (34%) adoption curve.
- * The best time to create trend content is at Early Adopter phase (2-13%),
- * not at peak (34%+ = too late for organic reach bonus).
+ * Source: Social-sentiment-intelligence.md (trend sociology section),
+ *         content-tactics-trends.md (trend detection method),
+ *         platform-specific distribution timing research.
  */
 
-export type TrendPhase =
-  | "niche_signal"      // <2% adoption — innovators only, high risk/reward
-  | "early_signal"      // 2-13% adoption — early adopters, best entry point
-  | "acceleration"      // 13-34% — algorithm amplifying, still worth entering
-  | "peak"              // 34-50% — mass adoption, algorithm saturation
-  | "declining"         // 50%+ — trend is dying, late content gets no boost
-  | "evergreen";        // Not trend-dependent — works at any time
+// ─── TREND TYPES ──────────────────────────────────────────────────────────
 
-export type TrendLikelihood = 1 | 2 | 3 | 4 | 5;
-// 1 = Niche signal only — monitor, don't act yet
-// 2 = Early signal — create NOW for first-mover advantage
-// 3 = Building — still time, but window is narrowing
-// 4 = Peak — marginal benefit, algorithm is saturated
-// 5 = Post-peak — trend content actively suppressed (oversupply)
+export type TrendPhase =
+  | "niche_signal"     // <500 videos, small communities only. High opportunity, high uncertainty.
+  | "early_adoption"   // 500-5K videos. Niche creators have validated it. Low competition window.
+  | "mainstream"       // 5K-50K videos. Mass adoption. High competition but huge audience.
+  | "peak"             // 50K+ videos, branded content arriving. About to decline.
+  | "declining"        // Past peak. Saturation or successor trend is live.
+  | "evergreen";       // Stable permanent interest. Not trend-driven.
+
+export type TrendCategory =
+  | "news_event"       // Breaking news, market events, regulatory changes
+  | "market_event"     // Specific market moves: crash, pump, NFP, CPI, FOMC
+  | "challenge_format" // New content format going viral (Day N, etc.)
+  | "platform_feature" // New platform feature (TikTok shop, YT Hype, etc.)
+  | "cultural_moment"  // Broader cultural event relevant to finance/trading
+  | "product_launch"   // New prop firm product, competitor launch
+  | "seasonal"         // Recurring seasonal patterns (new year, Q1, etc.)
+  | "evergreen";
 
 export interface TrendSignal {
-  topic: string;
+  keyword: string;
+  category: TrendCategory;
   phase: TrendPhase;
-  likelihood: TrendLikelihood;
-  likelihoodLabel: string;
-  platformRelevance: Record<string, number>;  // 0-1 per platform
-  windowOpen: boolean;                         // true = create now
-  urgency: "immediate" | "this_week" | "this_month" | "monitor" | "pass";
-  evidence: string[];
-  contentAngles: string[];                     // specific angles to take
-  riskLevel: "low" | "medium" | "high";
-  estimatedReachMultiplier: number;            // vs non-trend content
-}
-
-export interface TrendIntelligence {
-  activeTrends: TrendSignal[];
-  niche: string;
-  platform: string;
-  trendScore: number;                          // 0–100 overall trend alignment
-  recommendation: string;
-  newsIntegrationOpportunity: boolean;
-  evergreenAlternative: string;                // fallback if no trend window open
-}
-
-// ─── Trading/prop firm trend pattern detection ─────────────────────────────
-
-const TREND_PATTERNS: {
-  pattern: RegExp;
-  topic: string;
-  basePhase: TrendPhase;
-  platforms: string[];
-  angles: string[];
-}[] = [
-  {
-    pattern: /news|fed|fomc|rate (hike|cut)|inflation|jobs report|cpi|nfp|earnings/i,
-    topic: "Market Event Reaction",
-    basePhase: "early_signal",
-    platforms: ["tiktok", "youtube", "youtube_short"],
-    angles: [
-      "How this market event affects your prop firm challenge",
-      "Trading this news event with a funded account",
-      "Should you trade FOMC on a challenge account?",
-      "My funded account P&L during [event]",
-    ],
-  },
-  {
-    pattern: /prop firm|prop trading|funded (trader|account|capital)/i,
-    topic: "Prop Firm Space",
-    basePhase: "acceleration",
-    platforms: ["tiktok", "instagram", "youtube_short"],
-    angles: [
-      "Prop firm comparison — which is actually worth it",
-      "What they don't tell you about prop firm challenges",
-      "My first payout from a prop firm",
-      "Passed my first funded challenge — here's exactly how",
-    ],
-  },
-  {
-    pattern: /ai (trading|bot|algorithm)|automated|algorithm (trading|strategy)/i,
-    topic: "AI Trading",
-    basePhase: "early_signal",
-    platforms: ["youtube", "tiktok", "youtube_short"],
-    angles: [
-      "I tested AI trading on a funded account — results",
-      "Can AI pass a prop firm challenge?",
-      "AI trading vs manual trading on FundedNext",
-    ],
-  },
-  {
-    pattern: /recession|crash|bear market|bubble|market collapse|correction/i,
-    topic: "Market Fear / Macro Concern",
-    basePhase: "acceleration",
-    platforms: ["tiktok", "youtube", "instagram"],
-    angles: [
-      "How to trade a recession with a funded account",
-      "My prop challenge during the market crash",
-      "Why prop firm traders have an advantage in a bear market",
-    ],
-  },
-  {
-    pattern: /challenge (fail|failed|blew|pass|passed)|account (blown|breached|violated)/i,
-    topic: "Challenge Journey",
-    basePhase: "acceleration",
-    platforms: ["tiktok", "instagram", "youtube_short"],
-    angles: [
-      "Day N of my FundedNext challenge",
-      "I failed my challenge — here's the exact mistake",
-      "Passed my funded challenge after 3 fails — what changed",
-    ],
-  },
-  {
-    pattern: /payout|withdrawal|funded|getting paid|proof of (payment|payout)/i,
-    topic: "Payout Reveal",
-    basePhase: "acceleration",
-    platforms: ["tiktok", "instagram"],
-    angles: [
-      "My first $[X] payout from FundedNext",
-      "What happens when you request a payout",
-      "Payout proof — funded trading is real",
-    ],
-  },
-  {
-    pattern: /quit (my )?job|replace (my )?salary|full.?time trader|left (my )?job/i,
-    topic: "Trading as Income Replacement",
-    basePhase: "acceleration",
-    platforms: ["tiktok", "instagram", "youtube"],
-    angles: [
-      "I quit my job to trade — month 3 update",
-      "Replacing my salary with funded trading (reality check)",
-      "What I wish I knew before quitting my job to trade",
-    ],
-  },
-  {
-    pattern: /risk management|daily loss|drawdown|position size|lot size|stop loss/i,
-    topic: "Risk Management Education",
-    basePhase: "evergreen",
-    platforms: ["youtube", "youtube_short", "instagram"],
-    angles: [
-      "The exact risk management that passed my challenge",
-      "Daily loss rule — the one thing that kills challenges",
-      "Position sizing for prop firm challenges",
-    ],
-  },
-];
-
-// ─── Trend phase → likelihood mapping ────────────────────────────────────
-
-const PHASE_LIKELIHOOD: Record<TrendPhase, TrendLikelihood> = {
-  niche_signal: 1,
-  early_signal: 2,
-  acceleration: 3,
-  peak:         4,
-  declining:    5,
-  evergreen:    3,   // evergreen = moderate score, always valid
-};
-
-const PHASE_LABELS: Record<TrendLikelihood, string> = {
-  1: "Niche signal — monitor, first-mover window opening",
-  2: "Early signal — CREATE NOW for maximum algorithmic boost",
-  3: "Building — still time, window is narrowing",
-  4: "Peak — marginal boost, consider differentiation angle",
-  5: "Post-peak — skip trend, create evergreen instead",
-};
-
-const PHASE_URGENCY: Record<TrendLikelihood, "immediate" | "this_week" | "this_month" | "monitor" | "pass"> = {
-  1: "monitor",
-  2: "immediate",
-  3: "this_week",
-  4: "this_month",
-  5: "pass",
-};
-
-const PHASE_REACH_MULTIPLIER: Record<TrendPhase, number> = {
-  niche_signal: 1.3,   // small boost for first movers
-  early_signal: 2.5,   // significant algorithmic bonus for early content
-  acceleration: 1.8,   // still meaningful
-  peak:         1.2,   // minimal — algorithm saturated
-  declining:    0.8,   // slight penalty for oversupply
-  evergreen:    1.4,   // consistent moderate boost
-};
-
-// ─── Platform relevance per trend topic ──────────────────────────────────
-
-const PLATFORM_RELEVANCE: Record<string, Record<string, number>> = {
-  "Market Event Reaction": { tiktok: 0.9, youtube: 0.85, youtube_short: 0.80, instagram: 0.6 },
-  "Prop Firm Space":       { tiktok: 0.95, instagram: 0.90, youtube_short: 0.85, youtube: 0.75 },
-  "AI Trading":            { youtube: 0.90, tiktok: 0.80, youtube_short: 0.75, instagram: 0.6 },
-  "Challenge Journey":     { tiktok: 0.95, instagram: 0.90, youtube_short: 0.80, youtube: 0.65 },
-  "Payout Reveal":         { tiktok: 0.95, instagram: 0.90, youtube_short: 0.75, youtube: 0.60 },
-  "Trading as Income Replacement": { tiktok: 0.85, instagram: 0.80, youtube: 0.80, youtube_short: 0.70 },
-  "Risk Management Education": { youtube: 0.90, instagram: 0.80, youtube_short: 0.75, tiktok: 0.65 },
-  "Market Fear / Macro Concern": { tiktok: 0.85, youtube: 0.85, instagram: 0.70, youtube_short: 0.75 },
-};
-
-// ─── News signal detection ────────────────────────────────────────────────
-
-const NEWS_TRIGGERS = [
-  /fed|fomc|interest rate|rate (hike|cut|hold)/i,
-  /inflation|cpi|pce|consumer price/i,
-  /jobs report|nfp|non-farm|unemployment/i,
-  /earnings report|earnings season/i,
-  /bank (crisis|failure|collapse)|svb|credit suisse/i,
-  /recession|gdp (contraction|decline)/i,
-  /market crash|black (monday|tuesday|swan)/i,
-  /crypto (crash|pump|regulation)/i,
-  /regulation|ban|sec|cftc|ftc/i,
-];
-
-function detectNewsIntegration(title: string, tags: string[], description: string): boolean {
-  const text = `${title} ${tags.join(" ")} ${description}`;
-  return NEWS_TRIGGERS.some(p => p.test(text));
-}
-
-// ─── Main export ─────────────────────────────────────────────────────────
-
-export function detectTrends(
-  title: string,
-  tags: string[],
-  description: string,
-  platform: string,
-  publishedWithinDays?: number  // how recent is this content (affects phase inference)
-): TrendIntelligence {
-  const text = `${title} ${tags.join(" ")} ${description}`;
-  const activeTrends: TrendSignal[] = [];
-  let totalTrendScore = 0;
-
-  for (const def of TREND_PATTERNS) {
-    if (!def.pattern.test(text)) continue;
-
-    // Adjust phase based on recency if available
-    let phase = def.basePhase;
-    if (publishedWithinDays !== undefined) {
-      if (def.basePhase === "early_signal" && publishedWithinDays > 14) phase = "acceleration";
-      if (def.basePhase === "acceleration" && publishedWithinDays > 30) phase = "peak";
-    }
-
-    const likelihood = PHASE_LIKELIHOOD[phase];
-    const platformRel = PLATFORM_RELEVANCE[def.topic] ?? {};
-    const relevance = platformRel[platform] ?? 0.5;
-
-    activeTrends.push({
-      topic: def.topic,
-      phase,
-      likelihood,
-      likelihoodLabel: PHASE_LABELS[likelihood],
-      platformRelevance: platformRel,
-      windowOpen: likelihood <= 3,
-      urgency: PHASE_URGENCY[likelihood],
-      evidence: [
-        `Pattern match: "${def.pattern.source.slice(0, 60)}"`,
-        `Platform relevance: ${Math.round(relevance * 100)}% on ${platform}`,
-        `Phase: ${phase} → reach multiplier ${PHASE_REACH_MULTIPLIER[phase]}×`,
-      ],
-      contentAngles: def.angles,
-      riskLevel: likelihood === 1 ? "high" : likelihood <= 2 ? "medium" : "low",
-      estimatedReachMultiplier: PHASE_REACH_MULTIPLIER[phase],
-    });
-
-    totalTrendScore += (6 - likelihood) * 20 * relevance;
-  }
-
-  const hasNews = detectNewsIntegration(title, tags, description);
-  const trendScore = Math.min(100, Math.round(totalTrendScore / Math.max(1, activeTrends.length)));
-
-  // Determine the best action recommendation
-  const immediateOpps = activeTrends.filter(t => t.urgency === "immediate");
-  const thisWeekOpps  = activeTrends.filter(t => t.urgency === "this_week");
-
-  let recommendation: string;
-  if (immediateOpps.length > 0) {
-    recommendation = `CREATE NOW — "${immediateOpps[0].topic}" is at early-signal phase (${immediateOpps[0].estimatedReachMultiplier}× reach multiplier). Best angles: ${immediateOpps[0].contentAngles[0]}`;
-  } else if (thisWeekOpps.length > 0) {
-    recommendation = `Act this week — "${thisWeekOpps[0].topic}" window is open (${thisWeekOpps[0].estimatedReachMultiplier}× multiplier). Angle: ${thisWeekOpps[0].contentAngles[0]}`;
-  } else if (activeTrends.length > 0) {
-    recommendation = `Trend window is closing — consider the evergreen alternative below for more sustained reach.`;
-  } else {
-    recommendation = `No active trend signal detected. Evergreen content recommended — optimised for search and long-tail discovery.`;
-  }
-
-  const evergreenAlternatives: string[] = [
-    "The exact rules I follow to pass every funded challenge (save-worthy reference)",
-    "Risk management framework for prop firm traders (search-indexed, evergreen saves)",
-    "Step-by-step guide to passing FundedNext Stellar 2-Step (search traffic)",
-    "The one daily loss rule most traders misunderstand (curiosity + save)",
-  ];
-
-  return {
-    activeTrends,
-    niche: "prop-trading",
-    platform,
-    trendScore,
-    recommendation,
-    newsIntegrationOpportunity: hasNews,
-    evergreenAlternative: evergreenAlternatives[Math.floor(Math.random() * evergreenAlternatives.length)],
+  // 0-1: probability this signal becomes mainstream within 30 days
+  mainstreamprobability: number;
+  // Multiplier on estimated views if content hits in this window
+  windowMultiplier: number;
+  // How many hours remain in the opportunity window
+  windowHoursRemaining: number;
+  // Evidence strength
+  confidence: "confirmed" | "likely" | "speculative";
+  rationale: string;
+  // Platform-specific amplification
+  platformAmplification: {
+    tiktok: number;      // recency bonus weight on TikTok
+    instagram: number;
+    youtube_short: number;
+    youtube: number;     // news events matter less on LF (SEO > recency)
   };
 }
 
-// Trend likelihood labels for UI display
-export const TREND_LIKELIHOOD_COLORS: Record<TrendLikelihood, string> = {
-  1: "#60A5FA",   // blue — monitor
-  2: "#2ECC8A",   // green — create now
-  3: "#F59E0B",   // amber — soon
-  4: "#FF9A3C",   // orange — fading
-  5: "#FF453A",   // red — pass
-};
+export interface TrendIntelligence {
+  // Detected trends relevant to this content
+  detectedTrends: TrendSignal[];
+  // Strongest active trend (if any)
+  primaryTrend: TrendSignal | null;
+  // Overall trend multiplier to apply to base view forecast
+  forecastMultiplier: number;
+  // Recency score: how well-timed is this content? 0-100
+  recencyScore: number;
+  // Content timing verdict
+  timingVerdict: "perfect" | "good" | "neutral" | "late" | "too_early";
+  timingRationale: string;
+  // Recommended action
+  urgency: "post_now" | "post_within_24h" | "wait_for_event" | "evergreen_anytime";
+  urgencyRationale: string;
+}
 
-export const TREND_PHASE_DESCRIPTIONS: Record<TrendPhase, string> = {
-  niche_signal:  "Innovators only (<2% adoption). First-mover window opening. High risk, high reward if it spreads.",
-  early_signal:  "Early adopters phase (2-13%). Algorithm will actively amplify this content. Best entry point.",
-  acceleration:  "Early majority joining (13-34%). Algorithm still boosting. Narrowing window.",
-  peak:          "Mass adoption (34-50%). Algorithm saturated. Differentiation required to stand out.",
-  declining:     "Post-peak (50%+). Trend exhausted. Evergreen alternative recommended.",
-  evergreen:     "Not trend-dependent. Consistent reach regardless of timing. SEO and saves drive distribution.",
-};
+// ─── NICHE PATHWAY MAP ────────────────────────────────────────────────────
+// Maps prop trading sub-niches to mainstream bridge pathways
+// Source: growth-engineering.md + social-sentiment-intelligence.md trend sociology
+
+export interface NichePathway {
+  startNiche: string;
+  bridges: {
+    niche: string;
+    bridgeHook: string;
+    adoptionLag: string; // how long before niche users adopt the adjacent content
+    platform: string;
+  }[];
+  mainstreamSignal: string; // what indicates this niche has reached mainstream
+}
+
+export const PROP_TRADING_NICHE_PATHWAYS: NichePathway[] = [
+  {
+    startNiche: "Prop Trading / Funded Accounts",
+    bridges: [
+      { niche: "Forex Trading", bridgeHook: "How funded accounts changed my forex approach", adoptionLag: "immediate", platform: "TikTok + YouTube" },
+      { niche: "Day Trading", bridgeHook: "The one rule that makes day trading a funded challenge", adoptionLag: "1-2 weeks", platform: "TikTok + YouTube Shorts" },
+      { niche: "Futures / CME", bridgeHook: "Why I trade futures over forex for my challenge", adoptionLag: "1-2 weeks", platform: "YouTube LF" },
+    ],
+    mainstreamSignal: "Branded content from non-trading accounts referencing 'funded trader'",
+  },
+  {
+    startNiche: "Prop Trading",
+    bridges: [
+      { niche: "Side Income / Remote Work", bridgeHook: "The fastest path to professional trading income without a bank loan", adoptionLag: "2-4 weeks", platform: "TikTok + Instagram" },
+      { niche: "Financial Freedom", bridgeHook: "How I replaced my salary without risking my own money", adoptionLag: "1-3 weeks", platform: "Instagram + YouTube" },
+      { niche: "Personal Finance", bridgeHook: "The prop firm model: risk $50, earn $1,000/month", adoptionLag: "2-4 weeks", platform: "YouTube LF + Instagram" },
+    ],
+    mainstreamSignal: "Personal finance influencers covering prop firms",
+  },
+  {
+    startNiche: "Prop Trading",
+    bridges: [
+      { niche: "Entrepreneurship", bridgeHook: "I built a trading business with someone else's capital", adoptionLag: "3-6 weeks", platform: "YouTube LF + LinkedIn" },
+      { niche: "Making Money Online", bridgeHook: "Prop trading is the most legitimate 'make money from your laptop' business", adoptionLag: "2-4 weeks", platform: "TikTok + YouTube Shorts" },
+    ],
+    mainstreamSignal: "MrBeast-adjacent creators referencing prop trading",
+  },
+];
+
+// ─── KEYWORD-BASED TREND DETECTION ───────────────────────────────────────
+// Detects active or emerging trends from video title, tags, description
+
+function detectTrendKeywords(
+  title: string,
+  tags: string[],
+  description: string
+): TrendSignal[] {
+  const text = `${title} ${tags.join(" ")} ${description}`.toLowerCase();
+  const signals: TrendSignal[] = [];
+
+  // ── Market Event Triggers ────────────────────────────────────────────
+  const marketEvents = [
+    { pattern: /nfp|non-farm|payroll/, keyword: "NFP Non-Farm Payroll", category: "market_event" as TrendCategory },
+    { pattern: /cpi|inflation|consumer price/, keyword: "CPI Inflation Data", category: "market_event" as TrendCategory },
+    { pattern: /fomc|federal reserve|fed rate|interest rate/, keyword: "FOMC Fed Decision", category: "market_event" as TrendCategory },
+    { pattern: /crash|market crash|black swan/, keyword: "Market Crash Event", category: "market_event" as TrendCategory },
+    { pattern: /earnings|quarterly|revenue/, keyword: "Earnings Season", category: "market_event" as TrendCategory },
+    { pattern: /bitcoin|btc|crypto|ethereum/, keyword: "Crypto Market Move", category: "market_event" as TrendCategory },
+  ];
+
+  for (const ev of marketEvents) {
+    if (ev.pattern.test(text)) {
+      signals.push({
+        keyword: ev.keyword,
+        category: ev.category,
+        phase: "early_adoption",
+        mainstreamprobability: 0.70,
+        windowMultiplier: 3.5, // market events 3.5x baseline views if timed right
+        windowHoursRemaining: 48,
+        confidence: "confirmed",
+        rationale: `${ev.keyword} content has a 48-hour window where it receives 3-5x normal distribution. TikTok's recency bonus is highest in first 2 hours. Post immediately.`,
+        platformAmplification: {
+          tiktok: 2.5,       // recency is a major FYP boost
+          instagram: 1.8,
+          youtube_short: 1.5, // less recency-dependent
+          youtube: 1.2,       // search picks up the long tail instead
+        },
+      });
+    }
+  }
+
+  // ── Challenge Format Trend Detection ─────────────────────────────────
+  if (/day \d+|week \d+|(challenge|funded) (day|week|update)/.test(text)) {
+    signals.push({
+      keyword: "Day N Challenge Documentation",
+      category: "challenge_format",
+      phase: "mainstream",
+      mainstreamprobability: 0.95, // already mainstream on all platforms
+      windowMultiplier: 1.3,
+      windowHoursRemaining: 9999, // always relevant
+      confidence: "confirmed",
+      rationale: "Day N challenge format is a proven evergreen structure across TikTok, YouTube Shorts, and Instagram. High completion rate due to series investment. 'Follow to see if I pass' is the strongest follow CTA that exists.",
+      platformAmplification: {
+        tiktok: 1.5, instagram: 1.3, youtube_short: 1.4, youtube: 1.2,
+      },
+    });
+  }
+
+  // ── Trending Audio/Format Signals ────────────────────────────────────
+  if (/trending|viral|everyone.s|blowing up/.test(text)) {
+    signals.push({
+      keyword: "Trending Format Reference",
+      category: "cultural_moment",
+      phase: "early_adoption",
+      mainstreamprobability: 0.50,
+      windowMultiplier: 1.8,
+      windowHoursRemaining: 72,
+      confidence: "likely",
+      rationale: "Content referencing a trending format or audio inherits some of that format's distribution. TikTok groups content by sound — using a trending audio gets 15-20% distribution boost when the audio is in its early-adoption phase.",
+      platformAmplification: {
+        tiktok: 1.8, instagram: 1.4, youtube_short: 1.1, youtube: 1.0,
+      },
+    });
+  }
+
+  // ── Prop Firm Specific Triggers ──────────────────────────────────────
+  if (/new rule|rule change|updated|changed|2025|2026/.test(text) && /prop|challenge|firm|funded/.test(text)) {
+    signals.push({
+      keyword: "Prop Firm Rule Change",
+      category: "product_launch",
+      phase: "niche_signal",
+      mainstreamprobability: 0.80,
+      windowMultiplier: 2.2,
+      windowHoursRemaining: 72,
+      confidence: "confirmed",
+      rationale: "Prop firm rule changes create immediate demand for explanation content. Traders actively search for clarity. First-mover gets the search traffic permanently — be first, be specific, cite the exact rule.",
+      platformAmplification: {
+        tiktok: 1.6, instagram: 1.5, youtube_short: 1.4, youtube: 2.5, // YT benefits most from search
+      },
+    });
+  }
+
+  // ── Seasonal Patterns ────────────────────────────────────────────────
+  const month = new Date().getMonth(); // 0-11
+  if (month === 0 || month === 11) { // Jan or Dec
+    signals.push({
+      keyword: "New Year Trading Resolution",
+      category: "seasonal",
+      phase: "peak",
+      mainstreamprobability: 0.90,
+      windowMultiplier: 1.6,
+      windowHoursRemaining: month === 0 ? 336 : 168, // 2 weeks in Jan, 1 week in Dec
+      confidence: "confirmed",
+      rationale: "New Year creates the largest seasonal spike in trading content consumption. 'Start trading in 2026' searches spike 400% in January. Frame content as 'new year, new trading account.'",
+      platformAmplification: {
+        tiktok: 1.5, instagram: 1.4, youtube_short: 1.3, youtube: 1.7,
+      },
+    });
+  }
+
+  return signals;
+}
+
+// ─── TREND LIFECYCLE SCORING ──────────────────────────────────────────────
+// Source: Trend Sociology section from social-sentiment-intelligence.md
+
+function scoreTrendPhase(phase: TrendPhase): { multiplier: number; timing: TrendIntelligence["timingVerdict"] } {
+  const map: Record<TrendPhase, { multiplier: number; timing: TrendIntelligence["timingVerdict"] }> = {
+    niche_signal:   { multiplier: 2.5,  timing: "too_early" }, // High potential but uncertain
+    early_adoption: { multiplier: 3.0,  timing: "perfect"   }, // Maximum opportunity window
+    mainstream:     { multiplier: 1.5,  timing: "good"       }, // Good but competitive
+    peak:           { multiplier: 1.1,  timing: "neutral"    }, // Crowded, about to decline
+    declining:      { multiplier: 0.7,  timing: "late"       }, // Past window
+    evergreen:      { multiplier: 1.0,  timing: "neutral"    }, // Stable, no timing advantage
+  };
+  return map[phase];
+}
+
+// ─── MAIN EXPORT ──────────────────────────────────────────────────────────
+
+export function analyzeTrends(
+  title: string,
+  tags: string[],
+  description: string,
+  publishedAt: string,
+  platform: string
+): TrendIntelligence {
+  const detected = detectTrendKeywords(title, tags, description);
+
+  if (detected.length === 0) {
+    return {
+      detectedTrends: [],
+      primaryTrend: null,
+      forecastMultiplier: 1.0,
+      recencyScore: 50, // neutral for evergreen content
+      timingVerdict: "neutral",
+      timingRationale: "No active trend signals detected. Content will rely on organic algorithmic distribution without a recency boost. Evergreen content performs consistently but without spike potential.",
+      urgency: "evergreen_anytime",
+      urgencyRationale: "No time-sensitive window detected. Publish when the hook and production quality are maximised — timing is not the constraint here.",
+    };
+  }
+
+  // Sort by multiplier strength
+  const sorted = [...detected].sort((a, b) => b.windowMultiplier - a.windowMultiplier);
+  const primary = sorted[0];
+
+  // Get platform-specific amplification
+  const platformAmp: Record<string, number> = {
+    tiktok: primary.platformAmplification.tiktok,
+    instagram: primary.platformAmplification.instagram,
+    youtube_short: primary.platformAmplification.youtube_short,
+    youtube: primary.platformAmplification.youtube,
+  };
+  const platformMultiplier = platformAmp[platform] ?? 1.0;
+
+  // Recency decay from publish date
+  const daysSincePublish = Math.max(0,
+    (Date.now() - new Date(publishedAt).getTime()) / 86400000
+  );
+  const recencyDecay = Math.max(0.3, 1 - (daysSincePublish / 7) * 0.4);
+  const { multiplier: phaseMultiplier, timing } = scoreTrendPhase(primary.phase);
+
+  const forecastMultiplier = Math.min(5, phaseMultiplier * platformMultiplier * recencyDecay);
+  const recencyScore = Math.round(timing === "perfect" ? recencyDecay * 100 : recencyDecay * 70);
+
+  // Timing rationale
+  const timingRationales: Record<TrendIntelligence["timingVerdict"], string> = {
+    perfect:    `Optimal window: ${primary.keyword} is in early-adoption phase. Maximum distribution advantage. Every hour of delay costs reach — post within 2 hours for maximum recency bonus.`,
+    good:       `Good timing: ${primary.keyword} is mainstream but not yet saturated. High competition but large audience pool. Strong production quality is the differentiator now.`,
+    neutral:    `Neutral timing: ${primary.keyword} is at peak/evergreen. No strong timing advantage or disadvantage. Quality and hook strength determine outcome.`,
+    late:       `Late window: ${primary.keyword} is declining. The volume is still there but the growth curve has flattened. Consider a fresh angle or wait for the next event cycle.`,
+    too_early:  `Early signal: ${primary.keyword} hasn't reached mass adoption. High upside if it does. Consider creating the content but holding for 24-48h to see if the signal strengthens.`,
+  };
+
+  // Urgency
+  const urgency: TrendIntelligence["urgency"] =
+    timing === "perfect" ? "post_now" :
+    timing === "good"    ? "post_within_24h" :
+    timing === "too_early" ? "wait_for_event" :
+    "evergreen_anytime";
+
+  const urgencyRationales: Record<TrendIntelligence["urgency"], string> = {
+    post_now:         `${primary.keyword}: post immediately. The 2-hour recency window on TikTok provides 2-3× the baseline distribution boost. Every hour of delay reduces the multiplier by ~15%.`,
+    post_within_24h:  `${primary.keyword}: post within 24 hours. The early-adoption window has a 48-72 hour peak. Quality check is worth the delay but don't wait longer than a day.`,
+    wait_for_event:   `${primary.keyword}: niche signal detected. Wait 24-48h to confirm the signal strengthens. If it reaches early-adoption phase, post immediately.`,
+    evergreen_anytime:`No time-sensitive window. Focus on maximising hook quality and platform-specific optimisation rather than timing.`,
+  };
+
+  return {
+    detectedTrends: detected,
+    primaryTrend: primary,
+    forecastMultiplier: parseFloat(forecastMultiplier.toFixed(2)),
+    recencyScore: Math.min(100, Math.max(0, recencyScore)),
+    timingVerdict: timing,
+    timingRationale: timingRationales[timing],
+    urgency,
+    urgencyRationale: urgencyRationales[urgency],
+  };
+}
+
+// ─── NICHE EXPANSION ADVISER ─────────────────────────────────────────────
+
+export interface NicheExpansionAdvice {
+  primaryNiche: string;
+  currentPhase: TrendPhase;
+  immediateOpportunities: string[];
+  bridgeNiches: { niche: string; hook: string; platform: string; lag: string }[];
+  mainstreamSignal: string;
+}
+
+export function adviseNicheExpansion(
+  title: string,
+  tags: string[]
+): NicheExpansionAdvice {
+  const text = `${title} ${tags.join(" ")}`.toLowerCase();
+  
+  // Detect current niche
+  const isPropTrading = /prop|funded|challenge|drawdown|stelllar|fnxt|fundednext/.test(text);
+  const isForex = /forex|fx|currency|gbp|eur|usd|pip/.test(text);
+  const isFutures = /future|es|nq|contract|cmg|cme|nasdaq fut/.test(text);
+  
+  const primaryNiche = isPropTrading ? "Prop Trading / Funded Accounts" :
+                       isForex ? "Forex Trading" :
+                       isFutures ? "Futures Trading" : "Trading (General)";
+
+  // Find matching pathway
+  const pathway = PROP_TRADING_NICHE_PATHWAYS.find(p =>
+    p.startNiche.toLowerCase().includes("prop")
+  ) ?? PROP_TRADING_NICHE_PATHWAYS[0];
+
+  return {
+    primaryNiche,
+    currentPhase: isPropTrading ? "mainstream" : "early_adoption",
+    immediateOpportunities: [
+      "Recency content: any market event → prop trading angle within 2 hours",
+      "Pain content: 'why traders fail their challenge' — highest completion archetype",
+      "Proof content: payout reveal → immediate CTA to FundedNext free trial",
+    ],
+    bridgeNiches: pathway.bridges.map(b => ({
+      niche: b.niche,
+      hook: b.bridgeHook,
+      platform: b.platform,
+      lag: b.adoptionLag,
+    })),
+    mainstreamSignal: pathway.mainstreamSignal,
+  };
+}

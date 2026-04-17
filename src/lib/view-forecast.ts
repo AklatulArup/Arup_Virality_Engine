@@ -415,12 +415,34 @@ export function forecastViews(video: EnrichedVideo, targetDate: Date): ViewForec
   const shareTarget    = cumulativeShare(daysToTarget, platform);
   const estimatedTotal = video.views / shareCurrent;
 
+  // ── Trend multiplier (news/event recency bonus) ──────────────────────
+  // Import lazily to avoid circular deps; use dynamic require pattern
+  let trendMultiplier = 1.0;
+  try {
+    const { analyzeTrends } = require("./trend-intelligence");
+    const trendData = analyzeTrends(
+      video.title, video.tags ?? [], video.description ?? "",
+      video.publishedAt, platform
+    );
+    trendMultiplier = Math.min(3.5, trendData.forecastMultiplier);
+  } catch { /* trend module optional */ }
+
+  // ── Psychology score adjustment ───────────────────────────────────────
+  // Content with strong emotional architecture performs above baseline
+  let psychBoost = 1.0;
+  try {
+    const { scorePsychology } = require("./psychology");
+    const psychData = scorePsychology(video);
+    // Psychology score 0-100 → 0.85-1.15 multiplier
+    psychBoost = 0.85 + (psychData.score / 100) * 0.30;
+  } catch { /* psychology module optional */ }
+
   const viralBoost  = coefficient.K > 1 ? Math.min(2.5, coefficient.K * 1.15) : 1;
   const scoreBoost  = 0.55 + platformScore.score * 0.90;
 
   const baseMid = estimatedTotal * shareTarget;
-  const mid  = Math.round(baseMid * scoreBoost);
-  const high = Math.round(baseMid * viralBoost * (1 + platformScore.score * 0.65));
+  const mid  = Math.round(baseMid * scoreBoost * psychBoost * trendMultiplier);
+  const high = Math.round(baseMid * viralBoost * (1 + platformScore.score * 0.65) * Math.min(2, trendMultiplier * 1.2));
 
   // Spread factor: wider for evergreen YT LF (search unpredictability) vs fast-decay TikTok
   const spreadMap: Record<ForecastPlatform, number> = {
