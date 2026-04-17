@@ -85,10 +85,10 @@ function mapPost(item: any): XPostData {
 }
 
 export async function POST(request: NextRequest) {
-  const token = process.env.APIFY_TOKEN || process.env.TikTok_API_Key;
+  const token = process.env.APIFY_TOKEN_TWITTER || process.env.APIFY_TOKEN_TWITTER_2 || process.env.APIFY_TOKEN || process.env.TikTok_API_Key;
   if (!token) {
     return Response.json({
-      error: "No Apify token found. Set APIFY_TOKEN in Vercel env vars. Same key used for TikTok/Instagram scraping.",
+      error: "No Apify token found. Set APIFY_TOKEN_TWITTER (or APIFY_TOKEN) in Vercel env vars.",
     }, { status: 500 });
   }
 

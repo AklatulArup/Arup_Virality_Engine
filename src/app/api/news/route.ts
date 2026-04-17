@@ -142,7 +142,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ items: newsCache.items, cached: true, fetchedAt: newsCache.fetchedAt });
   }
 
-  const gnewsKey = process.env.GNEWS_API_KEY ?? process.env.NEWS_API_KEY;
+  const gnewsKey = process.env.GNEWS_API_KEY ?? process.env.GNEWS_API ?? process.env.NEWS_API_KEY;
   let items: NewsItem[] = [];
 
   try {

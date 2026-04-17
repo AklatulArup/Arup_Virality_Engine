@@ -826,7 +826,7 @@ export default function Dashboard() {
         });
         if (!xRes.ok) {
           const err = await xRes.json().catch(() => ({ error: "Unknown error" }));
-          throw new Error(err.error || "X scrape failed. Ensure APIFY_TOKEN is set in Vercel env vars.");
+          throw new Error(err.error || "X scrape failed. Ensure APIFY_TOKEN_TWITTER is set in Vercel env vars.");
         }
         const xData = await xRes.json();
         const xPosts = xData.posts;
@@ -1354,7 +1354,7 @@ export default function Dashboard() {
                   type="text"
                   value={xInput}
                   onChange={e => setXInput(e.target.value)}
-                  placeholder="@handle or x.com/user/status/… (requires APIFY_TOKEN)"
+                  placeholder="@handle or x.com/user/status/… (requires APIFY_TOKEN_TWITTER)"
                   className="flex-1 bg-transparent border-none outline-none"
                   style={{ fontSize: 13, color: "#E8E6E1", caretColor: "#9CA3AF" }}
                   onKeyDown={e => {
