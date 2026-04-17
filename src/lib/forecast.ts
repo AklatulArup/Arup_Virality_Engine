@@ -57,6 +57,10 @@ export interface ForecastInput {
   // Optional: comment sentiment score 0-100 (100 = overwhelmingly positive)
   sentimentScore?: number;
   sentimentRationale?: string;
+  // Optional: creator niche classification
+  nicheMultiplier?: number;
+  nicheLabel?: string;
+  nicheRationale?: string;
 }
 
 export interface VelocitySampleInput {
@@ -767,7 +771,8 @@ export function forecast(input: ForecastInput): Forecast {
   // Seasonality multiplier applies here — day-of-week + market volatility shift
   // the creator's effective median before the score multiplier range is applied.
   const seasonality = input.seasonalityMultiplier ?? 1.0;
-  const adjustedBaseline = baseline.median * seasonality;
+  const nicheMult   = input.nicheMultiplier ?? 1.0;
+  const adjustedBaseline = baseline.median * seasonality * nicheMult;
 
   // Comment sentiment adjusts the UPSIDE specifically — positive sentiment
   // widens the high band (algorithm promotes), negative sentiment compresses it.
@@ -824,6 +829,10 @@ export function forecast(input: ForecastInput): Forecast {
   }
   if (typeof input.sentimentScore === "number") {
     notes.push(`Comment sentiment: ${input.sentimentScore}/100. ${input.sentimentRationale ?? ""}`);
+  }
+  if (input.nicheLabel) {
+    notes.push(`Creator niche: ${input.nicheLabel}${input.nicheMultiplier && input.nicheMultiplier !== 1 ? ` (${input.nicheMultiplier.toFixed(2)}× baseline)` : ""}.`);
+    if (input.nicheRationale) notes.push(`  · ${input.nicheRationale}`);
   }
   if (trajectory) {
     notes.push(`Trajectory blend weight: ${(trajectory.blendWeight * 100).toFixed(0)}% observed vs ${((1-trajectory.blendWeight) * 100).toFixed(0)}% prior.`);

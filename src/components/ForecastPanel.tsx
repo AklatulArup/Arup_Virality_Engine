@@ -5,6 +5,7 @@ import { forecast, projectAtDate, type ManualInputs, type Platform, type DataSou
 import { INPUT_TOOLTIPS, type InputTooltip } from "@/lib/input-tooltips";
 import { recordForecast } from "@/lib/forecast-learning";
 import { computeDayOfWeekProfile, fetchMarketVolatility, combineSeasonality, type DayOfWeekProfile, type MarketVolatilityProfile } from "@/lib/seasonality";
+import { classifyCreatorNiche, nicheAdjustment } from "@/lib/niche-classifier";
 import type { EnrichedVideo, VideoData } from "@/lib/types";
 import { formatNumber } from "@/lib/formatters";
 
@@ -81,13 +82,21 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
     [dowProfile, marketVol],
   );
 
+  // Niche classification from creator history (local, no API call)
+  const niche = useMemo(() => classifyCreatorNiche(creatorHistory), [creatorHistory]);
+  const nicheAdj = useMemo(() => nicheAdjustment(niche.niche), [niche.niche]);
+
   const result = useMemo(
     () => forecast({
       video, creatorHistory, platform, manualInputs, velocitySamples,
       seasonalityMultiplier: seasonality.multiplier,
       seasonalityRationales: seasonality.rationales,
+      sentimentScore, sentimentRationale,
+      nicheMultiplier: nicheAdj.multiplier,
+      nicheLabel: niche.niche,
+      nicheRationale: niche.rationale,
     }),
-    [video, creatorHistory, platform, manualInputs, velocitySamples, seasonality],
+    [video, creatorHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj],
   );
 
   // Persist snapshot for later calibration — debounced: only once per video + inputs combo
