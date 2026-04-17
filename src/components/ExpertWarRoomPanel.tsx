@@ -661,6 +661,27 @@ export default function ExpertWarRoomPanel({
           </div>
         )}
 
+        {/* ── ROUND TABLE — live deliberation view ── */}
+        {(phase === "experts" || phase === "verdict" || phase === "done") && (
+          <div className="mb-5" style={{ padding: "8px 0 0" }}>
+            <RoundTable
+              experts={EXPERTS}
+              opinions={opinions}
+              activeExpert={activeExpert}
+              phase={phase}
+              currentRound={currentRound}
+              onSeatClick={(id) => {
+                setExpanded(expanded === id ? null : id);
+                // Scroll to the clicked expert's transcript strip
+                setTimeout(() => {
+                  const el = document.getElementById(`expert-transcript-${id}`);
+                  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 50);
+              }}
+            />
+          </div>
+        )}
+
         {/* ── EXPERT DELIBERATION STRIPS ── */}
         {Object.keys(opinions).length > 0 && (
           <div className="space-y-1.5 mb-4">
@@ -676,7 +697,7 @@ export default function ExpertWarRoomPanel({
               const preview = op?.words?.slice(0, 18).join(" ") ?? "";
 
               return (
-                <div key={expert.id} style={{
+                <div id={`expert-transcript-${expert.id}`} key={expert.id} style={{
                   background: isActive ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.20)",
                   border: `1px solid ${borderColor}`,
                   borderRadius: 9, overflow: "hidden",
@@ -854,24 +875,413 @@ export default function ExpertWarRoomPanel({
           </div>
         )}
 
-        {/* ── IDLE STATE ── */}
+        {/* ── IDLE STATE — round table ── */}
         {phase === "idle" && (
-          <div style={{ padding: "24px 0 6px", textAlign: "center" }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: 14, margin: "0 auto 14px",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: "linear-gradient(135deg,rgba(255,77,106,0.08),rgba(96,165,250,0.05))",
-              border: "1px solid rgba(255,255,255,0.07)", fontSize: 22,
-            }}>⚔</div>
-            <p style={{ fontSize: 12, color: "#4A4845", lineHeight: 1.7, margin: "0 0 4px" }}>
-              9 experts deliberate sequentially — each reads the previous outputs
-            </p>
-            <p className="font-mono" style={{ fontSize: 9, color: "#3A3835", letterSpacing: "0.06em" }}>
-              TREND → ALGO → PSYCH → STRATEGY → REVERSE ENGINEER → CREATOR COACH → COMPETITOR → RISK → SCRIPT → VERDICT
-            </p>
-          </div>
+          <RoundTable
+            experts={EXPERTS}
+            opinions={{}}
+            activeExpert={null}
+            phase="idle"
+            currentRound={0}
+          />
         )}
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ROUND TABLE — 9 experts arranged in a circle, visual deliberation
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Each expert is positioned on a circle using trig (angle = i/9 × 2π, starting
+// at 12 o'clock). States:
+//
+//   queued   — dim, no color, small label
+//   speaking — glowing ring, pulsing animation, streaming bubble points to center
+//   done     — colored ring, click to expand the transcript below
+//
+// The center shows context-dependent status:
+//   idle    — "Round table of 9" emblem
+//   experts — current expert name + round indicator
+//   verdict — synthesising loader
+//   done    — brief completion marker
+
+interface RoundTableProps {
+  experts: typeof EXPERTS;
+  opinions: Record<string, ExpertOpinion>;
+  activeExpert: string | null;
+  phase: "idle" | "experts" | "verdict" | "done";
+  currentRound: number;
+  onSeatClick?: (expertId: string) => void;
+}
+
+function RoundTable({ experts, opinions, activeExpert, phase, currentRound, onSeatClick }: RoundTableProps) {
+  const RADIUS = 42;   // percent of container
+  const CENTER = 50;
+
+  const activeIdx = activeExpert ? experts.findIndex((e) => e.id === activeExpert) : -1;
+  const activeExp = activeIdx >= 0 ? experts[activeIdx] : null;
+  const activeOp  = activeExp ? opinions[activeExp.id] : undefined;
+
+  // Precompute seat positions
+  const positions = experts.map((_, i) => {
+    const angle = (i / experts.length) * 2 * Math.PI - Math.PI / 2;
+    return {
+      angle,
+      x: CENTER + RADIUS * Math.cos(angle),
+      y: CENTER + RADIUS * Math.sin(angle),
+      // Is this seat on the right side of the table? (determines bubble placement)
+      onRight: Math.cos(angle) >= 0,
+      onTop:   Math.sin(angle) < 0,
+    };
+  });
+
+  return (
+    <div style={{
+      position: "relative",
+      width: "100%",
+      maxWidth: 620,
+      margin: "0 auto",
+      aspectRatio: "1 / 1",
+    }}>
+      {/* Ambient concentric rings + center disc */}
+      <svg
+        viewBox="0 0 100 100"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+      >
+        <defs>
+          <radialGradient id="rt-center-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"  stopColor="rgba(255,77,106,0.08)" />
+            <stop offset="70%" stopColor="rgba(255,77,106,0)" />
+          </radialGradient>
+        </defs>
+
+        {/* Outer ring */}
+        <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.035)" strokeWidth="0.25" />
+        <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)"  strokeWidth="0.3" strokeDasharray="0.4 0.8" />
+        <circle cx="50" cy="50" r="30" fill="url(#rt-center-glow)" />
+        <circle cx="50" cy="50" r="22" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.08)" strokeWidth="0.3" />
+
+        {/* Connection line from active speaker to center */}
+        {activeExp && activeIdx >= 0 && (() => {
+          const p = positions[activeIdx];
+          return (
+            <g>
+              <line
+                x1={p.x} y1={p.y} x2="50" y2="50"
+                stroke={activeExp.color} strokeWidth="0.35"
+                strokeDasharray="0.8 1.2" opacity="0.6"
+              >
+                <animate attributeName="stroke-dashoffset" from="0" to="-4" dur="1.2s" repeatCount="indefinite" />
+              </line>
+            </g>
+          );
+        })()}
+
+        {/* Faint chord lines between completed experts — shows "conversation" */}
+        {phase !== "idle" && experts.map((e, i) => {
+          const op = opinions[e.id];
+          if (!op?.done || op.error) return null;
+          const prev = experts[i - 1];
+          if (!prev || !opinions[prev.id]?.done) return null;
+          const p1 = positions[i - 1];
+          const p2 = positions[i];
+          return (
+            <line
+              key={`chord-${e.id}`}
+              x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+              stroke={e.color} strokeWidth="0.2" opacity="0.25"
+            />
+          );
+        })}
+      </svg>
+
+      {/* 9 expert seats */}
+      {experts.map((expert, i) => {
+        const op = opinions[expert.id];
+        const isActive = activeExpert === expert.id && !op?.done;
+        const isDone = op?.done && !op?.error;
+        const isError = op?.done && op?.error;
+        const isQueued = !isDone && !isActive && !isError;
+        const pos = positions[i];
+
+        return (
+          <div
+            key={expert.id}
+            style={{
+              position: "absolute",
+              left: `${pos.x}%`,
+              top: `${pos.y}%`,
+              transform: "translate(-50%, -50%)",
+              zIndex: isActive ? 20 : isDone ? 5 : 2,
+              transition: "all 0.3s",
+            }}
+          >
+            {/* Seat avatar */}
+            <button
+              onClick={() => isDone && onSeatClick?.(expert.id)}
+              style={{
+                width: 52, height: 52, borderRadius: 14,
+                background: isActive
+                  ? `radial-gradient(circle, ${expert.color}35, ${expert.color}08)`
+                  : isDone
+                    ? `linear-gradient(135deg, ${expert.color}22, ${expert.color}06)`
+                    : isError
+                      ? "rgba(255,77,122,0.08)"
+                      : "rgba(255,255,255,0.02)",
+                border: `1px solid ${
+                  isActive ? `${expert.color}90`
+                  : isDone ? `${expert.color}55`
+                  : isError ? "rgba(255,77,122,0.4)"
+                  : "rgba(255,255,255,0.1)"
+                }`,
+                boxShadow: isActive
+                  ? `0 0 26px ${expert.glow}, 0 0 10px ${expert.color}40`
+                  : isDone
+                    ? `0 0 8px ${expert.color}18`
+                    : "none",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 22, lineHeight: 1,
+                cursor: isDone ? "pointer" : "default",
+                padding: 0,
+                animation: isActive ? "seatPulse 1.8s ease-in-out infinite" : "none",
+                opacity: isQueued ? 0.4 : 1,
+                transition: "all 0.25s",
+              }}
+              title={`${expert.name} — ${expert.role}`}
+            >
+              {expert.icon}
+            </button>
+
+            {/* Label — name + role */}
+            <div style={{
+              position: "absolute",
+              top: 58,
+              left: "50%",
+              transform: "translateX(-50%)",
+              whiteSpace: "nowrap",
+              textAlign: "center",
+              pointerEvents: "none",
+              opacity: isQueued ? 0.5 : 1,
+              transition: "opacity 0.25s",
+            }}>
+              <div style={{
+                fontSize: 9.5,
+                fontWeight: 600,
+                color: isActive ? expert.color : isDone ? "#E8E6E1" : "#6B6964",
+                fontFamily: "IBM Plex Mono, monospace",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                marginBottom: 1,
+              }}>
+                {expert.name.split(" ")[0]}
+              </div>
+              <div style={{
+                fontSize: 8.5,
+                color: "#5E5A57",
+                fontFamily: "IBM Plex Mono, monospace",
+                letterSpacing: "0.02em",
+              }}>
+                {expert.name.split(" ").slice(1).join(" ") || ""}
+              </div>
+            </div>
+
+            {/* Turn number badge — above the seat */}
+            <div style={{
+              position: "absolute",
+              top: -8,
+              left: "50%",
+              transform: "translateX(-50%)",
+              fontSize: 8,
+              fontFamily: "IBM Plex Mono, monospace",
+              color: isActive ? expert.color : isDone ? "#8A8883" : "#3A3835",
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              background: "rgba(0,0,0,0.6)",
+              padding: "1px 5px",
+              borderRadius: 999,
+              border: `1px solid ${isActive ? expert.color + "80" : "rgba(255,255,255,0.06)"}`,
+            }}>
+              {i + 1}
+            </div>
+
+            {/* Speech bubble for active speaker */}
+            {isActive && activeOp && (
+              <div style={{
+                position: "absolute",
+                top: "50%",
+                ...(pos.onRight
+                  ? { right: "calc(100% + 14px)" }
+                  : { left:  "calc(100% + 14px)" }),
+                transform: "translateY(-50%)",
+                minWidth: 180,
+                maxWidth: 260,
+                background: "rgba(10,10,8,0.96)",
+                backdropFilter: "blur(10px)",
+                border: `1px solid ${expert.color}70`,
+                borderRadius: 10,
+                padding: "10px 12px",
+                boxShadow: `0 6px 28px rgba(0,0,0,0.5), 0 0 14px ${expert.glow}`,
+                zIndex: 30,
+              }}>
+                {/* Little pointer arrow */}
+                <div style={{
+                  position: "absolute",
+                  top: "50%",
+                  ...(pos.onRight ? { right: -5 } : { left: -5 }),
+                  transform: `translateY(-50%) rotate(${pos.onRight ? 45 : -135}deg)`,
+                  width: 8, height: 8,
+                  background: "rgba(10,10,8,0.96)",
+                  borderTop: `1px solid ${expert.color}70`,
+                  borderRight: `1px solid ${expert.color}70`,
+                }} />
+
+                <div style={{
+                  fontSize: 9, color: expert.color,
+                  fontFamily: "IBM Plex Mono, monospace",
+                  letterSpacing: "0.06em", textTransform: "uppercase",
+                  fontWeight: 600, marginBottom: 4,
+                  display: "flex", alignItems: "center", gap: 6,
+                }}>
+                  <span style={{
+                    width: 5, height: 5, borderRadius: 99,
+                    background: expert.color,
+                    boxShadow: `0 0 6px ${expert.color}`,
+                    animation: "seatPulse 0.9s ease-in-out infinite",
+                  }} />
+                  speaking
+                </div>
+                <div style={{
+                  fontSize: 11, color: "#E8E6E1", lineHeight: 1.5,
+                  maxHeight: 90, overflow: "hidden",
+                }}>
+                  {activeOp.words?.length
+                    ? "…" + activeOp.words.slice(-28).join(" ")
+                    : "thinking…"}
+                </div>
+              </div>
+            )}
+
+            {/* Done — brief stance peek on hover */}
+            {isDone && op?.words?.length ? (
+              <div style={{
+                position: "absolute",
+                top: "50%",
+                ...(pos.onRight
+                  ? { right: "calc(100% + 10px)" }
+                  : { left:  "calc(100% + 10px)" }),
+                transform: "translateY(-50%)",
+                whiteSpace: "nowrap",
+                fontSize: 8.5,
+                color: "#6B6964",
+                fontFamily: "IBM Plex Mono, monospace",
+                letterSpacing: "0.02em",
+                opacity: 0.7,
+                pointerEvents: "none",
+              }}>
+                ✓ {op.words.length}w
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+
+      {/* Center content */}
+      <div style={{
+        position: "absolute",
+        top: "50%", left: "50%",
+        transform: "translate(-50%, -50%)",
+        textAlign: "center",
+        width: "32%",
+      }}>
+        {phase === "idle" && (
+          <>
+            <div style={{
+              fontSize: 28, marginBottom: 6,
+              filter: "grayscale(0.3)",
+            }}>⚔</div>
+            <div style={{
+              fontSize: 9, color: "#5E5A57",
+              fontFamily: "IBM Plex Mono, monospace",
+              letterSpacing: "0.08em", textTransform: "uppercase",
+              marginBottom: 3,
+            }}>
+              Round table · 9 seats
+            </div>
+            <div style={{ fontSize: 8.5, color: "#3A3835", lineHeight: 1.5 }}>
+              Press <em>Run Analysis</em><br />to convene
+            </div>
+          </>
+        )}
+
+        {phase === "experts" && (
+          <>
+            <div style={{
+              fontSize: 9, color: "#E879F9",
+              fontFamily: "IBM Plex Mono, monospace",
+              letterSpacing: "0.08em", marginBottom: 4,
+            }}>
+              ROUND {currentRound} OF 9
+            </div>
+            {activeExp ? (
+              <>
+                <div style={{ fontSize: 11, color: activeExp.color, fontWeight: 600, marginBottom: 3, lineHeight: 1.2 }}>
+                  {activeExp.name}
+                </div>
+                <div style={{
+                  fontSize: 8.5, color: "#8A8883", lineHeight: 1.4,
+                  fontStyle: "italic",
+                }}>
+                  "{activeExp.stance}"
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: 9, color: "#8A8883" }}>next expert preparing…</div>
+            )}
+          </>
+        )}
+
+        {phase === "verdict" && (
+          <>
+            <div className="orbital-loader" style={{
+              width: 18, height: 18, margin: "0 auto 8px",
+              borderTopColor: "#FF4D6A", borderWidth: 2,
+            }} />
+            <div style={{
+              fontSize: 9, color: "#FF4D6A",
+              fontFamily: "IBM Plex Mono, monospace",
+              letterSpacing: "0.08em",
+            }}>
+              synthesising
+            </div>
+          </>
+        )}
+
+        {phase === "done" && (
+          <>
+            <div style={{ fontSize: 22, marginBottom: 4 }}>✓</div>
+            <div style={{
+              fontSize: 9, color: "#2ECC8A",
+              fontFamily: "IBM Plex Mono, monospace",
+              letterSpacing: "0.08em",
+            }}>
+              deliberation complete
+            </div>
+            <div style={{ fontSize: 8.5, color: "#5E5A57", marginTop: 4 }}>
+              click any seat to read
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Scoped keyframes */}
+      <style jsx>{`
+        @keyframes seatPulse {
+          0%, 100% { transform: translate(-50%, -50%) scale(1);   }
+          50%      { transform: translate(-50%, -50%) scale(1.06);}
+        }
+      `}</style>
     </div>
   );
 }
