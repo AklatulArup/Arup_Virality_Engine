@@ -11,12 +11,19 @@
     },
     "app/api/cron/collect-outcomes/route": {
       "maxDuration": 300
+    },
+    "app/api/cron/track-velocity/route": {
+      "maxDuration": 300
     }
   },
   "crons": [
     {
       "path": "/api/cron/collect-outcomes",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/track-velocity",
+      "schedule": "15 * * * *"
     }
   ]
 }

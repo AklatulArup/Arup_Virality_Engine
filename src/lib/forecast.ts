@@ -49,6 +49,15 @@ export interface ForecastInput {
   platform: Platform;
   // Optional: creator-supplied private analytics (Instagram saves, TikTok completion, etc.)
   manualInputs?: ManualInputs;
+  // Optional: velocity time-series from the tracker cron — sharpens the trajectory blend
+  velocitySamples?: VelocitySampleInput[];
+}
+
+export interface VelocitySampleInput {
+  ageHours:     number;
+  views:        number;
+  velocity:     number;   // views/hour between this and previous sample
+  acceleration: number;   // change in velocity (+ = speeding up)
 }
 
 export interface ManualInputs {
@@ -489,6 +498,7 @@ function blendWithTrajectory(
   prior: { low: number; median: number; high: number },
   video: EnrichedVideo,
   platform: Platform,
+  velocitySamples?: VelocitySampleInput[],
 ): { blended: { low: number; median: number; high: number }; trajectory: TrajectoryAnalysis | null } {
 
   if (!video.publishedAt || video.views === 0) {
@@ -501,29 +511,53 @@ function blendWithTrajectory(
   const cfg = PLATFORM_CONFIG[platform];
   const cumulativeSoFar = cfg.cumulativeShare(ageDays);
 
-  // Project from current views alone (trajectory-only prediction)
-  const trajectoryMedian = video.views / Math.max(0.01, cumulativeSoFar);
+  // Baseline trajectory projection — current views / share-elapsed-so-far
+  let trajectoryMedian = video.views / Math.max(0.01, cumulativeSoFar);
+
+  // Velocity signal: if we have multiple samples, detect acceleration/deceleration.
+  // Accelerating posts project higher; decelerating posts project lower.
+  // This correction is strongest early in the post's life when simple trajectory
+  // extrapolation is noisiest.
+  let velocityAdjustment = 1.0;
+  if (velocitySamples && velocitySamples.length >= 2) {
+    const recent = velocitySamples.slice(-3);  // last 3 samples
+    const avgAccel = recent.reduce((s, v) => s + v.acceleration, 0) / recent.length;
+    const avgVelocity = recent.reduce((s, v) => s + v.velocity, 0) / recent.length;
+
+    if (avgVelocity > 0) {
+      // Normalise acceleration as % of current velocity per hour
+      const accelRatio = avgAccel / avgVelocity;
+      // Clamp: a +50% accel ratio means 1.3× upward correction
+      // A -50% ratio (steep decay) means 0.7× downward correction
+      velocityAdjustment = 1 + Math.max(-0.4, Math.min(0.4, accelRatio * 0.8));
+    }
+    trajectoryMedian *= velocityAdjustment;
+  }
 
   // Expected-by-now assumes the prior was right
   const expectedByNow = prior.median * cumulativeSoFar;
 
   const outperformance = video.views / Math.max(1, expectedByNow);
 
-  // Blend weight: how much to trust observed data
-  // Early (small cumulative) = trust prior; late (near 1.0 cumulative) = trust observed
-  // Sigmoid-ish: at cumulative=0.2, weight=0.3; at 0.5, weight=0.6; at 0.9, weight=0.95
-  const blendWeight = Math.min(0.95, Math.pow(cumulativeSoFar, 0.7));
+  // Blend weight: how much to trust observed data.
+  // Having velocity samples INCREASES trust in the observed trajectory even
+  // early in the post's life — acceleration resolves the noise.
+  const baseBlend = Math.pow(cumulativeSoFar, 0.7);
+  const velocityBoost = velocitySamples && velocitySamples.length >= 3 ? 0.15 : 0;
+  const blendWeight = Math.min(0.95, baseBlend + velocityBoost);
 
   const blendedMedian = prior.median * (1 - blendWeight) + trajectoryMedian * blendWeight;
 
-  // Range widens if prior and trajectory disagree significantly (honest uncertainty)
+  // Range widens if prior and trajectory disagree significantly (honest uncertainty).
+  // Velocity samples tighten the range because we have more information.
   const disagreement = Math.abs(Math.log(trajectoryMedian / Math.max(1, prior.median)));
   const rangeInflate = 1 + Math.min(0.5, disagreement * 0.3);
+  const velocityTighten = velocitySamples && velocitySamples.length >= 3 ? 0.8 : 1.0;
 
-  const halfRange = ((prior.high - prior.low) / 2) * rangeInflate;
+  const halfRange = ((prior.high - prior.low) / 2) * rangeInflate * velocityTighten;
   const blended = {
     median: blendedMedian,
-    low:    Math.max(video.views, blendedMedian - halfRange),  // can't go below current!
+    low:    Math.max(video.views, blendedMedian - halfRange),
     high:   blendedMedian + halfRange,
   };
 
@@ -635,7 +669,7 @@ function computeConfidence(
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function forecast(input: ForecastInput): Forecast {
-  const { video, creatorHistory, platform, manualInputs = {} } = input;
+  const { video, creatorHistory, platform, manualInputs = {}, velocitySamples } = input;
   const cfg = PLATFORM_CONFIG[platform];
 
   const dataUsed:      DataSource[] = [];
@@ -731,7 +765,7 @@ export function forecast(input: ForecastInput): Forecast {
   };
 
   // ── Step 6: Blend with observed trajectory ───────────────────────────
-  const { blended, trajectory } = blendWithTrajectory(prior, video, platform);
+  const { blended, trajectory } = blendWithTrajectory(prior, video, platform, velocitySamples);
   const lifetime = {
     low:    Math.round(blended.low),
     median: Math.round(blended.median),

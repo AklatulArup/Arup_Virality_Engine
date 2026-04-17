@@ -18,9 +18,21 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
   const [inputsOpen, setInputsOpen] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
 
+  // Fetch velocity time series for this video from the tracker cron store
+  const [velocitySamples, setVelocitySamples] = useState<Array<{ ageHours: number; views: number; velocity: number; acceleration: number }>>([]);
+  useEffect(() => {
+    if (!video.id || typeof window === "undefined") return;
+    fetch(`/api/forecast/velocity?videoId=${encodeURIComponent(video.id)}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (d?.ok && Array.isArray(d.samples)) setVelocitySamples(d.samples);
+      })
+      .catch(() => {});
+  }, [video.id]);
+
   const result = useMemo(
-    () => forecast({ video, creatorHistory, platform, manualInputs }),
-    [video, creatorHistory, platform, manualInputs],
+    () => forecast({ video, creatorHistory, platform, manualInputs, velocitySamples }),
+    [video, creatorHistory, platform, manualInputs, velocitySamples],
   );
 
   // Persist snapshot for later calibration — debounced: only once per video + inputs combo
