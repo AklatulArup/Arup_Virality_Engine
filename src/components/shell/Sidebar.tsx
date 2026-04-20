@@ -7,10 +7,16 @@
 // Vertical nav with: FundedNext Intel brand, Platform switcher (5 platforms
 // with accent-color left edge on active), Analysis Modes grid (A-H + OLR),
 // Reference Pool stat tiles, Tools navigation rows, and a footer button for
-// forecast calibration. Ported from `app-chrome.jsx` Sidebar in the design
-// handoff. Heights are compact — this is a dense sidebar by design.
+// forecast calibration.
+//
+// Modes are MULTI-SELECT (legacy behaviour restored 2026-04-20): clicking a
+// chip toggles its presence in the active set. "ALL" selects every mode,
+// "Clear" (via double-click on ALL) empties the set. Hovering a chip shows
+// a rich tooltip with mode label + long description, portal-rendered so it
+// escapes the sidebar's overflow clip.
 
-import React from "react";
+import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { T, PLATFORMS, MODES, type ShellRoute } from "@/lib/design-tokens";
 import type { Platform } from "@/lib/forecast";
 
@@ -22,17 +28,37 @@ export interface PoolStats {
 }
 
 interface SidebarProps {
-  route:      ShellRoute;
-  setRoute:   (r: ShellRoute) => void;
-  platform:   Platform;
-  setPlatform:(p: Platform) => void;
-  mode:       string;
-  setMode:    (m: string) => void;
-  pool:       PoolStats;
+  route:       ShellRoute;
+  setRoute:    (r: ShellRoute) => void;
+  platform:    Platform;
+  setPlatform: (p: Platform) => void;
+  activeModes: Set<string>;
+  toggleMode:  (id: string) => void;
+  selectAllModes: () => void;
+  clearModes:  () => void;
+  pool:        PoolStats;
 }
 
-export default function Sidebar({ route, setRoute, platform, setPlatform, mode, setMode, pool }: SidebarProps) {
+// Long-form descriptions shown in the rich hover tooltip. Keeps parity with
+// the legacy ModeSelector's copy (`MODE_DESCRIPTIONS`).
+const MODE_DESCRIPTIONS: Record<string, string> = {
+  A:   "Explains distribution logic, ranking signals, and what drives reach in 2026.",
+  B:   "Surfaces the latest algorithm changes affecting content performance.",
+  C:   "Identifies why a video outperformed the channel median — hook, format, timing.",
+  D:   "Reverse-engineers viral content: structure, pacing, title, thumbnail patterns.",
+  E:   "Analyzes competitor strategies — what they post, how often, what's working.",
+  F:   "Full URL breakdown — pulls every signal for a deep virality audit.",
+  G:   "Virality Readiness Score (0–100) — rates algorithm push likelihood.",
+  H:   "Updates the platform intelligence knowledge base with fresh briefing data.",
+  OLR: "Outlier regression — cross-checks flagged outliers against a stricter baseline.",
+};
+
+export default function Sidebar({ route, setRoute, platform, setPlatform, activeModes, toggleMode, selectAllModes, clearModes, pool }: SidebarProps) {
   const platforms = Object.values(PLATFORMS);
+
+  // Hover-tooltip anchor for mode chips. Portal-rendered so overflow:hidden
+  // on the sidebar doesn't clip it.
+  const [hovered, setHovered] = useState<{ id: string; rect: DOMRect } | null>(null);
 
   return (
     <aside style={{
@@ -88,12 +114,13 @@ export default function Sidebar({ route, setRoute, platform, setPlatform, mode, 
         <SideSection title="Analysis Modes">
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 5, padding: "0 16px" }}>
             {MODES.map(m => {
-              const active = mode === m.id;
+              const active = activeModes.has(m.id);
               return (
                 <button
                   key={m.id}
-                  onClick={() => setMode(m.id)}
-                  title={`${m.label} — ${m.desc}`}
+                  onClick={() => toggleMode(m.id)}
+                  onMouseEnter={(e) => setHovered({ id: m.id, rect: e.currentTarget.getBoundingClientRect() })}
+                  onMouseLeave={() => setHovered(prev => prev?.id === m.id ? null : prev)}
                   style={{
                     padding: m.id === "OLR" ? "7px 2px" : "7px 0", minHeight: 28,
                     border: `1px solid ${active ? m.color : T.lineMid}`,
@@ -102,15 +129,24 @@ export default function Sidebar({ route, setRoute, platform, setPlatform, mode, 
                     borderRadius: 3, cursor: "pointer",
                     fontFamily: "IBM Plex Mono, monospace",
                     fontSize: m.id === "OLR" ? 9 : 11, fontWeight: 600,
+                    transition: "background 120ms, color 120ms, border-color 120ms",
                   }}
                 >{m.id}</button>
               );
             })}
-            <button style={{
-              padding: "7px 0", border: `1px solid ${T.lineMid}`, background: "transparent",
-              color: T.inkMuted, borderRadius: 3,
-              fontFamily: "IBM Plex Mono, monospace", fontSize: 11, fontWeight: 600, cursor: "pointer",
-            }}>ALL</button>
+            <button
+              onClick={() => { if (activeModes.size === MODES.length) clearModes(); else selectAllModes(); }}
+              title={activeModes.size === MODES.length ? "Clear all modes" : "Select every mode"}
+              style={{
+                padding: "7px 0",
+                border: `1px solid ${activeModes.size === MODES.length ? T.inkDim : T.lineMid}`,
+                background: "transparent",
+                color: activeModes.size === MODES.length ? T.ink : T.inkMuted,
+                borderRadius: 3,
+                fontFamily: "IBM Plex Mono, monospace", fontSize: 11, fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >{activeModes.size === MODES.length ? "×" : "ALL"}</button>
           </div>
         </SideSection>
 
@@ -151,7 +187,62 @@ export default function Sidebar({ route, setRoute, platform, setPlatform, mode, 
           }}
         >→ forecast calibration</button>
       </div>
+
+      {hovered && typeof window !== "undefined" && <ModeTooltip hovered={hovered} />}
     </aside>
+  );
+}
+
+// ─── Rich mode tooltip ─────────────────────────────────────────────────
+
+const TOOLTIP_WIDTH = 220;
+
+function ModeTooltip({ hovered }: { hovered: { id: string; rect: DOMRect } }) {
+  const mode = MODES.find(m => m.id === hovered.id);
+  if (!mode) return null;
+  const left = hovered.rect.right + 12;
+  const top  = hovered.rect.top + hovered.rect.height / 2;
+
+  return createPortal(
+    <div
+      style={{
+        position: "fixed", left, top,
+        transform: "translateY(-50%)",
+        width: TOOLTIP_WIDTH,
+        zIndex: 9999, pointerEvents: "none",
+      }}
+    >
+      {/* arrow */}
+      <div style={{
+        position: "absolute", left: -5, top: "50%",
+        transform: "translateY(-50%) rotate(45deg)",
+        width: 8, height: 8,
+        background: T.bgPanel,
+        borderLeft:   `1px solid ${T.lineMid}`,
+        borderBottom: `1px solid ${T.lineMid}`,
+      }} />
+      <div style={{
+        background: T.bgPanel,
+        border: `1px solid ${T.lineMid}`,
+        borderRadius: 6, padding: "10px 12px",
+        boxShadow: `0 8px 40px rgba(0,0,0,0.7), 0 0 20px ${mode.color}18`,
+      }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
+          <span style={{
+            fontFamily: "IBM Plex Mono, monospace",
+            fontSize: 10, fontWeight: 700, letterSpacing: 1.4,
+            color: mode.color,
+          }}>MODE {mode.id}</span>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: T.ink }}>
+            {mode.label}
+          </span>
+        </div>
+        <div style={{ fontSize: 11, lineHeight: 1.5, color: T.inkMuted }}>
+          {MODE_DESCRIPTIONS[mode.id] || mode.desc}
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 

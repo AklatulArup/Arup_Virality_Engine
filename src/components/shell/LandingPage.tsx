@@ -94,11 +94,18 @@ export default function LandingPage() {
     };
 
     const totalViews = entries.reduce((s, e) => s + Number(e.metrics?.views ?? 0), 0);
+    // durationSeconds + videoFormat live at the TOP level of ReferenceEntry,
+    // not inside metrics. Platform `youtube_short` also counts as short.
     const shorts = entries.filter(e => {
-      const d = Number(e.metrics?.durationSeconds ?? 0);
-      return d > 0 && d <= 60;
+      const d   = Number((e as ReferenceEntry & { durationSeconds?: number }).durationSeconds ?? 0);
+      const f   = (e as ReferenceEntry & { videoFormat?: string }).videoFormat;
+      return e.platform === "youtube_short" || f === "short" || (d > 0 && d <= 60);
     }).length;
-    const full = entries.filter(e => Number(e.metrics?.durationSeconds ?? 0) > 60).length;
+    const full = entries.filter(e => {
+      const d   = Number((e as ReferenceEntry & { durationSeconds?: number }).durationSeconds ?? 0);
+      const f   = (e as ReferenceEntry & { videoFormat?: string }).videoFormat;
+      return f === "full" || (d > 60);
+    }).length;
 
     return { rows, total, creators: allCreators.size, grand, totalViews, shorts, full };
   }, [entries]);

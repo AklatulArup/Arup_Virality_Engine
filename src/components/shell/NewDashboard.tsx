@@ -40,7 +40,8 @@ const STORAGE_KEY = "ve_route";
 export default function NewDashboard() {
   const [route, setRoute]         = useState<ShellRoute>("landing");
   const [platform, setPlatform]   = useState<Platform>("youtube");
-  const [mode, setMode]           = useState<string>("F");
+  // Mode is MULTI-SELECT (legacy behaviour restored). Default F = URL analysis.
+  const [activeModes, setActiveModes] = useState<Set<string>>(() => new Set(["F"]));
   const [drawerOpen, setDrawer]   = useState(false);
   const [warRoom, setWarRoom]     = useState(false);
   const [poolStats, setPoolStats] = useState({ videos: 0, creators: 0, shorts: 0, keywords: 0 });
@@ -56,9 +57,13 @@ export default function NewDashboard() {
     window.localStorage.setItem(STORAGE_KEY, route);
   }, [route]);
 
-  // Sync Mode D ↔ Reverse Engineer page.
+  // Sync Mode D ↔ Reverse Engineer page. When the user navigates to the
+  // reverse route, ensure D is in the active mode set (additive — doesn't
+  // clear other selected modes).
   useEffect(() => {
-    if (route === "reverse" && mode !== "D") setMode("D");
+    if (route === "reverse" && !activeModes.has("D")) {
+      setActiveModes(prev => new Set(prev).add("D"));
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route]);
 
@@ -83,15 +88,26 @@ export default function NewDashboard() {
         for (const e of entries) {
           const handle = (e?.channelName ?? e?.name) as string | undefined;
           if (handle) creators.add(handle);
-          const duration = Number(e?.metrics?.durationSeconds ?? 0);
-          if (duration > 0 && duration <= 60) shorts++;
+          // ReferenceEntry stores durationSeconds + videoFormat at top level
+          // (see src/lib/types.ts). Platform `youtube_short` is also a short.
+          // Previously we read `e.metrics?.durationSeconds` which is always
+          // undefined — that's why the sidebar tile read 0.
+          const duration   = Number(e?.durationSeconds ?? 0);
+          const format     = e?.videoFormat as string | undefined;
+          const platformId = e?.platform    as string | undefined;
+          if (platformId === "youtube_short" || format === "short" || (duration > 0 && duration <= 60)) shorts++;
         }
-        // Keywords — fetch keyword bank if available.
+        // Keywords — keyword-bank API returns `{ categories: { niche[],
+        // competitors[], contentType[], language[] } }`, NOT a flat
+        // `keywords[]` array. Sum category lengths for the total bank size.
         fetch("/api/keyword-bank")
           .then(r => r.ok ? r.json() : null)
           .then(kb => {
-            const kbEntries = Array.isArray(kb?.keywords) ? kb.keywords : Array.isArray(kb) ? kb : [];
-            setPoolStats({ videos: entries.length, creators: creators.size, shorts, keywords: kbEntries.length });
+            const cats = kb?.categories ?? {};
+            const keywords = Object.values(cats).reduce<number>((n, arr) => {
+              return n + (Array.isArray(arr) ? arr.length : 0);
+            }, 0);
+            setPoolStats({ videos: entries.length, creators: creators.size, shorts, keywords });
           })
           .catch(() => setPoolStats({ videos: entries.length, creators: creators.size, shorts, keywords: 0 }));
       })
@@ -109,17 +125,34 @@ export default function NewDashboard() {
     setRoute("forecast");
   };
 
-  const handleModeChange = (m: string) => {
-    setMode(m);
-    if (m === "D") setRoute("reverse");
+  // Mode toggle: legacy multi-select behaviour — clicking a chip flips its
+  // presence in the active set. If Mode D is toggled ON, also switch to the
+  // Reverse Engineer page (mirrors old Dashboard.tsx logic).
+  const toggleMode = (m: string) => {
+    setActiveModes(prev => {
+      const next = new Set(prev);
+      if (next.has(m)) next.delete(m);
+      else next.add(m);
+      return next;
+    });
+    if (m === "D" && !activeModes.has("D")) setRoute("reverse");
+  };
+  const selectAllModes = () => {
+    setActiveModes(new Set(["A", "B", "C", "D", "E", "F", "G", "H", "OLR"]));
+  };
+  const clearModes = () => {
+    setActiveModes(new Set());
   };
 
   return (
     <div style={{ display: "flex", height: "100vh", width: "100vw", background: "#0B0C0E", color: "#E8E6E1", fontFamily: "IBM Plex Sans, sans-serif" }}>
       <Sidebar
-        route={route}     setRoute={setRoute}
-        platform={platform} setPlatform={setPlatform}
-        mode={mode}        setMode={handleModeChange}
+        route={route}         setRoute={setRoute}
+        platform={platform}   setPlatform={setPlatform}
+        activeModes={activeModes}
+        toggleMode={toggleMode}
+        selectAllModes={selectAllModes}
+        clearModes={clearModes}
         pool={poolStats}
       />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%" }}>
