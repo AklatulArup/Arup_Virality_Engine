@@ -10,6 +10,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { T } from "@/lib/design-tokens";
+import { computePoolStats, type MinimalEntry } from "@/lib/pool-stats";
+import { fmtCount } from "@/lib/number-format";
 
 interface ReferenceEntry {
   id?:       string;
@@ -364,11 +366,20 @@ export function ReferencePoolPage() {
     return list.sort(cmp);
   }, [rows, search, sort]);
 
+  // Route all counts through the canonical pool-stats bucketer so numbers
+  // here AGREE with the Sidebar and the Landing page. Previously this panel
+  // read `metrics.durationSeconds` (never populated — duration lives at the
+  // top level) which is why Shorts and Full-Length both read "0" even though
+  // the pool has 703 shorts.
+  const poolStats = useMemo(() => computePoolStats(rows as unknown as MinimalEntry[]), [rows]);
   const totalViews = rows.reduce((s, r) => s + Number(r.metrics?.views ?? 0), 0);
-  const creators = new Set(rows.map(r => r.channelName ?? r.name).filter(Boolean)).size;
-  const shorts = rows.filter(r => (Number(r.metrics?.durationSeconds ?? 0) > 0 && Number(r.metrics?.durationSeconds ?? 0) <= 60)).length;
-  const full = rows.filter(r => Number(r.metrics?.durationSeconds ?? 0) > 60).length;
-  const avgViews = rows.length > 0 ? totalViews / rows.length : 0;
+  const creators   = poolStats.totalCreators;
+  const shorts     = poolStats.totalShorts;
+  const full       = poolStats.totalLong;
+  // Use bucketed total (skips entries with no platform field). Keeps number
+  // in sync with the Landing page's "Pool size" tile.
+  const videos     = poolStats.totalEntries;
+  const avgViews   = videos > 0 ? totalViews / videos : 0;
 
   return (
     <div style={{ padding: "16px 20px", position: "relative" }}>
@@ -383,16 +394,16 @@ export function ReferencePoolPage() {
             <div>
               <div style={{ fontSize: 14, color: T.ink, fontWeight: 600 }}>Reference Pool Browser</div>
               <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10.5, color: T.inkFaint, marginTop: 2 }}>
-                {rows.length} entries · {creators} creators · {fmtViews(totalViews)} total views
+                {fmtCount(videos)} entries · {fmtCount(creators)} creators · {fmtViews(totalViews)} total views
               </div>
             </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6, marginBottom: 12 }}>
-            <StatTile v={String(rows.length)}   k="videos"      c={T.cyan} />
-            <StatTile v={String(shorts)}        k="shorts"      c={T.pink} />
-            <StatTile v={String(full)}          k="full-length" c={T.red} />
-            <StatTile v={String(creators)}      k="creators"    c={T.green} />
+            <StatTile v={fmtCount(videos)}      k="videos"      c={T.cyan} />
+            <StatTile v={fmtCount(shorts)}      k="shorts"      c={T.pink} />
+            <StatTile v={fmtCount(full)}        k="full-length" c={T.red} />
+            <StatTile v={fmtCount(creators)}    k="creators"    c={T.green} />
             <StatTile v={fmtViews(totalViews)}  k="total views" c={T.purple} />
             <StatTile v={fmtViews(avgViews)}    k="avg views"   c={T.amber} />
           </div>
@@ -454,8 +465,15 @@ export function ReferencePoolPage() {
                 const views    = Number(r.metrics?.views ?? 0);
                 const eng      = Number(r.metrics?.engagement ?? 0);
                 const vrs      = Number(r.metrics?.vrsScore ?? 0);
-                const duration = Number(r.metrics?.durationSeconds ?? 0);
-                const isShort  = duration > 0 && duration <= 60;
+                // durationSeconds lives at the TOP level, not inside metrics.
+                // (The ingestion path stores it there; reading from metrics
+                // always returned 0 which made every row show "FULL" and the
+                // Shorts tile stuck at 0.)
+                const duration =
+                  Number((r as unknown as { durationSeconds?: number }).durationSeconds ?? 0) ||
+                  Number(r.metrics?.durationSeconds ?? 0);
+                const videoFormat = (r as unknown as { videoFormat?: string }).videoFormat ?? "";
+                const isShort  = videoFormat === "short" || (duration > 0 && duration <= 60);
                 const fmtLen   = duration > 0 ? `${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, "0")}` : "—";
                 return (
                   <div

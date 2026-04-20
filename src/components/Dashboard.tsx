@@ -67,6 +67,9 @@ import {
   findRelatedEntries,
 } from "@/lib/reference-store";
 import { expandKeywordBank } from "@/lib/keyword-bank";
+import { totalKeywords } from "@/lib/keyword-stats";
+import { computePoolStats, bucketOf, type MinimalEntry as MinimalPoolEntry } from "@/lib/pool-stats";
+import { fmtCount } from "@/lib/number-format";
 import { findAdjacentVideos } from "@/lib/adjacent-videos";
 import { computeNicheRanking } from "@/lib/niche-ranking";
 import { computeLanguageCPA } from "@/lib/language-detect";
@@ -1926,24 +1929,33 @@ export default function Dashboard({ headless = false }: DashboardProps = {}) {
 
           {/* ══ INTEL DASHBOARD — empty state ══ */}
           {!result && !loading && activePanel === null && (() => {
-            const poolTotal   = referenceStore?.entries.length ?? 0;
-            const poolCreators = referenceStore ? new Set(referenceStore.entries.map(e => e.channelName)).size : 0;
+            // Single source of truth for pool counts — same bucketer the
+            // Sidebar + Landing page use. Previously this block computed its
+            // own totals / per-platform breakdown which disagreed with every
+            // other surface (the "2,219 YTL / 0 YTS" vs "1,516 YTL / 703 YTS"
+            // divergence).
+            const entries = referenceStore?.entries ?? [];
+            const stats   = computePoolStats(entries);
+            const poolTotal    = stats.totalEntries;
+            const poolCreators = stats.totalCreators;
+            const rowByPlat = new Map(stats.rows.map(r => [r.id, r] as const));
+            const ytCount  = rowByPlat.get("youtube")?.count       ?? 0;
+            const ttCount  = rowByPlat.get("tiktok")?.count        ?? 0;
+            const igCount  = rowByPlat.get("instagram")?.count     ?? 0;
+            // Total keywords = sum across ALL categories (not just niche).
+            // Previously Live Signal Feed showed 87 (niche-only) while the
+            // Sidebar showed 121 (all categories) for the same bank.
+            const kwCount  = totalKeywords(keywordBank);
+
             const poolAvgViews = poolTotal > 0
-              ? Math.round(referenceStore!.entries.reduce((s,e) => s + (e.metrics?.views||0), 0) / poolTotal)
+              ? Math.round(entries.reduce((s,e) => s + (e.metrics?.views||0), 0) / poolTotal)
               : 0;
-            const ytCount  = referenceStore?.entries.filter(e => e.platform === "youtube").length ?? 0;
-            const ttCount  = referenceStore?.entries.filter(e => e.platform === "tiktok").length ?? 0;
-            const igCount  = referenceStore?.entries.filter(e => e.platform !== "youtube" && e.platform !== "tiktok").length ?? 0;
-            const kwCount  = keywordBank?.categories.niche.length ?? 0;
 
             // Ring chart math — circumference = 2πr = 283 for r=45
             const C = 283;
             const ytPct  = poolTotal > 0 ? ytCount  / poolTotal : 0.6;
             const ttPct  = poolTotal > 0 ? ttCount  / poolTotal : 0.25;
             const igPct  = poolTotal > 0 ? igCount  / poolTotal : 0.15;
-
-            // ── Real pool-derived platform signals ──
-            const entries = referenceStore?.entries ?? [];
 
             function poolSignal(platformEntries: typeof entries) {
               if (platformEntries.length === 0) return null;
@@ -1965,10 +1977,13 @@ export default function Dashboard({ headless = false }: DashboardProps = {}) {
               return { score: Math.min(score, 100), status, trend, count: platformEntries.length, avgVRS: Math.round(avgVRS), avgEng: parseFloat(avgEng.toFixed(2)), avgVel: Math.round(avgVel) };
             }
 
-            const ytEntries  = entries.filter(e => e.platform === "youtube" && ((e as unknown as {durationSeconds?:number}).durationSeconds ?? 999) > 60);
-            const ytsEntries = entries.filter(e => e.platform === "youtube_short" || (e.platform === "youtube" && ((e as unknown as {durationSeconds?:number}).durationSeconds ?? 999) <= 60));
-            const ttEntries  = entries.filter(e => e.platform === "tiktok");
-            const igEntries  = entries.filter(e => e.platform === "instagram" || (e.platform !== "youtube" && e.platform !== "tiktok" && e.platform !== "youtube_short"));
+            // Bucket entries through the SAME helper used by Sidebar + Landing
+            // so per-platform-signal averages agree with per-platform counts
+            // shown on other surfaces.
+            const ytEntries  = entries.filter(e => bucketOf(e as unknown as MinimalPoolEntry) === "youtube");
+            const ytsEntries = entries.filter(e => bucketOf(e as unknown as MinimalPoolEntry) === "youtube_short");
+            const ttEntries  = entries.filter(e => bucketOf(e as unknown as MinimalPoolEntry) === "tiktok");
+            const igEntries  = entries.filter(e => bucketOf(e as unknown as MinimalPoolEntry) === "instagram");
 
             const ytSig  = poolSignal(ytEntries)  ?? { score: 0, status: "NO DATA", trend: "—", count: 0, avgVRS: 0, avgEng: 0, avgVel: 0 };
             const ytsSig = poolSignal(ytsEntries) ?? { score: 0, status: "NO DATA", trend: "—", count: 0, avgVRS: 0, avgEng: 0, avgVel: 0 };
@@ -1995,15 +2010,18 @@ export default function Dashboard({ headless = false }: DashboardProps = {}) {
             const outlierCount = entries.filter(e=>(e.metrics?.vrsScore??0)>=80).length;
             const growingCount = entries.filter(e=>e.metrics?.trend==="growing").length;
 
+            // Use `fmtCount` (precise with commas) everywhere the number needs
+            // to match another surface's display. Previously pool depth showed
+            // "2.2K" in the Live Signal Feed while the Pool Coverage header
+            // showed "2,219" for the same value — inconsistent formatting.
             const TICKER_ITEMS = [
-              { label: "Reference pool depth",      value: `${formatNumber(poolTotal)} videos`,              color: "#A78BFA" },
-              { label: "Pool avg VRS score",        value: avgPoolVRS > 0 ? `${avgPoolVRS}/100` : "—",    color: "#60A5FA" },
-              { label: "Pool avg engagement",       value: parseFloat(avgPoolEng) > 0 ? `${avgPoolEng}%` : "—", color: "#F59E0B" },
-              { label: "High-VRS content (≥80)",   value: outlierCount > 0 ? `${outlierCount} videos` : "—", color: "#2ECC8A" },
-              { label: "Growing creators tracked", value: growingCount > 0 ? `${growingCount}` : "—",   color: "#06B6D4" },
-              { label: "Keyword bank size",         value: `${kwCount} keywords`,               color: "#E879F9" },
-              { label: "Creators in pool",          value: `${formatNumber(poolCreators)}`,
-                   color: "#EF4444" },
+              { label: "Reference pool depth",      value: `${fmtCount(poolTotal)} videos`,                   color: "#A78BFA" },
+              { label: "Pool avg VRS score",        value: avgPoolVRS > 0 ? `${avgPoolVRS}/100` : "—",         color: "#60A5FA" },
+              { label: "Pool avg engagement",       value: parseFloat(avgPoolEng) > 0 ? `${avgPoolEng}%` : "—",color: "#F59E0B" },
+              { label: "High-VRS content (≥80)",   value: outlierCount > 0 ? `${fmtCount(outlierCount)} videos` : "—", color: "#2ECC8A" },
+              { label: "Growing creators tracked", value: growingCount > 0 ? `${fmtCount(growingCount)}` : "—",        color: "#06B6D4" },
+              { label: "Keyword bank size",         value: `${fmtCount(kwCount)} keywords`,                    color: "#E879F9" },
+              { label: "Creators in pool",          value: `${fmtCount(poolCreators)}`,                        color: "#EF4444" },
               ...(topCreators[0] ? [{ label: `Top VRS · ${topCreators[0].channelName}`, value: `${topCreators[0].metrics?.vrsScore ?? "—"}/100`, color: "#2ECC8A" }] : []),
             ];
 
@@ -2040,47 +2058,55 @@ export default function Dashboard({ headless = false }: DashboardProps = {}) {
 
                 {/* ── Pool Coverage — how much content the learning pool still needs ── */}
                 {(() => {
-                  // Tier targets from the pool-coverage reference table
-                  const TIERS = [
-                    { key: "youtube",       label: "YouTube Long-form", short: "YTL", color: "#EF4444", min:  80, std:  150, mat:  300 },
-                    { key: "youtube_short", label: "YouTube Shorts",    short: "YTS", color: "#EC4899", min: 150, std:  300, mat:  600 },
-                    { key: "instagram",     label: "Instagram Reels",   short: "IGR", color: "#E879F9", min: 150, std:  300, mat:  600 },
-                    { key: "tiktok",        label: "TikTok",            short: "TTK", color: "#06B6D4", min: 200, std:  400, mat:  800 },
-                    { key: "x",             label: "X (Twitter)",       short: "X",   color: "#9CA3AF", min: 400, std:  800, mat: 1500 },
-                  ] as const;
-
-                  // Count current entries per platform (referenceStore refreshes after every analysis)
-                  const counts:   Record<string, number>      = {};
+                  // Previously this block defined its own TIERS targets (min
+                  // 80 / std 150 / mat 300 for YouTube) which disagreed with
+                  // pool-stats.ts (min 500 / std 1950 / mat 3800). That's why
+                  // Dashboard showed "✓ MATURE" at 2,219 entries while the
+                  // Landing page correctly showed "short of mature" for the
+                  // same pool. Now both read from the single source of truth.
+                  const poolStats = computePoolStats(entries);
+                  const grandCreators = poolStats.totalCreators;
+                  // Expose the per-platform rows as `counts` + `creators`
+                  // maps so the downstream JSX (which was hand-written with
+                  // these names) keeps working unchanged.
+                  const counts: Record<string, number> = {};
                   const creators: Record<string, Set<string>> = {};
-                  for (const t of TIERS) { counts[t.key] = 0; creators[t.key] = new Set(); }
-                  if (referenceStore?.entries) {
-                    for (const e of referenceStore.entries) {
-                      if (e.platform && counts[e.platform] !== undefined) {
-                        counts[e.platform]++;
-                        // Use channelId first, fall back to channelName, skip if neither
-                        const creatorKey = e.channelId || e.channelName || "";
-                        if (creatorKey) creators[e.platform].add(creatorKey);
-                      }
-                    }
+                  for (const row of poolStats.rows) {
+                    counts[row.id] = row.count;
+                    creators[row.id] = new Set(); // sizes not needed downstream, only the count map is read
+                    // Back-fill the creators set so it has the right size.
+                    // We don't care about the exact membership, only .size.
+                    for (let i = 0; i < row.creators; i++) creators[row.id].add(String(i));
                   }
+                  // Display labels + platform colors for the per-tier tiles;
+                  // the numeric targets (min/std/mat) are injected from
+                  // poolStats.rows so there is one source of truth.
+                  const TIER_DISPLAY: Array<{ key: string; label: string; short: string; color: string }> = [
+                    { key: "youtube",       label: "YouTube Long-form", short: "YTL", color: "#EF4444" },
+                    { key: "youtube_short", label: "YouTube Shorts",    short: "YTS", color: "#EC4899" },
+                    { key: "instagram",     label: "Instagram Reels",   short: "IGR", color: "#E879F9" },
+                    { key: "tiktok",        label: "TikTok",            short: "TTK", color: "#06B6D4" },
+                    { key: "x",             label: "X (Twitter)",       short: "X",   color: "#9CA3AF" },
+                  ];
+                  // Merge targets from pool-stats into each tier display row.
+                  // Fallback thresholds are used only if pool-stats doesn't
+                  // have a row for that platform (shouldn't happen in practice).
+                  const TIERS = TIER_DISPLAY.map(t => {
+                    const row = poolStats.rows.find(r => r.id === t.key);
+                    return {
+                      ...t,
+                      min: row?.min ?? 0,
+                      std: row?.std ?? 0,
+                      mat: row?.mat ?? 0,
+                    };
+                  });
 
-                  // Unique creators across all platforms (same channel may post on multiple)
-                  const allCreators = new Set<string>();
-                  for (const platformSet of Object.values(creators)) {
-                    for (const c of platformSet) allCreators.add(c);
-                  }
-                  const grandCreators = allCreators.size;
-
-                  // Grand totals
-                  const grand = TIERS.reduce(
-                    (acc, t) => ({
-                      current: acc.current + counts[t.key],
-                      min:     acc.min     + t.min,
-                      std:     acc.std     + t.std,
-                      mat:     acc.mat     + t.mat,
-                    }),
-                    { current: 0, min: 0, std: 0, mat: 0 },
-                  );
+                  const grand = {
+                    current: poolStats.grand.current,
+                    min:     poolStats.grand.min,
+                    std:     poolStats.grand.std,
+                    mat:     poolStats.grand.mat,
+                  };
 
                   // Which tier should we hightlight as "next"? Pick the smallest unmet total.
                   const nextGrandTier =

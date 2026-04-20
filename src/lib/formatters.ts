@@ -1,17 +1,16 @@
+// Legacy `formatNumber` kept as an alias so the ~30 existing call sites don't
+// break. New code should import directly from `./number-format` and pick
+// explicitly between `fmtCompact` (rounded: "2.2K") and `fmtCount` (precise:
+// "2,219"). See number-format.ts for usage rules.
+import { fmtCompact } from "./number-format";
+export { fmtCount, fmtCompact, fmtPercent, fmtPercentRatio, fmtReach } from "./number-format";
+
 export function formatNumber(n: number): string {
-  if (n >= 1_000_000) {
-    const m = n / 1_000_000;
-    return m % 1 === 0 ? `${m}M` : `${m.toFixed(1).replace(/\.0$/, "")}M`;
-  }
-  if (n >= 1_000) {
-    const k = n / 1_000;
-    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1).replace(/\.0$/, "")}K`;
-  }
-  return String(n);
+  return fmtCompact(n);
 }
 
-/** Format a number as a clean human-readable value (1.4M, 544K, 18.7K/d, etc.) */
-export function fmt(n: number): string { return formatNumber(n); }
+/** Deprecated alias. Use fmtCompact or fmtCount explicitly. */
+export function fmt(n: number): string { return fmtCompact(n); }
 
 export function daysAgo(dateStr: string): number {
   return Math.max(
