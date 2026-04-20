@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { forecast, projectAtDate, type ManualInputs, type Platform, type DataSource, type DateProjection } from "@/lib/forecast";
+import { forecast, projectAtDate, PLATFORM_CONFIG, type ManualInputs, type Platform, type DataSource, type DateProjection } from "@/lib/forecast";
 import type { ConformalTable } from "@/lib/conformal";
 import { INPUT_TOOLTIPS, type InputTooltip } from "@/lib/input-tooltips";
 import { recordForecast } from "@/lib/forecast-learning";
@@ -17,10 +17,55 @@ interface ForecastPanelProps {
   platform: Platform;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// DESIGN TOKENS — V1 "Editorial" palette from the Claude Design bundle
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Softer, calmer than the original terminal-ish palette. Lifted off pure
+// black, desaturated accents, neutral grays. Still dark, still IBM Plex.
+// Keeping these as named constants so any future variation (V2/V3/...) can
+// swap this one block.
+
+const tokens = {
+  bg:         "#16181B",
+  surface:    "#1C1F23",
+  surfaceHi:  "#22262B",
+  line:       "rgba(255,255,255,0.07)",
+  lineStrong: "rgba(255,255,255,0.12)",
+  ink:        "#E7E5E0",
+  inkDim:     "#B5B2AB",
+  inkMuted:   "#7F7C76",
+  inkFaint:   "#5A5853",
+  violet:     "#9B87E8",
+  teal:       "#6AC3B4",
+  amber:      "#D9A86A",
+  coral:      "#E08A85",
+  sky:        "#7FB0D4",
+};
+
+const platformTint: Record<Platform, { color: string; label: string }> = {
+  youtube:       { color: "#E08A85", label: "YouTube" },
+  youtube_short: { color: "#D999B6", label: "Shorts" },
+  tiktok:        { color: "#6AC3B4", label: "TikTok" },
+  instagram:     { color: "#C89AD1", label: "Reels" },
+  x:             { color: "#A8A8A5", label: "X" },
+};
+
+// Pool-coverage entry fetched from /api/reference-store.
+interface PoolCoverageEntry {
+  platform: Platform;
+  label:    string;
+  count:    number;
+  color:    string;
+}
+
 export default function ForecastPanel({ video, creatorHistory, platform }: ForecastPanelProps) {
   const [manualInputs, setManualInputs] = useState<ManualInputs>({});
   const [inputsOpen, setInputsOpen] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showData, setShowData] = useState(false);
+  const [showTrajectory, setShowTrajectory] = useState(false);
   // Keys within manualInputs whose values came from AI estimation (e.g.
   // thumbnail-based CTR prediction) rather than the RM or a Creator Studio
   // screenshot. These still inform the forecast but are excluded from the
@@ -162,6 +207,34 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
   // Baseline CV isn't available here (it's computed inside forecast()) so we pass
   // undefined and reputation.ts works with just the trend + recency signals.
   const reputation = useMemo(() => assessCreatorReputation({ creatorHistory }), [creatorHistory]);
+
+  // Pool coverage — count of reference-store entries per platform, used by the
+  // V1 footer's "Reference pool" column. Fetches once on mount, no re-fetch
+  // per video; the pool is a global asset.
+  const [poolCoverage, setPoolCoverage] = useState<PoolCoverageEntry[]>([]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    fetch("/api/reference-store")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        const entries = Array.isArray(d?.entries) ? d.entries : Array.isArray(d) ? d : [];
+        const counts: Record<Platform, number> = {
+          youtube: 0, youtube_short: 0, tiktok: 0, instagram: 0, x: 0,
+        };
+        for (const e of entries) {
+          const p = e?.platform as Platform | undefined;
+          if (p && p in counts) counts[p] += 1;
+        }
+        setPoolCoverage([
+          { platform: "youtube",       label: "YouTube LF",  count: counts.youtube,       color: platformTint.youtube.color },
+          { platform: "youtube_short", label: "Shorts",      count: counts.youtube_short, color: platformTint.youtube_short.color },
+          { platform: "tiktok",        label: "TikTok",      count: counts.tiktok,        color: platformTint.tiktok.color },
+          { platform: "instagram",     label: "Reels",       count: counts.instagram,     color: platformTint.instagram.color },
+          { platform: "x",             label: "X",           count: counts.x,             color: platformTint.x.color },
+        ]);
+      })
+      .catch(() => {});
+  }, []);
 
   // Tuning overrides from admin page — applied on every forecast
   const [configOverrides, setConfigOverrides] = useState<Record<string, Record<string, number>>>({});
@@ -393,23 +466,28 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
 
   const conf = result.confidence.level;
   const confColor =
-    conf === "high"         ? "#2ECC8A" :
-    conf === "medium"       ? "#60A5FA" :
-    conf === "low"          ? "#F59E0B" :
-                              "#FF6B7A";
+    conf === "high"         ? tokens.teal  :
+    conf === "medium"       ? tokens.sky   :
+    conf === "low"          ? tokens.amber :
+                              tokens.coral;
 
   // ─── Insufficient history ─────────────────────────────────────────────────
   if (conf === "insufficient") {
     return (
       <div style={panelStyle}>
-        <Header result={result} confColor={confColor} conf={conf} />
-        <div style={{ background: "rgba(255,107,122,0.08)", border: "1px solid rgba(255,107,122,0.3)", padding: 14, borderRadius: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, color: "#FF6B7A", marginBottom: 6 }}>Insufficient creator history</div>
-          <div style={{ fontSize: 12.5, color: "#A8A6A1", lineHeight: 1.55, marginBottom: 12 }}>
+        <header style={{ display: "flex", alignItems: "baseline", gap: 14, paddingBottom: 16, borderBottom: `1px solid ${tokens.line}` }}>
+          <div style={eyebrowStyle}>Forecast · {platformTint[platform].label}</div>
+          <div style={{ marginLeft: "auto", fontSize: 11, fontFamily: "IBM Plex Mono, monospace", color: tokens.coral, letterSpacing: 0.6, textTransform: "uppercase" }}>
+            insufficient history
+          </div>
+        </header>
+        <div style={{ background: "rgba(224,138,133,0.06)", border: `1px solid ${tokens.coral}33`, padding: 16, borderRadius: 8 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: tokens.coral, marginBottom: 8 }}>Insufficient creator history</div>
+          <div style={{ fontSize: 13, color: tokens.inkDim, lineHeight: 1.6, marginBottom: 16 }}>
             {result.interpretation}
           </div>
-          <div className="flex items-center gap-2 mt-3">
-            <label style={{ fontSize: 12, color: "#9E9C97", minWidth: 180 }}>Manual baseline median:</label>
+          <div className="flex items-center gap-2">
+            <label style={{ fontSize: 12, color: tokens.inkMuted, minWidth: 180 }}>Manual baseline median:</label>
             <input
               type="number"
               placeholder="e.g. 12500"
@@ -422,32 +500,100 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
     );
   }
 
-  const d1 = result.d1, d7 = result.d7, d30 = result.d30;
   const lifetime = result.lifetime;
   const horizon = result.horizonDays;
+
+  // V1 editorial narrative — plain-English summary for the hero section.
+  // Built from the forecast result; falls back to result.interpretation
+  // which is already written in RM-friendly language.
+  const narrative = result.interpretation;
+
+  // Tier classification → Distribution stage column copy
+  const tierInfo = tierDisplay(result.lifecycleTier, platform, tokens);
+
+  // "How we got here" signal list for the footer. Derived from the real
+  // forecast result, not hard-coded.
+  const signals = buildSignals(result, reputation.multiplier);
 
   return (
     <div style={panelStyle}>
 
-      <Header result={result} confColor={confColor} conf={conf} />
+      {/* ── Eyebrow / header strip ──────────────────────────────────── */}
+      <header style={{ display: "flex", alignItems: "baseline", gap: 14, paddingBottom: 16, borderBottom: `1px solid ${tokens.line}`, flexWrap: "wrap" }}>
+        <div style={eyebrowStyle}>
+          Forecast · {platformTint[platform].label}
+        </div>
+        <div style={{ fontSize: 10.5, color: tokens.inkFaint, fontFamily: "IBM Plex Mono, monospace", letterSpacing: 0.6 }}>
+          {result.trajectory ? `post age ${result.trajectory.ageDays.toFixed(1)}d · recomputes live` : "pre-publish · recomputes live"}
+        </div>
+        <div style={{ marginLeft: "auto", fontSize: 11, fontFamily: "IBM Plex Mono, monospace", display: "flex", gap: 8, alignItems: "baseline" }}>
+          <span style={{ color: tokens.inkFaint }}>confidence</span>
+          <span style={{ color: confColor, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.6 }}>{conf}</span>
+          <span style={{ color: tokens.inkFaint }}>·</span>
+          <span style={{ color: tokens.inkDim }}>{result.confidence.score}<span style={{ color: tokens.inkFaint }}>/100</span></span>
+        </div>
+      </header>
 
-      {/* ── Headline interpretation ────────────────────────────────────── */}
-      <div style={{ fontSize: 13, color: "#E8E6E1", lineHeight: 1.6, padding: "10px 0" }}>
-        {result.interpretation}
-      </div>
+      {/* ── Hero: expected lifetime views ────────────────────────────── */}
+      <section style={{ paddingTop: 4 }}>
+        <div style={{ ...eyebrowStyle, marginBottom: 14 }}>Expected lifetime views</div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 18, flexWrap: "wrap" }}>
+          <div style={heroNumberStyle}>{formatNumber(lifetime.median)}</div>
+          <div style={{ fontSize: 15, color: tokens.inkDim, fontWeight: 300, lineHeight: 1.4, maxWidth: 360 }}>
+            likely between{" "}
+            <span style={{ color: tokens.ink, fontFamily: "IBM Plex Mono, monospace" }}>{formatNumber(lifetime.low)}</span>
+            {" and "}
+            <span style={{ color: tokens.ink, fontFamily: "IBM Plex Mono, monospace" }}>{formatNumber(lifetime.high)}</span>
+          </div>
+        </div>
+        <div style={{ marginTop: 20, fontSize: 14, lineHeight: 1.65, color: tokens.inkDim, maxWidth: 680, fontWeight: 300 }}>
+          {narrative}
+        </div>
+      </section>
 
-      {/* ── Trajectory outperformance strip (post-publish only) ──────── */}
-      {result.trajectory && <OutperformanceStrip trajectory={result.trajectory} baseline={result.baseline!} />}
+      {/* ── Ribbon chart — cumulative share curve with now marker ───── */}
+      <section>
+        <RibbonChart
+          platform={platform}
+          currentViews={video.views}
+          ageHours={result.trajectory ? result.trajectory.ageDays * 24 : 0}
+          lifetimeMedian={lifetime.median}
+          lifetimeLow={lifetime.low}
+          lifetimeHigh={lifetime.high}
+          tint={platformTint[platform].color}
+        />
+        <div style={{ display: "flex", gap: 24, marginTop: 10, fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: tokens.inkFaint, flexWrap: "wrap" }}>
+          <span>now — {formatNumber(video.views)} views{result.trajectory ? `, age ${result.trajectory.ageDays.toFixed(1)}d` : ", pre-publish"}</span>
+          <span style={{ marginLeft: "auto" }}>horizon — {horizon}d</span>
+        </div>
+      </section>
 
-      {/* ── Milestone forecast grid ────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-3" style={{ margin: "8px 0 4px" }}>
-        <MilestoneCard label="24 hours" data={d1} color="#60A5FA" />
-        <MilestoneCard label="7 days"   data={d7} color="#A78BFA" />
-        <MilestoneCard label="30 days"  data={d30} color="#2ECC8A" />
-        <MilestoneCard label={`Lifetime (${horizon}d)`} data={lifetime} color="#FFD54F" emphasise />
-      </div>
+      {/* ── 3-column footer: stage | pool | signals ─────────────────── */}
+      <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 40, borderTop: `1px solid ${tokens.line}`, paddingTop: 26 }}>
+        <Column title="Distribution stage">
+          <div style={{ fontSize: 22, fontWeight: 400, color: tierInfo.color, marginBottom: 4 }}>{tierInfo.label}</div>
+          <div style={{ fontSize: 12, color: tokens.inkFaint, marginBottom: 12, fontFamily: "IBM Plex Mono, monospace" }}>{tierInfo.sublabel}</div>
+          <div style={{ fontSize: 13, lineHeight: 1.55, color: tokens.inkDim }}>{tierInfo.rationale}</div>
+        </Column>
+        <Column title="Reference pool">
+          <PoolCoverageColumn pool={poolCoverage} />
+        </Column>
+        <Column title="How we got here">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {signals.map((s, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                <span style={{ color: tokens.inkDim }}>{s.k}</span>
+                <span style={{
+                  fontFamily: "IBM Plex Mono, monospace",
+                  color: s.tone === "pos" ? tokens.teal : s.tone === "neg" ? tokens.coral : tokens.ink,
+                }}>{s.v}</span>
+              </div>
+            ))}
+          </div>
+        </Column>
+      </section>
 
-      {/* ── Custom date projection ─────────────────────────────────────── */}
+      {/* ── Custom date projection ──────────────────────────────────── */}
       <DateProjectionCard
         targetDate={targetDate}
         onTargetDateChange={setTargetDate}
@@ -457,112 +603,131 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
         currentViews={video.views}
       />
 
-      {/* ── Creator baseline ────────────────────────────────────────────── */}
-      {result.baseline && (
-        <div style={boxStyle}>
-          <div style={eyebrowStyle}>Creator baseline anchor</div>
-          <div className="grid grid-cols-5 gap-3" style={{ fontSize: 12 }}>
-            <BaselineStat label="Posts used"     value={result.baseline.postsUsed.toString()} />
-            <BaselineStat label="Median"         value={formatNumber(result.baseline.median)} />
-            <BaselineStat label="p25 – p75"      value={`${formatNumber(result.baseline.p25)} – ${formatNumber(result.baseline.p75)}`} />
-            <BaselineStat label="Best"           value={formatNumber(result.baseline.max)} />
-            <BaselineStat label="Consistency CV" value={result.baseline.cv.toFixed(2)} />
-          </div>
-        </div>
-      )}
-
-      {/* ── Score multiplier breakdown ─────────────────────────────────── */}
-      <div style={boxStyle}>
-        <div style={eyebrowStyle}>Score multiplier (single source)</div>
-        <div style={{ display: "grid", gridTemplateColumns: "auto auto auto 1fr", gap: "12px 18px", alignItems: "baseline", fontSize: 12 }}>
-          <div><span style={mutedStyle}>Score</span> <strong style={{ color: "#E8E6E1", fontFamily: "IBM Plex Mono, monospace" }}>{result.scoreMultiplier.score.toFixed(0)}</strong></div>
-          <div><span style={mutedStyle}>× median</span> <strong style={{ color: "#E8E6E1", fontFamily: "IBM Plex Mono, monospace" }}>{result.scoreMultiplier.median.toFixed(2)}×</strong></div>
-          <div><span style={mutedStyle}>range</span> <strong style={{ color: "#8A8883", fontFamily: "IBM Plex Mono, monospace" }}>{result.scoreMultiplier.low.toFixed(2)}–{result.scoreMultiplier.high.toFixed(2)}×</strong></div>
-          <div style={{ color: "#A8A6A1", lineHeight: 1.55 }}>{result.scoreMultiplier.rationale}</div>
-        </div>
-      </div>
-
-      {/* ── Confidence reasons ────────────────────────────────────────── */}
-      <div style={{ ...boxStyle, borderLeft: `3px solid ${confColor}` }}>
-        <div style={eyebrowStyle}>Confidence ({result.confidence.score}/100)</div>
-        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {result.confidence.reasons.map((r, i) => (
-            <li key={i} style={{ fontSize: 11.5, color: "#A8A6A1", lineHeight: 1.6, paddingLeft: 14, position: "relative", marginBottom: 2 }}>
-              <span style={{ position: "absolute", left: 0, color: confColor }}>·</span>{r}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* ── Data transparency ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <DataColumn title={`Used (${result.dataUsed.length})`}           items={result.dataUsed}      color="#2ECC8A" />
-        <DataColumn title={`Estimated (${result.dataEstimated.length})`} items={result.dataEstimated} color="#F59E0B" />
-        <DataColumn title={`Missing (${result.dataMissing.length})`}     items={result.dataMissing}   color="#FF6B7A" />
-      </div>
-
-      {/* ── Manual inputs ──────────────────────────────────────────────── */}
+      {/* ── Analytics inputs (collapsible, includes OCR + AI badges) ─ */}
       {result.dataMissing.length > 0 && (
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12 }}>
-          <button
-            onClick={() => setInputsOpen(v => !v)}
-            style={{
-              background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.25)",
-              color: "#60A5FA", padding: "8px 14px", borderRadius: 6, fontSize: 12.5,
-              fontWeight: 500, cursor: "pointer", width: "100%", textAlign: "left",
-            }}
-          >
-            {inputsOpen ? "▾" : "▸"}  Provide creator analytics to tighten the forecast ({result.dataMissing.length} missing)
-          </button>
-
-          {inputsOpen && (
-            <div style={{ marginTop: 12 }} className="space-y-3">
-              <div style={noteStyle}>
-                These fields are not available via any public API. Pull them from the creator&apos;s own analytics dashboard. Forecast recalculates as you type.
-              </div>
-              <ScreenshotIngest onFile={ingestImage} status={ocrStatus} />
-              {thumbnailCTR && aiEstimatedKeys.has("ytCTRpct") && (
-                <div style={{ fontSize: 11.5, color: "#A8A6A1", lineHeight: 1.5, padding: "8px 10px", background: "rgba(96,165,250,0.06)", border: "1px solid rgba(96,165,250,0.2)", borderRadius: 6 }}>
-                  <span style={{ color: "#60A5FA" }}>AI thumbnail score:</span> <span style={{ fontFamily: "IBM Plex Mono, monospace", color: "#E8E6E1" }}>{thumbnailCTR.totalPoints}/{thumbnailCTR.maxPoints}</span> → estimated CTR <span style={{ fontFamily: "IBM Plex Mono, monospace", color: "#E8E6E1" }}>{thumbnailCTR.estimatedCTR.toFixed(1)}%</span> ({thumbnailCTR.ctrConfidence}). Provide the real Studio CTR to replace this estimate.
-                  <div style={{ color: "#6B6964", marginTop: 4, fontSize: 11 }}>{thumbnailCTR.rationale}</div>
-                </div>
-              )}
-              {hookStrength && (aiEstimatedKeys.has("ttCompletionPct") || aiEstimatedKeys.has("igHold3s")) && (
-                <div style={{ fontSize: 11.5, color: "#A8A6A1", lineHeight: 1.5, padding: "8px 10px", background: "rgba(6,182,212,0.06)", border: "1px solid rgba(6,182,212,0.25)", borderRadius: 6 }}>
-                  <span style={{ color: "#06B6D4" }}>AI hook score:</span> <span style={{ fontFamily: "IBM Plex Mono, monospace", color: "#E8E6E1" }}>{hookStrength.totalPoints}/{hookStrength.maxPoints}</span> · dominant: <span style={{ fontFamily: "IBM Plex Mono, monospace", color: "#E8E6E1" }}>{hookStrength.dominantFormula}</span> → estimated {platform === "tiktok"
-                    ? <>completion <span style={{ fontFamily: "IBM Plex Mono, monospace", color: "#E8E6E1" }}>{hookStrength.estimatedCompletionPct}%</span></>
-                    : <>3-sec hold <span style={{ fontFamily: "IBM Plex Mono, monospace", color: "#E8E6E1" }}>{hookStrength.estimatedHold3sPct}%</span></>} ({hookStrength.confidence}). Provide the real Creator Studio number to replace this estimate.
-                  <div style={{ color: "#6B6964", marginTop: 4, fontSize: 11 }}>{hookStrength.rationale}</div>
-                </div>
-              )}
-              <ManualInputsForm platform={platform} manualInputs={manualInputs} update={update} />
+        <Collapsible
+          open={inputsOpen}
+          onToggle={() => setInputsOpen(v => !v)}
+          label={`Provide creator analytics to tighten the forecast (${result.dataMissing.length} missing)`}
+          accent={tokens.violet}
+          prominent
+        >
+          <div style={{ ...noteStyle, marginBottom: 10 }}>
+            These fields are not available via any public API. Pull them from the creator&apos;s own analytics dashboard. Forecast recalculates as you type.
+          </div>
+          <ScreenshotIngest onFile={ingestImage} status={ocrStatus} />
+          {thumbnailCTR && aiEstimatedKeys.has("ytCTRpct") && (
+            <div style={{ ...aiBadgeStyle, borderColor: "rgba(127,176,212,0.24)", background: "rgba(127,176,212,0.06)", marginTop: 10 }}>
+              <span style={{ color: tokens.sky }}>AI thumbnail score:</span>{" "}
+              <span style={monoInk}>{thumbnailCTR.totalPoints}/{thumbnailCTR.maxPoints}</span>{" → estimated CTR "}
+              <span style={monoInk}>{thumbnailCTR.estimatedCTR.toFixed(1)}%</span>{" "}
+              ({thumbnailCTR.ctrConfidence}). Provide the real Studio CTR to replace this estimate.
+              <div style={{ color: tokens.inkFaint, marginTop: 4, fontSize: 11 }}>{thumbnailCTR.rationale}</div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* ── Notes ──────────────────────────────────────────────────────── */}
-      {result.notes.length > 0 && (
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
-          <button
-            onClick={() => setShowNotes(v => !v)}
-            style={{ background: "none", border: "none", color: "#6B6964", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
-          >
-            {showNotes ? "▾" : "▸"}  Computation notes ({result.notes.length})
-          </button>
-          {showNotes && (
-            <ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0 0" }}>
-              {result.notes.map((n, i) => (
-                <li key={i} style={{ fontSize: 11, color: "#8A8883", lineHeight: 1.55, paddingLeft: 14, position: "relative", marginBottom: 3 }}>
-                  <span style={{ position: "absolute", left: 0, color: "#6B6964" }}>·</span>{n}
-                </li>
-              ))}
-            </ul>
+          {hookStrength && (aiEstimatedKeys.has("ttCompletionPct") || aiEstimatedKeys.has("igHold3s")) && (
+            <div style={{ ...aiBadgeStyle, borderColor: "rgba(106,195,180,0.24)", background: "rgba(106,195,180,0.06)", marginTop: 10 }}>
+              <span style={{ color: tokens.teal }}>AI hook score:</span>{" "}
+              <span style={monoInk}>{hookStrength.totalPoints}/{hookStrength.maxPoints}</span>{" · dominant: "}
+              <span style={monoInk}>{hookStrength.dominantFormula}</span>{" → estimated "}
+              {platform === "tiktok"
+                ? <>completion <span style={monoInk}>{hookStrength.estimatedCompletionPct}%</span></>
+                : <>3-sec hold <span style={monoInk}>{hookStrength.estimatedHold3sPct}%</span></>}{" "}
+              ({hookStrength.confidence}). Provide the real Creator Studio number to replace this estimate.
+              <div style={{ color: tokens.inkFaint, marginTop: 4, fontSize: 11 }}>{hookStrength.rationale}</div>
+            </div>
           )}
-        </div>
+          <div style={{ marginTop: 14 }}>
+            <ManualInputsForm platform={platform} manualInputs={manualInputs} update={update} />
+          </div>
+        </Collapsible>
       )}
 
-      {/* ── Forecast log — manual prediction records ─────────────────── */}
+      {/* ── Details (baseline + score multiplier + confidence reasons) ─ */}
+      <Collapsible
+        open={showDetails}
+        onToggle={() => setShowDetails(v => !v)}
+        label="Forecast details — baseline, score multiplier, confidence reasons"
+      >
+        {result.baseline && (
+          <div style={{ ...boxStyle, marginBottom: 10 }}>
+            <div style={eyebrowStyle}>Creator baseline anchor</div>
+            <div className="grid grid-cols-5 gap-3" style={{ fontSize: 12 }}>
+              <BaselineStat label="Posts used"     value={result.baseline.postsUsed.toString()} />
+              <BaselineStat label="Median"         value={formatNumber(result.baseline.median)} />
+              <BaselineStat label="p25 – p75"      value={`${formatNumber(result.baseline.p25)} – ${formatNumber(result.baseline.p75)}`} />
+              <BaselineStat label="Best"           value={formatNumber(result.baseline.max)} />
+              <BaselineStat label="Consistency CV" value={result.baseline.cv.toFixed(2)} />
+            </div>
+          </div>
+        )}
+
+        <div style={{ ...boxStyle, marginBottom: 10 }}>
+          <div style={eyebrowStyle}>Score multiplier</div>
+          <div style={{ display: "grid", gridTemplateColumns: "auto auto auto 1fr", gap: "12px 18px", alignItems: "baseline", fontSize: 12 }}>
+            <div><span style={mutedStyle}>Score</span> <strong style={monoInk}>{result.scoreMultiplier.score.toFixed(0)}</strong></div>
+            <div><span style={mutedStyle}>× median</span> <strong style={monoInk}>{result.scoreMultiplier.median.toFixed(2)}×</strong></div>
+            <div><span style={mutedStyle}>range</span> <strong style={{ ...monoInk, color: tokens.inkMuted }}>{result.scoreMultiplier.low.toFixed(2)}–{result.scoreMultiplier.high.toFixed(2)}×</strong></div>
+            <div style={{ color: tokens.inkDim, lineHeight: 1.55 }}>{result.scoreMultiplier.rationale}</div>
+          </div>
+        </div>
+
+        <div style={{ ...boxStyle, borderLeft: `3px solid ${confColor}` }}>
+          <div style={eyebrowStyle}>Confidence ({result.confidence.score}/100)</div>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {result.confidence.reasons.map((r, i) => (
+              <li key={i} style={{ fontSize: 11.5, color: tokens.inkDim, lineHeight: 1.6, paddingLeft: 14, position: "relative", marginBottom: 2 }}>
+                <span style={{ position: "absolute", left: 0, color: confColor }}>·</span>{r}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Collapsible>
+
+      {/* ── Data transparency ──────────────────────────────────────── */}
+      <Collapsible
+        open={showData}
+        onToggle={() => setShowData(v => !v)}
+        label={`Data used · estimated · missing (${result.dataUsed.length} / ${result.dataEstimated.length} / ${result.dataMissing.length})`}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <DataColumn title={`Used (${result.dataUsed.length})`}           items={result.dataUsed}      color={tokens.teal} />
+          <DataColumn title={`Estimated (${result.dataEstimated.length})`} items={result.dataEstimated} color={tokens.amber} />
+          <DataColumn title={`Missing (${result.dataMissing.length})`}     items={result.dataMissing}   color={tokens.coral} />
+        </div>
+      </Collapsible>
+
+      {/* ── Computation notes ──────────────────────────────────────── */}
+      {result.notes.length > 0 && (
+        <Collapsible
+          open={showNotes}
+          onToggle={() => setShowNotes(v => !v)}
+          label={`Computation notes (${result.notes.length})`}
+          subdued
+        >
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {result.notes.map((n, i) => (
+              <li key={i} style={{ fontSize: 11.5, color: tokens.inkMuted, lineHeight: 1.6, paddingLeft: 14, position: "relative", marginBottom: 3 }}>
+                <span style={{ position: "absolute", left: 0, color: tokens.inkFaint }}>·</span>{n}
+              </li>
+            ))}
+          </ul>
+        </Collapsible>
+      )}
+
+      {/* ── Trajectory outperformance (post-publish only) ──────────── */}
+      {result.trajectory && (
+        <Collapsible
+          open={showTrajectory}
+          onToggle={() => setShowTrajectory(v => !v)}
+          label="Trajectory vs creator baseline"
+          subdued
+        >
+          <OutperformanceStrip trajectory={result.trajectory} baseline={result.baseline!} />
+        </Collapsible>
+      )}
+
+      {/* ── Forecast log — manual prediction records ─────────────── */}
       <ForecastLogSection
         video={video}
         platform={platform}
@@ -577,45 +742,12 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
 // ═══════════════════════════════════════════════════════════════════════════
 // SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
-
-function Header({ result, confColor, conf }: { result: ReturnType<typeof forecast>; confColor: string; conf: string }) {
-  return (
-    <div className="flex items-baseline justify-between">
-      <div>
-        <div style={{ fontSize: 11, color: "#6B6964", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
-          View Forecast
-        </div>
-        <h3 style={{ fontSize: 17, fontWeight: 500, color: "#E8E6E1" }}>
-          {result.trajectory ? "Where this is heading" : "Expected performance"}
-        </h3>
-      </div>
-      <div className="flex items-center gap-2" style={{ fontSize: 11, fontFamily: "IBM Plex Mono, monospace" }}>
-        <span style={{ color: "#6B6964" }}>Confidence:</span>
-        <span style={{ color: confColor, fontWeight: 600, textTransform: "uppercase" }}>{conf}</span>
-      </div>
-    </div>
-  );
-}
-
-function MilestoneCard({ label, data, color, emphasise }: { label: string; data: { low: number; median: number; high: number }; color: string; emphasise?: boolean }) {
-  return (
-    <div
-      style={{
-        background: emphasise ? "rgba(255,213,79,0.06)" : "rgba(255,255,255,0.03)",
-        border: `1px solid ${emphasise ? "rgba(255,213,79,0.25)" : "rgba(255,255,255,0.06)"}`,
-        borderRadius: 10, padding: 14,
-      }}
-    >
-      <div style={{ fontSize: 11, color: "#6B6964", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 500, color, lineHeight: 1.1, marginBottom: 4 }}>
-        {formatNumber(data.median)}
-      </div>
-      <div style={{ fontSize: 11, color: "#8A8883", fontFamily: "IBM Plex Mono, monospace" }}>
-        {formatNumber(data.low)} – {formatNumber(data.high)}
-      </div>
-    </div>
-  );
-}
+//
+// Note: the old `Header` and `MilestoneCard` helpers were removed when V1
+// replaced them with an inline eyebrow header + ribbon chart hero. The
+// lifetime / 24h / 7d / 30d milestone numbers are now surfaced through the
+// ribbon chart's cumulative-share curve and the Custom Date Projection
+// picker, not a separate four-card grid.
 
 function DateProjectionCard({
   targetDate, onTargetDateChange, projection, publishedAt, horizonDays, currentViews,
@@ -992,45 +1124,305 @@ function TooltipRow({ label, content, color, mono, last }: { label: string; cont
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STYLES
+// V1 HELPERS — ribbon chart, column layout, pool coverage, tier display,
+// signals builder, collapsible section
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface RibbonChartProps {
+  platform:       Platform;
+  currentViews:   number;
+  ageHours:       number;
+  lifetimeMedian: number;
+  lifetimeLow:    number;
+  lifetimeHigh:   number;
+  tint:           string;
+}
+
+function RibbonChart({ platform, currentViews, ageHours, lifetimeMedian, lifetimeLow, lifetimeHigh, tint }: RibbonChartProps) {
+  const cfg = PLATFORM_CONFIG[platform];
+  const horizonHours = cfg.horizonDays * 24;
+  const W = 720, H = 160;
+  const pad = { l: 0, r: 0, t: 10, b: 10 };
+
+  // Sample the cumulative-share curve at 80 points across the horizon.
+  // The low / median / high ribbons scale the curve by the final-lifetime
+  // low / median / high — which lines up with how projectAtDate works.
+  const steps = 80;
+  const samples: Array<{ h: number; share: number }> = [];
+  for (let i = 0; i <= steps; i++) {
+    const h = (horizonHours * i) / steps;
+    samples.push({ h, share: cfg.cumulativeShare(h / 24) });
+  }
+
+  const maxViews = Math.max(lifetimeHigh, currentViews, 1);
+  const x = (h: number) => pad.l + (h / horizonHours) * (W - pad.l - pad.r);
+  const y = (v: number) => pad.t + (1 - v / maxViews) * (H - pad.t - pad.b);
+
+  const medianPts = samples.map(p => ({ x: x(p.h), y: y(p.share * lifetimeMedian) }));
+  const lowPts    = samples.map(p => ({ x: x(p.h), y: y(p.share * lifetimeLow) }));
+  const highPts   = samples.map(p => ({ x: x(p.h), y: y(p.share * lifetimeHigh) }));
+
+  const bandPath =
+    `M ${highPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L ")} ` +
+    `L ${lowPts.slice().reverse().map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L ")} Z`;
+  const medianPath = `M ${medianPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L ")}`;
+
+  const nowX = x(Math.min(ageHours, horizonHours));
+  const nowShare = cfg.cumulativeShare(Math.min(ageHours, horizonHours) / 24);
+  const nowY = y(nowShare * lifetimeMedian);
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: 160, display: "block" }}>
+      <path d={bandPath} fill={tint} opacity="0.16" />
+      <path d={medianPath} fill="none" stroke={tint} strokeWidth="1.5" opacity="0.9" />
+      {ageHours > 0 && (
+        <>
+          <line x1={nowX} x2={nowX} y1={pad.t} y2={H - pad.b} stroke={tokens.lineStrong} strokeDasharray="3 3" />
+          <circle cx={nowX} cy={nowY} r={3.5} fill={tint} />
+        </>
+      )}
+      <text x={W - 6} y={H - 14} textAnchor="end" fill={tokens.inkFaint}
+            fontFamily='IBM Plex Mono, monospace' fontSize="10">horizon</text>
+    </svg>
+  );
+}
+
+function Column({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div style={eyebrowStyle}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function PoolCoverageColumn({ pool }: { pool: PoolCoverageEntry[] }) {
+  const total = pool.reduce((s, p) => s + p.count, 0);
+  if (total === 0) {
+    return (
+      <div style={{ fontSize: 12, color: tokens.inkFaint, fontStyle: "italic" }}>
+        Reference pool empty. Analyze a few creators to populate.
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div style={{ fontSize: 22, fontWeight: 400, color: tokens.ink }}>
+        {formatNumber(total)}
+        <span style={{ color: tokens.inkFaint, fontSize: 14 }}> entries</span>
+      </div>
+      <div style={{ fontSize: 12, color: tokens.inkFaint, marginBottom: 14, fontFamily: "IBM Plex Mono, monospace" }}>
+        reference videos feeding the model
+      </div>
+      <div style={{ display: "flex", height: 6, borderRadius: 99, overflow: "hidden", background: tokens.line, marginBottom: 10 }}>
+        {pool.map(p => (
+          <div key={p.platform} style={{ flex: p.count / total, background: p.color, opacity: 0.55 }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {pool.map(p => (
+          <div key={p.platform} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontFamily: "IBM Plex Mono, monospace", color: tokens.inkDim }}>
+            <span style={{ width: 6, height: 6, borderRadius: 99, background: p.color }} />
+            <span style={{ flex: 1 }}>{p.label}</span>
+            <span style={{ color: tokens.inkFaint }}>{p.count}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Map a lifecycle-tier classification into display copy + colour for the
+// "Distribution stage" column. Handles the not-applicable case (YouTube LF
+// and X) with appropriate framing.
+function tierDisplay(
+  tier: ReturnType<typeof forecast>["lifecycleTier"],
+  platform: Platform,
+  t: typeof tokens,
+): { label: string; sublabel: string; rationale: string; color: string } {
+  if (!tier || tier.tier === "not-applicable") {
+    if (platform === "youtube") {
+      return {
+        label:     "Evergreen",
+        sublabel:  "not tier-gated",
+        rationale: "Long-form evergreen — tier classifier does not apply. Search + suggested feed will continue to deliver views for months.",
+        color:     t.sky,
+      };
+    }
+    if (platform === "x") {
+      return {
+        label:     "Time-decay",
+        sublabel:  "not tier-gated",
+        rationale: "X distribution follows a ~6-hour half-life — tier classifier does not apply. Most lifetime views are already locked in.",
+        color:     t.inkMuted,
+      };
+    }
+    return {
+      label:     "Pending",
+      sublabel:  "awaiting signal",
+      rationale: tier?.rationale ?? "No tier signal yet — need more velocity samples or a publish timestamp.",
+      color:     t.inkMuted,
+    };
+  }
+  const palette: Record<string, string> = {
+    "tier-1-hook":    t.violet,
+    "tier-1-stuck":   t.coral,
+    "tier-2-rising":  t.sky,
+    "tier-2-stuck":   t.amber,
+    "tier-3-viral":   t.teal,
+    "tier-4-plateau": t.amber,
+  };
+  const labels: Record<string, { label: string; sublabel: string }> = {
+    "tier-1-hook":    { label: "Tier 1 · Hook test",    sublabel: "still in test window" },
+    "tier-1-stuck":   { label: "Tier 1 · Stuck",        sublabel: "failed the hook gate" },
+    "tier-2-rising":  { label: "Tier 2 · Rising",       sublabel: "retention push active" },
+    "tier-2-stuck":   { label: "Tier 2 · Stuck",        sublabel: "retention tier stalled" },
+    "tier-3-viral":   { label: "Tier 3 · Viral",        sublabel: "scaling" },
+    "tier-4-plateau": { label: "Tier 4 · Plateau",      sublabel: "audience saturated" },
+  };
+  const l = labels[tier.tier] ?? { label: tier.tier, sublabel: tier.confidence };
+  return { ...l, rationale: tier.rationale, color: palette[tier.tier] ?? t.ink };
+}
+
+// Build the "How we got here" signal list from the real forecast result.
+// Returns at most 4 k/v pairs to keep the footer clean.
+function buildSignals(
+  result:   ReturnType<typeof forecast>,
+  repMult:  number,
+): Array<{ k: string; v: string; tone: "pos" | "neg" | "neutral" }> {
+  const out: Array<{ k: string; v: string; tone: "pos" | "neg" | "neutral" }> = [];
+  out.push({
+    k:    "Score",
+    v:    result.scoreMultiplier.score.toFixed(0),
+    tone: result.scoreMultiplier.score >= 65 ? "pos" : result.scoreMultiplier.score < 40 ? "neg" : "neutral",
+  });
+  if (Math.abs(repMult - 1) > 0.02) {
+    out.push({
+      k:    "Reputation",
+      v:    `×${repMult.toFixed(2)}`,
+      tone: repMult > 1.02 ? "pos" : repMult < 0.98 ? "neg" : "neutral",
+    });
+  }
+  if (result.trajectory) {
+    out.push({
+      k:    "Trajectory",
+      v:    `${result.trajectory.outperformance.toFixed(2)}×`,
+      tone: result.trajectory.outperformance >= 1.15 ? "pos" : result.trajectory.outperformance < 0.85 ? "neg" : "neutral",
+    });
+  }
+  if (result.baseline?.median) {
+    out.push({
+      k:    "Baseline",
+      v:    formatNumber(result.baseline.median),
+      tone: "neutral",
+    });
+  }
+  return out.slice(0, 4);
+}
+
+// Collapsible section wrapper — consistent chevron + label styling.
+function Collapsible({
+  open, onToggle, label, accent, prominent, subdued, children,
+}: {
+  open:      boolean;
+  onToggle:  () => void;
+  label:     string;
+  accent?:   string;
+  prominent?: boolean;
+  subdued?:   boolean;
+  children:  React.ReactNode;
+}) {
+  const buttonStyle: React.CSSProperties = prominent
+    ? {
+        background: accent ? `${accent}22` : "rgba(155,135,232,0.08)",
+        border: `1px solid ${accent ? `${accent}44` : "rgba(155,135,232,0.25)"}`,
+        color: accent ?? tokens.violet,
+        padding: "8px 14px", borderRadius: 6, fontSize: 12.5,
+        fontWeight: 500, cursor: "pointer", width: "100%", textAlign: "left" as const,
+        fontFamily: "inherit",
+      }
+    : {
+        background: "none", border: "none",
+        color: subdued ? tokens.inkFaint : tokens.inkMuted,
+        fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase" as const,
+        cursor: "pointer", padding: 0, fontFamily: "inherit", textAlign: "left" as const,
+      };
+  return (
+    <div style={{ borderTop: `1px solid ${tokens.line}`, paddingTop: prominent ? 12 : 10 }}>
+      <button onClick={onToggle} style={buttonStyle}>
+        {open ? "▾" : "▸"}  {label}
+      </button>
+      {open && (
+        <div style={{ marginTop: 12 }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STYLES — V1 "Editorial" tokens
 // ═══════════════════════════════════════════════════════════════════════════
 
 const panelStyle: React.CSSProperties = {
-  background: "rgba(10,10,8,0.85)",
-  backdropFilter: "blur(16px)",
-  border: "1px solid rgba(255,255,255,0.09)",
-  borderRadius: 14, padding: 20,
-  display: "flex", flexDirection: "column", gap: 16,
+  background: tokens.bg,
+  border: `1px solid ${tokens.line}`,
+  borderRadius: 10, padding: "32px 36px",
+  display: "flex", flexDirection: "column", gap: 28,
+  color: tokens.ink,
+  fontFamily: "IBM Plex Sans, sans-serif",
+};
+
+const heroNumberStyle: React.CSSProperties = {
+  fontFamily: "IBM Plex Sans, sans-serif",
+  fontWeight: 300,
+  fontSize: 96,
+  lineHeight: 0.95,
+  letterSpacing: "-0.03em",
+  color: tokens.ink,
 };
 
 const boxStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.02)",
-  border: "1px solid rgba(255,255,255,0.06)",
-  borderRadius: 8, padding: 12,
+  background: tokens.surface,
+  border: `1px solid ${tokens.line}`,
+  borderRadius: 8, padding: 14,
 };
 
 const eyebrowStyle: React.CSSProperties = {
-  fontSize: 10, color: "#6B6964", letterSpacing: "0.12em",
+  fontSize: 10, color: tokens.inkFaint, letterSpacing: "0.14em",
   textTransform: "uppercase", marginBottom: 8,
+  fontFamily: "IBM Plex Mono, monospace",
 };
 
 const mutedStyle: React.CSSProperties = {
-  fontSize: 11, color: "#6B6964", marginRight: 4,
+  fontSize: 11, color: tokens.inkFaint, marginRight: 4,
 };
 
 const noteStyle: React.CSSProperties = {
-  fontSize: 11.5, color: "#8A8883", fontStyle: "italic",
-  padding: "7px 10px", background: "rgba(255,255,255,0.02)",
+  fontSize: 11.5, color: tokens.inkMuted, fontStyle: "italic",
+  padding: "7px 10px", background: tokens.surface,
   borderRadius: 6, lineHeight: 1.5,
+  border: `1px solid ${tokens.line}`,
 };
 
 const inputStyle: React.CSSProperties = {
-  flex: 1, background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  flex: 1, background: tokens.surfaceHi,
+  border: `1px solid ${tokens.lineStrong}`,
   borderRadius: 4, padding: "5px 9px",
-  fontSize: 12, color: "#E8E6E1",
+  fontSize: 12, color: tokens.ink,
   fontFamily: "IBM Plex Mono, monospace",
   outline: "none", maxWidth: 140,
+};
+
+const aiBadgeStyle: React.CSSProperties = {
+  fontSize: 11.5, color: tokens.inkDim, lineHeight: 1.5,
+  padding: "8px 10px", borderRadius: 6, border: `1px solid ${tokens.line}`,
+};
+
+const monoInk: React.CSSProperties = {
+  fontFamily: "IBM Plex Mono, monospace",
+  color: tokens.ink,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
