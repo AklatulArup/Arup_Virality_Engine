@@ -147,6 +147,11 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
 
   const [targetDate, setTargetDate] = useState<string>(defaultTargetDate);
 
+  // Reset the target date whenever the analyzed video changes so the picker
+  // doesn't stay stuck at the previous video's publish+30d default
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setTargetDate(defaultTargetDate); }, [defaultTargetDate]);
+
   const dateProjection = useMemo<DateProjection | null>(() => {
     if (!targetDate) return null;
     const d = new Date(targetDate + "T12:00:00");
@@ -314,6 +319,15 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
           )}
         </div>
       )}
+
+      {/* ── Forecast log — manual prediction records ─────────────────── */}
+      <ForecastLogSection
+        video={video}
+        platform={platform}
+        targetDate={targetDate}
+        dateProjection={dateProjection}
+        lifetimeForecast={result.lifetime}
+      />
     </div>
   );
 }
@@ -706,4 +720,246 @@ const inputStyle: React.CSSProperties = {
   fontSize: 12, color: "#E8E6E1",
   fontFamily: "IBM Plex Mono, monospace",
   outline: "none", maxWidth: 140,
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FORECAST LOG — manual prediction records
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// A tab where the RM can save a forecast snapshot for future accountability:
+// "I predicted on 20 Apr that this video would hit 152K by 17 May."
+// Saves to KV via /api/forecast/log. Survives across devices and sessions.
+
+interface ForecastLogEntry {
+  id:             string;
+  recordedAt:     string;
+  analyzedAt:     string;
+  targetDate:     string;
+  videoId?:       string;
+  videoUrl?:      string;
+  videoTitle?:    string;
+  platform:       string;
+  creatorHandle?: string;
+  lowViews:       number;
+  expectedViews:  number;
+  highViews:      number;
+  currentViewsAtAnalysis?: number;
+  notes?:         string;
+}
+
+function ForecastLogSection({
+  video, platform, targetDate, dateProjection, lifetimeForecast,
+}: {
+  video: { id?: string; url?: string; title?: string; views?: number; channel?: string };
+  platform: Platform;
+  targetDate: string;
+  dateProjection: DateProjection | null;
+  lifetimeForecast: { low: number; median: number; high: number };
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [entries, setEntries] = React.useState<ForecastLogEntry[]>([]);
+  const [saving, setSaving] = React.useState(false);
+  const [notes, setNotes] = React.useState("");
+  const [justSaved, setJustSaved] = React.useState(false);
+
+  // Load existing entries on mount / when opened
+  React.useEffect(() => {
+    if (!open) return;
+    fetch("/api/forecast/log")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (d?.ok && Array.isArray(d.entries)) setEntries(d.entries);
+      })
+      .catch(() => {});
+  }, [open, justSaved]);
+
+  // Default to the date projection if picked, otherwise lifetime
+  const useDateProjection = dateProjection && !dateProjection.beforePublish;
+  const low    = useDateProjection ? dateProjection.low    : lifetimeForecast.low;
+  const exp    = useDateProjection ? dateProjection.median : lifetimeForecast.median;
+  const high   = useDateProjection ? dateProjection.high   : lifetimeForecast.high;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/forecast/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          analyzedAt:     new Date().toISOString(),
+          targetDate:     targetDate,
+          videoId:        video.id,
+          videoUrl:       video.url,
+          videoTitle:     video.title,
+          platform:       platform,
+          creatorHandle:  video.channel,
+          lowViews:       low,
+          expectedViews:  exp,
+          highViews:      high,
+          currentViewsAtAnalysis: video.views,
+          notes:          notes.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        setNotes("");
+        setJustSaved((v) => !v);
+      }
+    } catch {
+      /* silent */
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await fetch(`/api/forecast/log?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      setEntries((prev) => prev.filter(e => e.id !== id));
+    } catch {
+      /* silent */
+    }
+  };
+
+  return (
+    <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{ background: "none", border: "none", color: "#A78BFA", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", padding: 0, fontFamily: "inherit", fontWeight: 500 }}
+      >
+        {open ? "▾" : "▸"}  Forecast log {entries.length > 0 && <span style={{ color: "#6B6964" }}>({entries.length})</span>}
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 12 }}>
+          {/* Record section */}
+          <div style={{
+            background: "rgba(167,139,250,0.04)",
+            border: "1px solid rgba(167,139,250,0.18)",
+            borderRadius: 8, padding: "12px 14px", marginBottom: 12,
+          }}>
+            <div style={{ fontSize: 10, color: "#A78BFA", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
+              Record this prediction
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 10 }}>
+              <LogCell label="Low end"  value={formatNumber(low)}  color="#F59E0B" />
+              <LogCell label="Expected" value={formatNumber(exp)}  color="#A78BFA" />
+              <LogCell label="High end" value={formatNumber(high)} color="#2ECC8A" />
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 8, fontSize: 11, color: "#8A8883", fontFamily: "IBM Plex Mono, monospace" }}>
+              <span>Target: <strong style={{ color: "#E8E6E1" }}>{targetDate || "—"}</strong></span>
+              <span style={{ color: "#3A3835" }}>·</span>
+              <span>Platform: <strong style={{ color: "#E8E6E1" }}>{platform}</strong></span>
+              {video.title && <><span style={{ color: "#3A3835" }}>·</span><span>{video.title.slice(0, 50)}{video.title.length > 50 ? "…" : ""}</span></>}
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <input
+                type="text"
+                placeholder="Optional notes…"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                style={{
+                  flex: 1,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 6, padding: "7px 10px",
+                  fontSize: 12, color: "#E8E6E1",
+                  fontFamily: "IBM Plex Mono, monospace",
+                  outline: "none",
+                }}
+              />
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                style={{
+                  background: saving ? "rgba(167,139,250,0.15)" : "rgba(167,139,250,0.2)",
+                  border: "1px solid rgba(167,139,250,0.5)",
+                  color: "#C4B5FD",
+                  padding: "6px 14px",
+                  borderRadius: 6, fontSize: 11,
+                  fontWeight: 500, cursor: saving ? "default" : "pointer",
+                  fontFamily: "inherit", whiteSpace: "nowrap",
+                }}
+              >
+                {saving ? "Saving…" : "Log prediction"}
+              </button>
+            </div>
+          </div>
+
+          {/* Entries table */}
+          {entries.length > 0 ? (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                    {["Recorded", "Analyzed", "Target", "Video", "Platform", "Low", "Expected", "High", "Notes", ""].map(h => (
+                      <th key={h} style={{ textAlign: "left", padding: "6px 8px", color: "#6B6964", fontFamily: "IBM Plex Mono, monospace", fontWeight: 500, fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {entries.map((e) => (
+                    <tr key={e.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                      <td style={tdStyle}>{fmtDate(e.recordedAt)}</td>
+                      <td style={tdStyle}>{fmtDate(e.analyzedAt)}</td>
+                      <td style={tdStyle}>{e.targetDate}</td>
+                      <td style={{ ...tdStyle, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {e.videoUrl
+                          ? <a href={e.videoUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#60A5FA" }}>{e.videoTitle || e.videoUrl}</a>
+                          : <span style={{ color: "#8A8883" }}>{e.videoTitle || "—"}</span>
+                        }
+                      </td>
+                      <td style={{ ...tdStyle, color: "#8A8883" }}>{e.platform}</td>
+                      <td style={{ ...tdStyle, color: "#F59E0B", fontFamily: "IBM Plex Mono, monospace" }}>{formatNumber(e.lowViews)}</td>
+                      <td style={{ ...tdStyle, color: "#A78BFA", fontFamily: "IBM Plex Mono, monospace", fontWeight: 500 }}>{formatNumber(e.expectedViews)}</td>
+                      <td style={{ ...tdStyle, color: "#2ECC8A", fontFamily: "IBM Plex Mono, monospace" }}>{formatNumber(e.highViews)}</td>
+                      <td style={{ ...tdStyle, color: "#8A8883", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.notes || ""}</td>
+                      <td style={{ ...tdStyle, textAlign: "right" }}>
+                        <button
+                          onClick={() => handleDelete(e.id)}
+                          style={{ background: "none", border: "none", color: "#6B6964", fontSize: 11, cursor: "pointer", padding: "2px 6px" }}
+                          title="Delete this entry"
+                        >
+                          ×
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div style={{ fontSize: 11, color: "#6B6964", fontStyle: "italic", padding: "8px 2px" }}>
+              No predictions logged yet. Use the button above to record the current forecast.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LogCell({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div style={{ background: "rgba(0,0,0,0.22)", borderRadius: 6, padding: "8px 10px" }}>
+      <div style={{ fontSize: 9, color: "#6B6964", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 500, color, fontFamily: "IBM Plex Mono, monospace" }}>{value}</div>
+    </div>
+  );
+}
+
+function fmtDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "2-digit" });
+  } catch {
+    return iso;
+  }
+}
+
+const tdStyle: React.CSSProperties = {
+  padding: "6px 8px",
+  color: "#E8E6E1",
+  fontSize: 11,
+  verticalAlign: "top",
 };

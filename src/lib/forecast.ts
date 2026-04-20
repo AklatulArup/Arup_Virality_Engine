@@ -327,10 +327,21 @@ export function projectAtDate(
   let median = Math.round(result.lifetime.median * share);
   let high   = Math.round(result.lifetime.high   * share);
 
-  // Floor: projections can never be below current views (views don't go backwards)
-  low    = Math.max(low,    currentViews);
-  median = Math.max(median, currentViews);
-  high   = Math.max(high,   currentViews);
+  // Invariant: views can't go backwards. If current views already exceed the
+  // scaled projection, lift ALL three bands so low ≤ median ≤ high is preserved.
+  // Only applies when target date is in the future — past projections are
+  // retrospective and shouldn't be lifted.
+  const now = Date.now();
+  const targetInFuture = targetMs >= now;
+  if (targetInFuture && currentViews > 0) {
+    low    = Math.max(low,    currentViews);
+    median = Math.max(median, currentViews, low);
+    high   = Math.max(high,   currentViews, median);
+  } else {
+    // Past or equal-to-now projection: just enforce ordering in case of rounding
+    median = Math.max(median, low);
+    high   = Math.max(high,   median);
+  }
 
   return {
     low, median, high,

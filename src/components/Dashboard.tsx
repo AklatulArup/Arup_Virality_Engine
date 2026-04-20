@@ -2051,6 +2051,57 @@ export default function Dashboard() {
                         })}
                       </div>
 
+                      {/* ── Pool composition — horizontal stacked bar by platform ── */}
+                      {grand.current > 0 && (
+                        <div className="mb-5" style={{ padding: "12px 14px", borderRadius: 10, background: "rgba(0,0,0,0.18)", border: "1px solid rgba(255,255,255,0.04)" }}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-mono" style={{ fontSize: 9, color: "#6B6964", letterSpacing: "0.08em", textTransform: "uppercase" }}>Pool composition</div>
+                            <div className="font-mono" style={{ fontSize: 9, color: "#5E5A57" }}>by platform</div>
+                          </div>
+                          {/* Single stacked horizontal bar */}
+                          <div className="flex" style={{
+                            width: "100%", height: 10, borderRadius: 5, overflow: "hidden",
+                            background: "rgba(255,255,255,0.03)", marginBottom: 10,
+                          }}>
+                            {TIERS.map((t) => {
+                              const pct = (counts[t.key] / grand.current) * 100;
+                              if (pct === 0) return null;
+                              return (
+                                <div
+                                  key={t.key}
+                                  title={`${t.label}: ${counts[t.key].toLocaleString()} items (${pct.toFixed(1)}%)`}
+                                  style={{
+                                    width: `${pct}%`,
+                                    background: t.color,
+                                    boxShadow: `inset 0 0 6px ${t.color}88`,
+                                    transition: "width 0.7s cubic-bezier(0.16,1,0.3,1)",
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+                          {/* Legend */}
+                          <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+                            {TIERS.map((t) => {
+                              const c = counts[t.key];
+                              const pct = grand.current > 0 ? (c / grand.current) * 100 : 0;
+                              return (
+                                <div key={t.key} className="flex items-center justify-between" style={{ opacity: c === 0 ? 0.4 : 1 }}>
+                                  <div className="flex items-center gap-1.5">
+                                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.color, display: "inline-block", flexShrink: 0, boxShadow: c > 0 ? `0 0 4px ${t.color}80` : "none" }} />
+                                    <span className="font-mono" style={{ fontSize: 10, color: c === 0 ? "#5E5A57" : "#B8B6B1" }}>{t.short}</span>
+                                  </div>
+                                  <div className="flex items-baseline gap-1">
+                                    <span className="font-mono" style={{ fontSize: 10, color: c === 0 ? "#5E5A57" : "#E8E6E1", fontWeight: 500 }}>{pct.toFixed(1)}%</span>
+                                    <span className="font-mono" style={{ fontSize: 8.5, color: "#5E5A57" }}>{c.toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {/* ── Per-platform breakdown ── */}
                       <div className="font-mono mb-3" style={{ fontSize: 9, color: "#6B6964", letterSpacing: "0.08em", textTransform: "uppercase" }}>
                         Per platform
