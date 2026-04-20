@@ -21,7 +21,7 @@ interface HistoryEntry {
   previousSnapshot?: { checkedAt: string; metrics: Record<string, number | string> };
 }
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type {
   ModeId,
   VideoData,
@@ -186,19 +186,46 @@ export default function Dashboard({ headless = false }: DashboardProps = {}) {
   const [tagCorrelation, setTagCorrelation] = useState<TagCorrelationResult | null>(null);
   const [uploadCadence, setUploadCadence] = useState<UploadCadenceResult | null>(null);
 
-  // Headless-mode handoff: when embedded inside NewDashboard, the new
-  // TopBar writes the URL to sessionStorage and navigates us to the
-  // forecast route. On mount we check for that pending URL, clear it, and
-  // kick off the analyze pipeline automatically so there's no orphan state.
+  // Headless-mode handoff — two paths, both needed:
+  //
+  //  A) COLD MOUNT path (sessionStorage). User was on Landing/Reverse/etc.,
+  //     clicks Analyze in the new TopBar. TopBar writes the URL to
+  //     sessionStorage and switches route to forecast. Dashboard mounts,
+  //     reads + clears the key, fires analyze().
+  //
+  //  B) HOT re-trigger path (event). Dashboard is already mounted (user is
+  //     on the forecast route). Pasting a new URL doesn't remount, so (A)
+  //     alone wouldn't fire. NewDashboard also dispatches a
+  //     `ve:analyze-url` CustomEvent; the listener below catches it and
+  //     calls analyze() directly. The analyzeRef keeps the listener calling
+  //     the latest `analyze` closure without reinstalling on every render.
+  const analyzeRef = useRef<(url: string) => Promise<void>>(async () => {});
+
+  // Path A: cold mount
   useEffect(() => {
     if (!headless || typeof window === "undefined") return;
     const pending = window.sessionStorage.getItem("ve_pending_analyze");
     if (!pending) return;
     window.sessionStorage.removeItem("ve_pending_analyze");
-    // Defer to next tick so analyze() closure captures fully-initialised state.
-    const t = setTimeout(() => { analyze(pending).catch(() => {}); }, 0);
+    const t = setTimeout(() => { analyzeRef.current(pending).catch(() => {}); }, 0);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [headless]);
+
+  // Path B: hot re-trigger via event
+  useEffect(() => {
+    if (!headless || typeof window === "undefined") return;
+    const h = (e: Event) => {
+      const detail = (e as CustomEvent<{ url?: string }>).detail;
+      if (detail?.url) {
+        // Clear any stale cold-mount sessionStorage so we don't double-fire
+        // if a remount happens right after.
+        window.sessionStorage.removeItem("ve_pending_analyze");
+        analyzeRef.current(detail.url).catch(() => {});
+      }
+    };
+    window.addEventListener("ve:analyze-url", h);
+    return () => window.removeEventListener("ve:analyze-url", h);
   }, [headless]);
 
   // Load reference store and keyword bank on mount
@@ -950,6 +977,12 @@ export default function Dashboard({ headless = false }: DashboardProps = {}) {
 
     setLoading(false);
   };
+
+  // Keep analyzeRef pointing at the freshest `analyze` closure every render
+  // so the `ve:analyze-url` window listener always invokes the latest
+  // function (with up-to-date state bindings). Runs after every render —
+  // cheap, no deps needed.
+  useEffect(() => { analyzeRef.current = analyze; });
 
   // ─── Instagram Save Handler ───
   const saveInstagram = async (inputs: string[]) => {

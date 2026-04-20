@@ -116,13 +116,16 @@ export default function NewDashboard() {
   }, []);
 
   const handleAnalyze = (url: string) => {
-    // Hand the URL off to the embedded headless legacy Dashboard via a
-    // sessionStorage signal. When it mounts (or if it's already mounted
-    // and we're just triggering again), it reads+clears the key and calls
-    // analyze() directly. Avoids prop-drilling through a 2,300-line file.
-    if (typeof window !== "undefined" && url) {
-      window.sessionStorage.setItem("ve_pending_analyze", url);
-    }
+    if (!url || typeof window === "undefined") return;
+    // Two paths so it works whether Dashboard is already mounted or not:
+    //  1. sessionStorage — for COLD mount (user was on Landing, first click).
+    //  2. custom event    — for HOT re-trigger (Dashboard already mounted on
+    //                        the forecast route, user pastes a new URL).
+    // The event path fires synchronously so a listener installed in a
+    // currently-mounted Dashboard picks it up. The sessionStorage backup
+    // covers the case where the route switch remounts Dashboard fresh.
+    window.sessionStorage.setItem("ve_pending_analyze", url);
+    window.dispatchEvent(new CustomEvent("ve:analyze-url", { detail: { url } }));
     setRoute("forecast");
   };
 
