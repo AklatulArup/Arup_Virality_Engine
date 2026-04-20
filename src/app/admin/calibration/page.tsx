@@ -124,6 +124,9 @@ export default function CalibrationPage() {
         </section>
       )}
 
+      <ConformalPanel />
+      <TierDistributionPanel />
+
       {report && report.worstPredictions && report.worstPredictions.length > 0 && (
         <section>
           <SectionHeading>Worst 5 predictions</SectionHeading>
@@ -438,3 +441,212 @@ const appliedOverrideStyle: React.CSSProperties = {
   padding: "12px 14px",
   marginBottom: 8,
 };
+
+// ─── CONFORMAL INTERVALS PANEL ────────────────────────────────────────────
+
+interface ConformalStratum {
+  n: number;
+  qLow80: number;
+  qHigh80: number;
+  qLow90: number;
+  qHigh90: number;
+  medianResidual: number;
+  scoreMin?: number;
+  scoreMax?: number;
+}
+interface ConformalTableData {
+  computedAt:   string;
+  sampleCount:  number;
+  minStratumN:  number;
+  byPlatform:   Record<string, { pooled: ConformalStratum; byScoreBand: ConformalStratum[] }>;
+}
+
+function ConformalPanel() {
+  const [table, setTable]     = useState<ConformalTableData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy]       = useState(false);
+  const [error, setError]     = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/forecast/conformal")
+      .then(r => r.json())
+      .then(d => { if (d?.ok) setTable(d.table ?? null); })
+      .catch(e => setError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const recompute = async () => {
+    setBusy(true); setError(null);
+    try {
+      const r = await fetch("/api/forecast/conformal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "recompute" }),
+      });
+      const d = await r.json();
+      if (d?.ok) { setTable(d.table ?? null); }
+      else       { setError(d?.error ?? d?.reason ?? "recompute failed"); }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section style={{ marginBottom: 28 }}>
+      <SectionHeading>Conformal intervals</SectionHeading>
+      <div style={{ fontSize: 12, color: "#A8A6A1", marginBottom: 10, lineHeight: 1.55 }}>
+        Empirical quantile bands learned from log-residuals per (platform × score band). Strata with at least {table?.minStratumN ?? 20} samples replace the hand-tuned upside/downside multipliers on live forecasts. Auto-recomputes nightly after collect-outcomes.
+      </div>
+
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, fontSize: 11.5, color: "#8A8883", fontFamily: "IBM Plex Mono, monospace" }}>
+        <span>Last computed: <span style={{ color: "#E8E6E1" }}>{table?.computedAt ? new Date(table.computedAt).toLocaleString() : "never"}</span></span>
+        <span>· Total samples: <span style={{ color: "#E8E6E1" }}>{table?.sampleCount ?? 0}</span></span>
+        <button onClick={recompute} disabled={busy} style={{ ...buttonSecondaryStyle, marginLeft: "auto", opacity: busy ? 0.5 : 1 }}>
+          {busy ? "Recomputing…" : "Recompute now"}
+        </button>
+      </div>
+      {error && (
+        <div style={{ fontSize: 11, color: "#FF6B7A", marginBottom: 8 }}>Error: {error}</div>
+      )}
+
+      {loading ? (
+        <div style={{ fontSize: 12, color: "#6B6964" }}>Loading…</div>
+      ) : !table || Object.keys(table.byPlatform).length === 0 ? (
+        <div style={{ fontSize: 12, color: "#6B6964", fontStyle: "italic" }}>
+          No table computed yet. Needs at least one matured outcome per platform — the nightly cron will populate this automatically, or click &quot;Recompute now&quot; to force a rebuild.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
+          {Object.entries(table.byPlatform).map(([platform, pt]) => (
+            <div key={platform} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "#E8E6E1", marginBottom: 10 }}>
+                {PLATFORM_LABELS[platform as Platform] ?? platform}
+              </div>
+              <div style={{ fontSize: 11, color: "#6B6964", marginBottom: 6 }}>Pooled (all scores)</div>
+              <StratumRow s={pt.pooled} minN={table.minStratumN} />
+              <div style={{ fontSize: 11, color: "#6B6964", margin: "10px 0 6px" }}>By score band</div>
+              {pt.byScoreBand.map((b, i) => (
+                <div key={i} style={{ marginBottom: 4 }}>
+                  <div style={{ fontSize: 10, color: "#8A8883", fontFamily: "IBM Plex Mono, monospace", marginBottom: 2 }}>
+                    Score {b.scoreMin}–{b.scoreMax}
+                  </div>
+                  <StratumRow s={b} minN={table.minStratumN} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function StratumRow({ s, minN }: { s: ConformalStratum; minN: number }) {
+  const active = s.n >= minN;
+  const multLow80  = Math.exp(s.qLow80).toFixed(2);
+  const multHigh80 = Math.exp(s.qHigh80).toFixed(2);
+  return (
+    <div style={{ fontSize: 10.5, fontFamily: "IBM Plex Mono, monospace", display: "flex", gap: 8, color: active ? "#E8E6E1" : "#6B6964" }}>
+      <span>n={s.n}{active ? " ✓" : ""}</span>
+      <span>·</span>
+      <span>80% CI: ×{multLow80}–×{multHigh80}</span>
+      <span>·</span>
+      <span style={{ color: Math.abs(s.medianResidual) > 0.2 ? "#F59E0B" : undefined }}>
+        bias {(Math.exp(s.medianResidual) * 100 - 100).toFixed(0)}%
+      </span>
+    </div>
+  );
+}
+
+// ─── TIER DISTRIBUTION PANEL ──────────────────────────────────────────────
+
+interface TierBucketData {
+  tier: string;
+  n: number;
+  avgPredictedLifetime: number;
+  sampleMedianActual: number | null;
+  mdAPE: number | null;
+}
+interface TierStatsData {
+  ok:            boolean;
+  byPlatform:    Array<{ platform: Platform; total: number; buckets: TierBucketData[] }>;
+  totalAnalysed: number;
+  note?:         string;
+}
+
+function TierDistributionPanel() {
+  const [stats, setStats]     = useState<TierStatsData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/forecast/tier-stats")
+      .then(r => r.json())
+      .then((d: TierStatsData) => { setStats(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  return (
+    <section style={{ marginBottom: 28 }}>
+      <SectionHeading>Lifecycle tier distribution</SectionHeading>
+      <div style={{ fontSize: 12, color: "#A8A6A1", marginBottom: 10, lineHeight: 1.55 }}>
+        How short-form forecasts distribute across tier-1-hook / tier-1-stuck / tier-2-rising / tier-2-stuck / tier-3-viral / tier-4-plateau. The classifier only clamps down — if most snapshots land in rising/viral tiers, we&apos;re rarely clamping. If stuck/plateau dominate, we&apos;re saving RMs from optimistic trajectory projections.
+      </div>
+
+      {loading ? (
+        <div style={{ fontSize: 12, color: "#6B6964" }}>Loading…</div>
+      ) : !stats?.ok || stats.byPlatform.length === 0 ? (
+        <div style={{ fontSize: 12, color: "#6B6964", fontStyle: "italic" }}>
+          No tier-labelled snapshots yet. The field is populated on every new forecast — data will accumulate from this deploy forward.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 10 }}>
+          {stats.byPlatform.map(({ platform, total, buckets }) => (
+            <div key={platform} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "#E8E6E1", marginBottom: 8 }}>
+                {PLATFORM_LABELS[platform]} <span style={{ color: "#6B6964", fontFamily: "IBM Plex Mono, monospace", fontWeight: 400 }}>({total})</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {buckets.map(b => (
+                  <TierBucketRow key={b.tier} bucket={b} totalInPlatform={total} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {stats?.note && (
+        <div style={{ fontSize: 10.5, color: "#6B6964", marginTop: 10, fontStyle: "italic" }}>{stats.note}</div>
+      )}
+    </section>
+  );
+}
+
+function TierBucketRow({ bucket, totalInPlatform }: { bucket: TierBucketData; totalInPlatform: number }) {
+  const pct = totalInPlatform > 0 ? (bucket.n / totalInPlatform) * 100 : 0;
+  const tierColor =
+    bucket.tier.startsWith("tier-1-hook")    ? "#8A8883" :
+    bucket.tier.startsWith("tier-1-stuck")   ? "#FF6B7A" :
+    bucket.tier.startsWith("tier-2-stuck")   ? "#F59E0B" :
+    bucket.tier.startsWith("tier-2-rising")  ? "#60A5FA" :
+    bucket.tier.startsWith("tier-3-viral")   ? "#2ECC8A" :
+    bucket.tier.startsWith("tier-4-plateau") ? "#A78BFA" :
+                                                "#6B6964";
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "115px 40px 1fr 70px 60px", gap: 8, alignItems: "center", fontSize: 10.5, fontFamily: "IBM Plex Mono, monospace" }}>
+      <span style={{ color: tierColor }}>{bucket.tier}</span>
+      <span style={{ color: "#E8E6E1", textAlign: "right" }}>{bucket.n}</span>
+      <div style={{ height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 3, overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: tierColor, opacity: 0.7 }} />
+      </div>
+      <span style={{ color: "#8A8883", textAlign: "right" }}>{pct.toFixed(0)}%</span>
+      <span style={{ color: bucket.mdAPE == null ? "#6B6964" : "#E8E6E1", textAlign: "right" }}>
+        {bucket.mdAPE == null ? "—" : `${(bucket.mdAPE * 100).toFixed(0)}%`}
+      </span>
+    </div>
+  );
+}

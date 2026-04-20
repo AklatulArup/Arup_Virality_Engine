@@ -53,6 +53,12 @@ export interface ForecastSnapshot {
 
   // Manual inputs provided (we learn which inputs actually help)
   manualInputsProvided: string[];      // list of field keys that were non-null
+
+  // Lifecycle tier at forecast time (TikTok / IG / Shorts only; null elsewhere
+  // and for snapshots recorded before this field was added). Populated from
+  // forecast.lifecycleTier so we can observe the tier classifier's behaviour
+  // on historical forecasts without re-running it.
+  lifecycleTier?: string | null;
 }
 
 export interface CalibrationReport {
@@ -174,6 +180,7 @@ export function recordForecast(params: {
     confidenceScore:   params.forecast.confidence.score,
     outcomes:          [],
     manualInputsProvided: params.manualInputsProvided,
+    lifecycleTier:     params.forecast.lifecycleTier?.tier ?? null,
   };
 
   // 1) Persist locally (per-device cache for offline calibration views)

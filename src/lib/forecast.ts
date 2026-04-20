@@ -63,6 +63,10 @@ export interface ForecastInput {
   nicheMultiplier?: number;
   nicheLabel?: string;
   nicheRationale?: string;
+  // Optional: creator reputation multiplier (see src/lib/reputation.ts).
+  // Applied to baseline alongside seasonality and niche. Clamped to [0.7, 1.25].
+  reputationMultiplier?: number;
+  reputationRationale?:  string;
   // Optional: platform config parameter overrides (from tuning admin page)
   configOverrides?: Record<string, Partial<{
     upsideMultiplier:   number;
@@ -495,6 +499,16 @@ function applyManualAdjustments(
     tightenFactor *= 0.9;
   }
 
+  if (platform === "instagram" && manual.igHold3s != null) {
+    // 3-sec hold is the audition-phase gate on Reels. <60% = Explore
+    // exclusion; 80%+ = algorithm expansion. Shape: harsh below 60, steady
+    // reward above 60, capped upside at very high hold.
+    const h = manual.igHold3s;
+    if (h >= 60) adj *= 1 + Math.min(0.5, (h - 60) * 0.015);
+    else         adj *= 0.5 + (h / 60) * 0.5;
+    tightenFactor *= 0.85;
+  }
+
   if ((platform === "youtube" || platform === "youtube_short") && manual.ytAVDpct != null) {
     const a = manual.ytAVDpct;
     // AVD is ~50% of YT formula
@@ -827,7 +841,11 @@ export function forecast(input: ForecastInput): Forecast {
   // the creator's effective median before the score multiplier range is applied.
   const seasonality = input.seasonalityMultiplier ?? 1.0;
   const nicheMult   = input.nicheMultiplier ?? 1.0;
-  const adjustedBaseline = baseline.median * seasonality * nicheMult;
+  // Reputation is clamped defensively here in case a caller passes an
+  // out-of-range value — the module itself also clamps, but we don't trust it
+  // blindly.
+  const reputationMult = Math.max(0.70, Math.min(1.25, input.reputationMultiplier ?? 1.0));
+  const adjustedBaseline = baseline.median * seasonality * nicheMult * reputationMult;
 
   // Comment sentiment adjusts the UPSIDE specifically — positive sentiment
   // widens the high band (algorithm promotes), negative sentiment compresses it.
@@ -928,6 +946,10 @@ export function forecast(input: ForecastInput): Forecast {
   if (input.nicheLabel) {
     notes.push(`Creator niche: ${input.nicheLabel}${input.nicheMultiplier && input.nicheMultiplier !== 1 ? ` (${input.nicheMultiplier.toFixed(2)}× baseline)` : ""}.`);
     if (input.nicheRationale) notes.push(`  · ${input.nicheRationale}`);
+  }
+  if (input.reputationMultiplier != null && Math.abs(input.reputationMultiplier - 1) > 0.02) {
+    notes.push(`Creator reputation: ${input.reputationMultiplier.toFixed(2)}× baseline.`);
+    if (input.reputationRationale) notes.push(`  · ${input.reputationRationale}`);
   }
   if (trajectory) {
     notes.push(`Trajectory blend weight: ${(trajectory.blendWeight * 100).toFixed(0)}% observed vs ${((1-trajectory.blendWeight) * 100).toFixed(0)}% prior.`);

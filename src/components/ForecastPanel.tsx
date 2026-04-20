@@ -7,6 +7,7 @@ import { INPUT_TOOLTIPS, type InputTooltip } from "@/lib/input-tooltips";
 import { recordForecast } from "@/lib/forecast-learning";
 import { computeDayOfWeekProfile, fetchMarketVolatility, combineSeasonality, type DayOfWeekProfile, type MarketVolatilityProfile } from "@/lib/seasonality";
 import { classifyCreatorNiche, nicheAdjustment } from "@/lib/niche-classifier";
+import { assessCreatorReputation } from "@/lib/reputation";
 import type { EnrichedVideo, VideoData } from "@/lib/types";
 import { formatNumber } from "@/lib/formatters";
 
@@ -26,6 +27,7 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
   // "provided manual inputs" confidence bump.
   const [aiEstimatedKeys, setAiEstimatedKeys] = useState<Set<keyof ManualInputs>>(new Set());
   const [thumbnailCTR, setThumbnailCTR] = useState<{ estimatedCTR: number; totalPoints: number; maxPoints: number; rationale: string; ctrConfidence: string } | null>(null);
+  const [hookStrength, setHookStrength] = useState<{ totalPoints: number; maxPoints: number; percent: number; dominantFormula: string; confidence: string; rationale: string; estimatedCompletionPct: number; estimatedHold3sPct: number } | null>(null);
 
   // Fetch velocity time series for this video from the tracker cron store
   const [velocitySamples, setVelocitySamples] = useState<Array<{ ageHours: number; views: number; velocity: number; acceleration: number }>>([]);
@@ -66,6 +68,41 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video.thumbnail, platform]);
+
+  // Hook-strength predictor (TikTok / Instagram only). Gemini Vision scores
+  // the cover image + caption against the 5 hook formulas + visual/text craft
+  // dimensions, then maps the score to a platform-specific retention
+  // estimate: TikTok → ttCompletionPct (70% = viral gate), IG → igHold3s
+  // (60% = audition-gate). Same AI-estimate discipline as thumbnail-CTR.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (platform !== "tiktok" && platform !== "instagram") return;
+    if (!video.thumbnail) return;
+
+    const targetKey: keyof ManualInputs = platform === "tiktok" ? "ttCompletionPct" : "igHold3s";
+    if (manualInputs[targetKey] != null && !aiEstimatedKeys.has(targetKey)) return;
+
+    const caption = typeof video.title === "string" ? video.title : "";
+    const qs = new URLSearchParams({
+      url: video.thumbnail,
+      platform,
+      caption: caption.slice(0, 500),
+    });
+    fetch(`/api/hook/score?${qs.toString()}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d?.ok || !d.score) return;
+        const s = d.score as { totalPoints: number; maxPoints: number; percent: number; dominantFormula: string; confidence: string; rationale: string; estimatedCompletionPct: number; estimatedHold3sPct: number };
+        setHookStrength(s);
+        const autoValue = platform === "tiktok" ? s.estimatedCompletionPct : s.estimatedHold3sPct;
+        setManualInputs(prev => prev[targetKey] != null && !aiEstimatedKeys.has(targetKey)
+          ? prev
+          : { ...prev, [targetKey]: autoValue });
+        setAiEstimatedKeys(prev => new Set(prev).add(targetKey));
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [video.thumbnail, video.title, platform]);
 
   // Day-of-week profile — computed locally from creator history, no fetch
   const dowProfile: DayOfWeekProfile | null = useMemo(
@@ -120,6 +157,11 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
   // Niche classification from creator history (local, no API call)
   const niche = useMemo(() => classifyCreatorNiche(creatorHistory), [creatorHistory]);
   const nicheAdj = useMemo(() => nicheAdjustment(niche.niche), [niche.niche]);
+
+  // Creator reputation — local compute from engagement trend, recency, consistency.
+  // Baseline CV isn't available here (it's computed inside forecast()) so we pass
+  // undefined and reputation.ts works with just the trend + recency signals.
+  const reputation = useMemo(() => assessCreatorReputation({ creatorHistory }), [creatorHistory]);
 
   // Tuning overrides from admin page — applied on every forecast
   const [configOverrides, setConfigOverrides] = useState<Record<string, Record<string, number>>>({});
@@ -286,11 +328,13 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
       nicheMultiplier: nicheAdj.multiplier,
       nicheLabel: niche.niche,
       nicheRationale: niche.rationale,
+      reputationMultiplier: reputation.multiplier,
+      reputationRationale:  reputation.rationale,
       configOverrides,
       conformalTable,
       aiEstimatedKeys: Array.from(aiEstimatedKeys),
     }),
-    [video, creatorHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj, configOverrides, conformalTable, aiEstimatedKeys],
+    [video, creatorHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj, reputation, configOverrides, conformalTable, aiEstimatedKeys],
   );
 
   // Persist snapshot for later calibration — debounced: only once per video + inputs combo
@@ -481,6 +525,14 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
                 <div style={{ fontSize: 11.5, color: "#A8A6A1", lineHeight: 1.5, padding: "8px 10px", background: "rgba(96,165,250,0.06)", border: "1px solid rgba(96,165,250,0.2)", borderRadius: 6 }}>
                   <span style={{ color: "#60A5FA" }}>AI thumbnail score:</span> <span style={{ fontFamily: "IBM Plex Mono, monospace", color: "#E8E6E1" }}>{thumbnailCTR.totalPoints}/{thumbnailCTR.maxPoints}</span> → estimated CTR <span style={{ fontFamily: "IBM Plex Mono, monospace", color: "#E8E6E1" }}>{thumbnailCTR.estimatedCTR.toFixed(1)}%</span> ({thumbnailCTR.ctrConfidence}). Provide the real Studio CTR to replace this estimate.
                   <div style={{ color: "#6B6964", marginTop: 4, fontSize: 11 }}>{thumbnailCTR.rationale}</div>
+                </div>
+              )}
+              {hookStrength && (aiEstimatedKeys.has("ttCompletionPct") || aiEstimatedKeys.has("igHold3s")) && (
+                <div style={{ fontSize: 11.5, color: "#A8A6A1", lineHeight: 1.5, padding: "8px 10px", background: "rgba(6,182,212,0.06)", border: "1px solid rgba(6,182,212,0.25)", borderRadius: 6 }}>
+                  <span style={{ color: "#06B6D4" }}>AI hook score:</span> <span style={{ fontFamily: "IBM Plex Mono, monospace", color: "#E8E6E1" }}>{hookStrength.totalPoints}/{hookStrength.maxPoints}</span> · dominant: <span style={{ fontFamily: "IBM Plex Mono, monospace", color: "#E8E6E1" }}>{hookStrength.dominantFormula}</span> → estimated {platform === "tiktok"
+                    ? <>completion <span style={{ fontFamily: "IBM Plex Mono, monospace", color: "#E8E6E1" }}>{hookStrength.estimatedCompletionPct}%</span></>
+                    : <>3-sec hold <span style={{ fontFamily: "IBM Plex Mono, monospace", color: "#E8E6E1" }}>{hookStrength.estimatedHold3sPct}%</span></>} ({hookStrength.confidence}). Provide the real Creator Studio number to replace this estimate.
+                  <div style={{ color: "#6B6964", marginTop: 4, fontSize: 11 }}>{hookStrength.rationale}</div>
                 </div>
               )}
               <ManualInputsForm platform={platform} manualInputs={manualInputs} update={update} />
