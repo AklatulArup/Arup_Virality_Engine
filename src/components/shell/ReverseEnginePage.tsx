@@ -12,7 +12,6 @@
 
 import React, { useMemo, useState } from "react";
 import { T, PLATFORMS } from "@/lib/design-tokens";
-import StarField from "./StarField";
 import type { Platform } from "@/lib/forecast";
 
 interface AlgoSignal {
@@ -226,39 +225,29 @@ export default function ReverseEnginePage({ platform, onAnalyze }: ReverseEngine
 
   return (
     <div style={{ padding: "16px 20px", position: "relative" }}>
-      <StarField />
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
 
+        {/* V5 bordered hero — flat, no gradient, left-border accent only */}
         <section style={{
-          background: T.bgPanel, border: `1px solid ${p.color}55`,
-          borderRadius: 4, padding: "18px 20px", position: "relative", overflow: "hidden",
+          background: T.bgPanel, border: `1px solid ${T.line}`,
+          borderLeft: `3px solid ${p.color}`, borderRadius: 4,
+          padding: "14px 18px",
+          display: "flex", alignItems: "center", gap: 12,
         }}>
-          <div style={{
-            position: "absolute", inset: 0,
-            background: `radial-gradient(ellipse at top left, ${p.bg}, transparent 60%)`,
-            pointerEvents: "none",
-          }} />
-          <div style={{ display: "flex", gap: 14, alignItems: "flex-start", position: "relative" }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 5,
-              background: p.bg, border: `1px solid ${p.color}55`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: p.color, fontSize: 18,
-            }}>⚙</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.ink, letterSpacing: -0.2, lineHeight: 1.15 }}>
-                  Reverse Engineer
-                </h2>
-                <span style={{
-                  marginLeft: "auto", padding: "3px 9px", borderRadius: 3,
-                  background: p.bg, border: `1px solid ${p.color}55`, color: p.color,
-                  fontFamily: "IBM Plex Mono, monospace", fontSize: 9.5, fontWeight: 600, letterSpacing: 1,
-                }}>MODE D</span>
-              </div>
-              <div style={{ fontSize: 12, color: T.inkMuted, marginTop: 3 }}>
-                Analyze content FROM <span style={{ color: p.color }}>{p.label}</span>
-              </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{
+                padding: "3px 8px", borderRadius: 3,
+                background: p.bg, color: p.color,
+                fontFamily: "IBM Plex Mono, monospace", fontSize: 10,
+                letterSpacing: 0.5, fontWeight: 600,
+              }}>MODE D</span>
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 500, color: T.ink, letterSpacing: -0.1, lineHeight: 1.3 }}>
+                Reverse Engineer
+              </h2>
+            </div>
+            <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: T.inkMuted, marginTop: 4 }}>
+              Analyze content from <span style={{ color: p.color }}>{p.label}</span>
             </div>
           </div>
         </section>

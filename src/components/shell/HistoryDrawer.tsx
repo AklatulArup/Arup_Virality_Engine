@@ -10,7 +10,6 @@
 
 import React, { useEffect, useState } from "react";
 import { T } from "@/lib/design-tokens";
-import StarField from "./StarField";
 
 interface HistoryEntry {
   id:           string;
@@ -84,12 +83,9 @@ export default function HistoryDrawer({ open, onToggle }: HistoryDrawerProps) {
           {entries.length === 0 ? (
             <div style={{
               height: 70, display: "flex", alignItems: "center", justifyContent: "center",
-              position: "relative",
             }}>
-              <StarField />
               <div style={{
-                fontFamily: "IBM Plex Mono, monospace", fontSize: 11,
-                color: T.inkMuted, position: "relative", zIndex: 1,
+                fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: T.inkMuted,
               }}>
                 No analysis history yet. Analyse a video or channel to begin tracking.
               </div>

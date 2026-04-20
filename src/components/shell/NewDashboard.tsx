@@ -62,6 +62,15 @@ export default function NewDashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route]);
 
+  // Listen for War Room open events fired by any descendant (e.g. the forecast
+  // panel's rail CTA button).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => setWarRoom(true);
+    window.addEventListener("ve:open-war-room", handler);
+    return () => window.removeEventListener("ve:open-war-room", handler);
+  }, []);
+
   // Fetch pool stats once for the sidebar pool-stat tiles.
   useEffect(() => {
     if (typeof window === "undefined") return;

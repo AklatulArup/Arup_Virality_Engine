@@ -521,111 +521,97 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
 
   return (
     <div style={panelStyle}>
+      <main style={mainColStyle}>
 
-      {/* ── V2 Hero: compact title strip + big number + signal tiles + chart ── */}
-      <section style={{ background: T.bgPanel, border: `1px solid ${T.line}`, borderRadius: 4, padding: "18px 22px" }}>
-        {/* Title strip: platform pill + video title + horizon selector */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+        {/* ── V5 header row ───────────────────────────────────────── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <span style={{
-            padding: "3px 9px", borderRadius: 99,
+            padding: "3px 8px", borderRadius: 3,
             background: SHELL_PLATFORMS[platform].bg, color: SHELL_PLATFORMS[platform].color,
-            fontFamily: "IBM Plex Mono, monospace", fontSize: 10, letterSpacing: 0.5, whiteSpace: "nowrap",
-          }}>
-            <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: 99, background: SHELL_PLATFORMS[platform].color, marginRight: 6, verticalAlign: "middle" }} />
-            {SHELL_PLATFORMS[platform].label}
+            fontFamily: "IBM Plex Mono, monospace", fontSize: 10,
+            letterSpacing: 0.5, fontWeight: 600, whiteSpace: "nowrap",
+          }}>{SHELL_PLATFORMS[platform].code}</span>
+          <span style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: T.inkFaint }}>
+            {video.channel ?? "—"}{niche.niche ? ` · ${niche.niche}` : ""}
           </span>
-          <span style={{ fontSize: 13, color: T.inkDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 480 }}>
-            {video.title ?? ""}
-          </span>
-          <span style={{ marginLeft: "auto", fontSize: 11, fontFamily: "IBM Plex Mono, monospace", display: "flex", gap: 8, alignItems: "baseline" }}>
-            <span style={{ color: T.inkFaint }}>confidence</span>
-            <span style={{ color: confColor, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.6 }}>{conf}</span>
-            <span style={{ color: T.inkFaint }}>·</span>
-            <span style={{ color: T.inkDim }}>{result.confidence.score}<span style={{ color: T.inkFaint }}>/100</span></span>
+          <span style={{ marginLeft: "auto", fontFamily: "IBM Plex Mono, monospace", fontSize: 10, color: T.inkFaint }}>
+            {result.trajectory ? `${result.trajectory.ageDays.toFixed(1)}d ago` : "pre-publish"}
+            {" · "}conf {result.confidence.score}%
           </span>
         </div>
 
-        {/* Main grid: hero number | signal tiles */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, marginBottom: 14 }}>
-          <div>
-            <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 9, letterSpacing: 1.4, textTransform: "uppercase", color: T.inkFaint, marginBottom: 6 }}>
-              Expected lifetime views
-            </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
-              <div style={{ fontSize: 58, fontWeight: 300, letterSpacing: -2, lineHeight: 1, color: T.ink }}>
-                {formatNumber(lifetime.median)}
-              </div>
-              <div style={{ display: "flex", gap: 18 }}>
-                <FStat label="low"  v={formatNumber(lifetime.low)}  />
-                <FStat label="high" v={formatNumber(lifetime.high)} />
-                <FStat label="now"  v={formatNumber(video.views)}   color={SHELL_PLATFORMS[platform].color} />
-              </div>
-            </div>
-            {narrative && (
-              <div style={{ marginTop: 14, fontSize: 12.5, lineHeight: 1.6, color: T.inkMuted, maxWidth: 560 }}>
-                {narrative}
-              </div>
-            )}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, alignContent: "start" }}>
-            {signals.slice(0, 6).map((s, i) => (
-              <div
-                key={i}
-                style={{ padding: "7px 10px", background: T.bgPanelHi, border: `1px solid ${T.line}`, borderRadius: 3 }}
-              >
-                <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 8.5, letterSpacing: 1, textTransform: "uppercase", color: T.inkFaint }}>
-                  {s.k}
-                </div>
-                <div style={{
-                  fontFamily: "IBM Plex Mono, monospace", fontSize: 12, marginTop: 2,
-                  color: s.tone === "pos" ? T.green : s.tone === "neg" ? T.red : T.ink,
-                }}>
-                  {s.v}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* ── V5 title ────────────────────────────────────────────── */}
+        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 400, color: T.ink, lineHeight: 1.4, letterSpacing: -0.1 }}>
+          {video.title ?? "—"}
+        </h2>
 
-        {/* Chart-hero — wide SVG with axis grid + band + median + now marker */}
-        <HeroChart
-          platform={platform}
-          currentViews={video.views}
-          ageHours={result.trajectory ? result.trajectory.ageDays * 24 : 0}
-          lifetimeMedian={lifetime.median}
-          lifetimeLow={lifetime.low}
-          lifetimeHigh={lifetime.high}
-          tint={SHELL_PLATFORMS[platform].color}
-        />
-
-        {/* Tier strip — colored left bar */}
+        {/* ── V5 3-cell number row ────────────────────────────────── */}
         <div style={{
-          marginTop: 14, padding: "11px 14px", borderRadius: 4,
-          background: T.bgPanelHi, border: `1px solid ${T.line}`,
-          display: "flex", alignItems: "center", gap: 12,
+          display: "grid", gridTemplateColumns: "2fr 1fr 1fr",
+          border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden",
         }}>
-          <span style={{ width: 5, height: 34, borderRadius: 2, background: tierInfo.color }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13, color: T.ink }}>{tierInfo.label}</span>
-              <span style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10, color: T.inkFaint }}>
-                {tierInfo.sublabel}
-              </span>
-            </div>
-            <div style={{ fontSize: 11.5, color: T.inkMuted, marginTop: 2, lineHeight: 1.55 }}>
-              {tierInfo.rationale}
+          <V5Cell label="Expected (median)" value={formatNumber(lifetime.median)} big color={SHELL_PLATFORMS[platform].color} />
+          <V5Cell label="Low · p20"  value={formatNumber(lifetime.low)}  sub="downside" />
+          <V5Cell label="High · p80" value={formatNumber(lifetime.high)} sub="upside" />
+        </div>
+
+        {/* ── V5 Report chart with axis ticks ─────────────────────── */}
+        <div>
+          <V5SectionHeader>Forecast trajectory · {horizon}d horizon</V5SectionHeader>
+          <ReportChart
+            platform={platform}
+            currentViews={video.views}
+            ageHours={result.trajectory ? result.trajectory.ageDays * 24 : 0}
+            lifetimeMedian={lifetime.median}
+            lifetimeLow={lifetime.low}
+            lifetimeHigh={lifetime.high}
+            tint={SHELL_PLATFORMS[platform].color}
+          />
+        </div>
+
+        {/* ── V5 Lifecycle tier card ───────────────────────────────── */}
+        <div>
+          <V5SectionHeader>Lifecycle tier</V5SectionHeader>
+          <div style={{
+            display: "flex", gap: 14, alignItems: "stretch",
+            border: `1px solid ${T.line}`, borderRadius: 4, padding: 14,
+          }}>
+            <span style={{ width: 4, borderRadius: 2, background: tierInfo.color, flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 15, color: T.ink }}>{tierInfo.label}</span>
+                <span style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10.5, color: T.inkFaint }}>{tierInfo.sublabel}</span>
+              </div>
+              <div style={{ fontSize: 12, color: T.inkMuted, lineHeight: 1.6 }}>{tierInfo.rationale}</div>
             </div>
           </div>
         </div>
-      </section>
 
-      {/* Reference pool (kept below hero, reformatted for the new shell) */}
-      <section style={{ background: T.bgPanel, border: `1px solid ${T.line}`, borderRadius: 4, padding: "14px 18px" }}>
-        <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 9, letterSpacing: 1.4, textTransform: "uppercase", color: T.inkFaint, marginBottom: 10 }}>
-          Reference pool
-        </div>
-        <PoolCoverageColumn pool={poolCoverage} />
-      </section>
+        {/* ── V5 Plain-English interpretation ─────────────────────── */}
+        {narrative && (
+          <div>
+            <V5SectionHeader>Plain-English summary</V5SectionHeader>
+            <div style={{
+              padding: "12px 14px", border: `1px solid ${T.line}`, borderRadius: 4,
+              fontSize: 13, color: T.inkDim, lineHeight: 1.6,
+            }}>{narrative}</div>
+          </div>
+        )}
+
+        {/* ── V5 Computation notes ────────────────────────────────── */}
+        {result.notes.length > 0 && (
+          <div>
+            <V5SectionHeader>Computation notes · {result.notes.length}</V5SectionHeader>
+            <ol style={{
+              margin: 0, paddingLeft: 22,
+              fontFamily: "IBM Plex Mono, monospace", fontSize: 11.5,
+              color: T.inkDim, lineHeight: 1.95,
+              border: `1px solid ${T.line}`, borderRadius: 4, padding: "10px 14px 10px 34px",
+            }}>
+              {result.notes.map((n, i) => <li key={i}>{n}</li>)}
+            </ol>
+          </div>
+        )}
 
       {/* ── Custom date projection ──────────────────────────────────── */}
       <DateProjectionCard
@@ -769,6 +755,72 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
         dateProjection={dateProjection}
         lifetimeForecast={result.lifetime}
       />
+      </main>
+
+      {/* ═════════════════════ V5 RIGHT RAIL ═════════════════════ */}
+      <aside style={railColStyle}>
+
+        {/* Signals applied */}
+        <div>
+          <V5SectionHeader>Signals applied</V5SectionHeader>
+          {signals.map((s, i) => (
+            <div key={i} style={{
+              display: "flex", justifyContent: "space-between", alignItems: "baseline",
+              padding: "9px 0", fontSize: 12,
+              borderBottom: i < signals.length - 1 ? `1px solid ${T.line}` : "none",
+            }}>
+              <div>
+                <div style={{ color: T.inkDim }}>{s.k}</div>
+                {s.sub && <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 9.5, color: T.inkFaint, marginTop: 2 }}>{s.sub}</div>}
+              </div>
+              <span style={{
+                fontFamily: "IBM Plex Mono, monospace",
+                color: s.tone === "pos" ? T.green : s.tone === "neg" ? T.red : T.ink,
+              }}>{s.v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Prior → blended */}
+        {result.baseline && (
+          <div>
+            <V5SectionHeader>Prior → blended</V5SectionHeader>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, fontFamily: "IBM Plex Mono, monospace", fontSize: 14 }}>
+              <span style={{ color: T.inkDim }}>{formatNumber(Math.round(result.baseline.median * result.scoreMultiplier.median))}</span>
+              <span style={{ color: T.inkFaint, fontSize: 12 }}>→</span>
+              <span style={{ color: SHELL_PLATFORMS[platform].color, fontSize: 16 }}>{formatNumber(lifetime.median)}</span>
+            </div>
+            <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 9.5, color: T.inkFaint, marginTop: 5, lineHeight: 1.6 }}>
+              {result.trajectory
+                ? <>Bayesian blend · {result.trajectory.ageDays.toFixed(1)}d trajectory<br/>{(result.trajectory.blendWeight * 100).toFixed(0)}% trajectory · {((1 - result.trajectory.blendWeight) * 100).toFixed(0)}% prior</>
+                : <>Pre-publish · prior only<br/>baseline {formatNumber(result.baseline.median)} × score {result.scoreMultiplier.median.toFixed(2)}×</>}
+            </div>
+          </div>
+        )}
+
+        {/* Pool coverage */}
+        <div>
+          <V5SectionHeader>Pool coverage</V5SectionHeader>
+          <RailPoolCoverage pool={poolCoverage} activePlatform={platform} />
+        </div>
+
+        {/* War Room CTA */}
+        <button
+          onClick={() => { if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("ve:open-war-room")); }}
+          style={{
+            padding: "12px 14px", border: `1px solid ${T.line}`, borderRadius: 4,
+            background: T.bgPanel, color: "inherit", textAlign: "left", cursor: "pointer",
+            display: "flex", flexDirection: "column", gap: 4, width: "100%",
+            fontFamily: "inherit",
+          }}
+        >
+          <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 9, letterSpacing: 1.2, textTransform: "uppercase", color: T.inkFaint }}>
+            Expert war room
+          </div>
+          <div style={{ fontSize: 12, color: T.ink }}>9 experts · sequential deliberation</div>
+          <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10, color: SHELL_PLATFORMS[platform].color }}>open →</div>
+        </button>
+      </aside>
     </div>
   );
 }
@@ -1397,17 +1449,19 @@ function tierDisplay(
 function buildSignals(
   result:   ReturnType<typeof forecast>,
   repMult:  number,
-): Array<{ k: string; v: string; tone: "pos" | "neg" | "neutral" }> {
-  const out: Array<{ k: string; v: string; tone: "pos" | "neg" | "neutral" }> = [];
+): Array<{ k: string; v: string; sub?: string; tone: "pos" | "neg" | "neutral" }> {
+  const out: Array<{ k: string; v: string; sub?: string; tone: "pos" | "neg" | "neutral" }> = [];
   out.push({
     k:    "Score",
     v:    result.scoreMultiplier.score.toFixed(0),
+    sub:  `${result.scoreMultiplier.median.toFixed(2)}× median`,
     tone: result.scoreMultiplier.score >= 65 ? "pos" : result.scoreMultiplier.score < 40 ? "neg" : "neutral",
   });
   if (Math.abs(repMult - 1) > 0.02) {
     out.push({
       k:    "Reputation",
       v:    `×${repMult.toFixed(2)}`,
+      sub:  "vs creator median",
       tone: repMult > 1.02 ? "pos" : repMult < 0.98 ? "neg" : "neutral",
     });
   }
@@ -1415,6 +1469,7 @@ function buildSignals(
     out.push({
       k:    "Trajectory",
       v:    `${result.trajectory.outperformance.toFixed(2)}×`,
+      sub:  `${result.trajectory.ageDays.toFixed(1)}d observed`,
       tone: result.trajectory.outperformance >= 1.15 ? "pos" : result.trajectory.outperformance < 0.85 ? "neg" : "neutral",
     });
   }
@@ -1422,10 +1477,161 @@ function buildSignals(
     out.push({
       k:    "Baseline",
       v:    formatNumber(result.baseline.median),
+      sub:  `${result.baseline.postsUsed} past posts`,
       tone: "neutral",
     });
   }
-  return out.slice(0, 4);
+  if (result.lifecycleTier && result.lifecycleTier.tier !== "not-applicable") {
+    out.push({
+      k:    "Tier",
+      v:    result.lifecycleTier.tier.replace("tier-", "T").replace("-hook", " hook").replace("-stuck", " stuck").replace("-rising", " rising").replace("-viral", " viral").replace("-plateau", " plateau"),
+      sub:  `${result.lifecycleTier.confidence} confidence`,
+      tone: result.lifecycleTier.tier.includes("stuck") || result.lifecycleTier.tier.includes("plateau") ? "neg"
+          : result.lifecycleTier.tier.includes("viral") || result.lifecycleTier.tier.includes("rising") ? "pos"
+          : "neutral",
+    });
+  }
+  return out.slice(0, 6);
+}
+
+// ─── V5 PRIMITIVES ──────────────────────────────────────────────────────
+
+function V5SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      fontFamily: "IBM Plex Mono, monospace", fontSize: 10,
+      letterSpacing: 1.3, textTransform: "uppercase", color: T.inkFaint,
+      marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${T.line}`,
+    }}>{children}</div>
+  );
+}
+
+function V5Cell({ label, value, sub, big, color }: { label: string; value: string; sub?: string; big?: boolean; color?: string }) {
+  return (
+    <div style={{
+      padding: "14px 16px",
+      borderRight: `1px solid ${T.line}`,
+      background: big ? "rgba(255,255,255,0.018)" : "transparent",
+    }}>
+      <div style={{
+        fontFamily: "IBM Plex Mono, monospace", fontSize: 10, letterSpacing: 1.2,
+        textTransform: "uppercase", color: T.inkFaint, marginBottom: 4,
+      }}>{label}</div>
+      <div style={{
+        fontFamily: "IBM Plex Mono, monospace",
+        fontSize: big ? 34 : 20, fontWeight: 300, letterSpacing: -0.5,
+        color: color || T.ink, lineHeight: 1.1,
+      }}>{value}</div>
+      {sub && (
+        <div style={{
+          fontFamily: "IBM Plex Mono, monospace", fontSize: 10,
+          color: T.inkFaint, marginTop: 3,
+        }}>{sub}</div>
+      )}
+    </div>
+  );
+}
+
+// V5 ReportChart — axis-ticked SVG matching page-forecast.jsx's ReportChart
+// but powered by the real forecast curve. Replaces V2's HeroChart.
+interface ReportChartProps {
+  platform:       Platform;
+  currentViews:   number;
+  ageHours:       number;
+  lifetimeMedian: number;
+  lifetimeLow:    number;
+  lifetimeHigh:   number;
+  tint:           string;
+}
+
+function ReportChart({ platform, ageHours, lifetimeMedian, lifetimeLow, lifetimeHigh, tint }: ReportChartProps) {
+  const cfg = PLATFORM_CONFIG[platform];
+  const horizonHours = cfg.horizonDays * 24;
+  const W = 800, H = 200, pad = { l: 48, r: 14, t: 14, b: 24 };
+  const steps = 80;
+  const samples: Array<{ h: number; share: number }> = [];
+  for (let i = 0; i <= steps; i++) {
+    const h = (horizonHours * i) / steps;
+    samples.push({ h, share: cfg.cumulativeShare(h / 24) });
+  }
+  const maxViews = Math.max(lifetimeHigh, 1);
+  const x = (h: number) => pad.l + (h / horizonHours) * (W - pad.l - pad.r);
+  const y = (v: number) => pad.t + (1 - v / maxViews) * (H - pad.t - pad.b);
+
+  const medianPath = samples.map(p => `${x(p.h).toFixed(1)},${y(p.share * lifetimeMedian).toFixed(1)}`).join(" L ");
+  const lowPath    = samples.map(p => `${x(p.h).toFixed(1)},${y(p.share * lifetimeLow).toFixed(1)}`).join(" L ");
+  const highPath   = samples.map(p => `${x(p.h).toFixed(1)},${y(p.share * lifetimeHigh).toFixed(1)}`).join(" L ");
+  const band = `M ${highPath} L ${samples.slice().reverse().map(p => `${x(p.h).toFixed(1)},${y(p.share * lifetimeLow).toFixed(1)}`).join(" L ")} Z`;
+
+  const yTicks = [0, 0.5, 1].map(f => ({ y: y(f * maxViews), label: formatNumber(Math.round(maxViews * f)) }));
+  const xTicks = [0, 0.25, 0.5, 0.75, 1].map(f => ({
+    x: x(f * horizonHours),
+    label: `${Math.round((f * horizonHours) / 24)}d`,
+  }));
+
+  const nowX = x(Math.min(ageHours, horizonHours));
+  const nowY = y(cfg.cumulativeShare(Math.min(ageHours, horizonHours) / 24) * lifetimeMedian);
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: 200, display: "block", border: `1px solid ${T.line}`, borderRadius: 4 }}>
+      {yTicks.map((t, i) => (
+        <g key={`y${i}`}>
+          <line x1={pad.l} x2={W - pad.r} y1={t.y} y2={t.y} stroke={T.line} />
+          <text x={pad.l - 6} y={t.y + 3} textAnchor="end" fill={T.inkFaint} fontFamily="IBM Plex Mono, monospace" fontSize="9">{t.label}</text>
+        </g>
+      ))}
+      {xTicks.map((t, i) => (
+        <text key={`x${i}`} x={t.x} y={H - 8} textAnchor="middle" fill={T.inkFaint} fontFamily="IBM Plex Mono, monospace" fontSize="9">{t.label}</text>
+      ))}
+      <path d={band}               fill={tint} opacity="0.14" />
+      <path d={`M ${highPath}`}    fill="none" stroke={tint} strokeOpacity="0.4" strokeWidth="1" strokeDasharray="2 3" />
+      <path d={`M ${lowPath}`}     fill="none" stroke={tint} strokeOpacity="0.4" strokeWidth="1" strokeDasharray="2 3" />
+      <path d={`M ${medianPath}`}  fill="none" stroke={tint} strokeWidth="1.6" />
+      {ageHours > 0 && (
+        <>
+          <line x1={nowX} x2={nowX} y1={pad.t} y2={H - pad.b} stroke={T.lineStrong} strokeDasharray="3 3" />
+          <circle cx={nowX} cy={nowY} r="4" fill={T.bg} stroke={tint} strokeWidth="2" />
+          <text x={nowX + 5} y={pad.t + 10} fill={T.inkMuted} fontFamily="IBM Plex Mono, monospace" fontSize="10">
+            now · {(ageHours / 24).toFixed(1)}d
+          </text>
+        </>
+      )}
+    </svg>
+  );
+}
+
+// V5 pool coverage for the right rail — per-platform bar list.
+function RailPoolCoverage({ pool, activePlatform }: { pool: PoolCoverageEntry[]; activePlatform: Platform }) {
+  const total = pool.reduce((s, p) => s + p.count, 0);
+  const mature = Math.max(total, 3800);
+  return (
+    <>
+      <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 20, fontWeight: 300, color: T.ink, letterSpacing: -0.3 }}>
+        {total.toLocaleString()}
+        <span style={{ color: T.inkFaint, fontSize: 11 }}> / {mature.toLocaleString()}</span>
+      </div>
+      <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 9.5, color: T.inkFaint, marginTop: 3, marginBottom: 12 }}>
+        matured · live-fetched from reference store
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {pool.map(p => {
+          const plObj = SHELL_PLATFORMS[p.platform];
+          const pct = p.count / Math.max(1, mature / 5);
+          const active = p.platform === activePlatform;
+          return (
+            <div key={p.platform} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontFamily: "IBM Plex Mono, monospace" }}>
+              <span style={{ width: 5, height: 5, borderRadius: 99, background: plObj.color }} />
+              <span style={{ flex: 1, color: active ? T.ink : T.inkMuted }}>{plObj.code}</span>
+              <span style={{ color: T.inkFaint, width: 44, textAlign: "right" }}>{p.count.toLocaleString()}</span>
+              <div style={{ width: 36, height: 3, background: T.line, borderRadius: 99, overflow: "hidden" }}>
+                <div style={{ width: `${Math.min(100, pct * 100)}%`, height: "100%", background: plObj.color, opacity: 0.7 }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
 }
 
 // Collapsible section wrapper — consistent chevron + label styling.
@@ -1473,13 +1679,30 @@ function Collapsible({
 // STYLES — V1 "Editorial" tokens
 // ═══════════════════════════════════════════════════════════════════════════
 
+// V5 outer container — two-column grid (main + right rail).
 const panelStyle: React.CSSProperties = {
-  background: tokens.bg,
-  border: `1px solid ${tokens.line}`,
-  borderRadius: 10, padding: "32px 36px",
-  display: "flex", flexDirection: "column", gap: 28,
-  color: tokens.ink,
+  background: T.bg,
+  color: T.ink,
   fontFamily: "IBM Plex Sans, sans-serif",
+  display: "grid",
+  gridTemplateColumns: "1fr 320px",
+  minHeight: "100%",
+  width: "100%",
+};
+
+const mainColStyle: React.CSSProperties = {
+  padding: "22px 26px",
+  display: "flex", flexDirection: "column", gap: 20,
+  borderRight: `1px solid ${T.line}`,
+  minWidth: 0,
+  overflow: "hidden",
+};
+
+const railColStyle: React.CSSProperties = {
+  padding: "22px 22px",
+  display: "flex", flexDirection: "column", gap: 22,
+  background: T.bgDeep,
+  overflowY: "auto",
 };
 
 const boxStyle: React.CSSProperties = {

@@ -41,13 +41,14 @@ export default function Sidebar({ route, setRoute, platform, setPlatform, mode, 
       borderRight: `1px solid ${T.line}`,
       display: "flex", flexDirection: "column", overflow: "hidden",
     }}>
-      {/* Brand */}
+      {/* Brand — V5 flat: no gradient, no glow */}
       <div style={{ padding: "16px 18px", borderBottom: `1px solid ${T.line}`, display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{
-          width: 28, height: 28, borderRadius: 5,
-          background: `linear-gradient(135deg, ${T.purple}, ${T.cyan})`,
+          width: 28, height: 28, borderRadius: 3,
+          background: T.bgPanel, border: `1px solid ${T.lineMid}`,
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: "IBM Plex Mono, monospace", fontWeight: 700, fontSize: 12, color: T.bgDeep,
+          fontFamily: "IBM Plex Mono, monospace", fontWeight: 700, fontSize: 11,
+          color: T.ink, letterSpacing: 0.5,
         }}>FN</div>
         <div>
           <div style={{ fontSize: 13, color: T.ink, fontWeight: 500, letterSpacing: -0.2 }}>FundedNext Intel</div>

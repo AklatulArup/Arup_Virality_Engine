@@ -10,7 +10,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { T } from "@/lib/design-tokens";
-import StarField from "./StarField";
 
 interface ReferenceEntry {
   id?:       string;
@@ -28,7 +27,6 @@ interface ReferenceEntry {
 export function BulkImportPage() {
   return (
     <div style={{ padding: "16px 20px", position: "relative" }}>
-      <StarField />
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
         <PageHeader title="Bulk CSV Import" sub="Import · Enrich · Save all historical data" />
 
@@ -181,14 +179,8 @@ export function CalendarPage() {
 
   return (
     <div style={{ padding: "16px 20px", position: "relative" }}>
-      <StarField />
       <div style={{ position: "relative", zIndex: 1 }}>
-        <section style={{ ...panelStyle, position: "relative", overflow: "hidden" }}>
-          <div style={{
-            position: "absolute", left: 0, right: 0, top: 0, height: 2,
-            background: `linear-gradient(90deg, ${T.red}, ${T.amber}, ${T.green}, ${T.cyan}, ${T.purple}, ${T.pink})`,
-            opacity: 0.45,
-          }} />
+        <section style={panelStyle}>
           <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 18 }}>
             <div>
               <div style={{ fontSize: 15, color: T.ink, fontWeight: 600 }}>Historical Data Calendar</div>
@@ -301,7 +293,6 @@ const LIBRARIES = [
 export function LibrariesPage() {
   return (
     <div style={{ padding: "16px 20px", position: "relative" }}>
-      <StarField />
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
         <PageHeader title="Libraries" sub="Keywords · Hashtags · Competitors · Blocklist" />
         {LIBRARIES.map(lib => (
@@ -381,7 +372,6 @@ export function ReferencePoolPage() {
 
   return (
     <div style={{ padding: "16px 20px", position: "relative" }}>
-      <StarField />
       <div style={{ position: "relative", zIndex: 1 }}>
         <section style={panelStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
