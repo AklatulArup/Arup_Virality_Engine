@@ -364,10 +364,38 @@ export function LibrariesPage() {
 
 // ═════════════════════════════ REFERENCE POOL BROWSER ═══════════════════
 
+// Helper — reads durationSeconds from the top level (where ingestion stores it)
+// with a fallback to metrics.durationSeconds for legacy entries. Returns seconds.
+function readDurationSeconds(r: ReferenceEntry): number {
+  return (
+    Number((r as unknown as { durationSeconds?: number }).durationSeconds ?? 0) ||
+    Number(r.metrics?.durationSeconds ?? 0)
+  );
+}
+
+// Bucket an entry into its canonical platform, re-classifying YouTube by
+// duration/videoFormat so YTS entries don't fall into YTL.
+function rowPlatform(r: ReferenceEntry): "youtube" | "youtube_short" | "tiktok" | "instagram" | "x" | "unknown" {
+  const p = typeof r.platform === "string" ? r.platform : "";
+  if (p === "tiktok" || p === "instagram" || p === "x" || p === "youtube_short") return p;
+  if (p === "youtube") {
+    const d = readDurationSeconds(r);
+    const fmt = (r as unknown as { videoFormat?: string }).videoFormat ?? "";
+    return (fmt === "short" || (d > 0 && d <= 60)) ? "youtube_short" : "youtube";
+  }
+  return "unknown";
+}
+
+const PAGE_SIZE = 50;
+
+type PlatformFilter = "all" | "youtube" | "youtube_short" | "tiktok" | "instagram" | "x";
+
 export function ReferencePoolPage() {
   const [rows, setRows] = useState<ReferenceEntry[]>([]);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"Views" | "Eng%" | "VRS" | "Length" | "Recent" | "A-Z">("Views");
+  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -380,41 +408,62 @@ export function ReferencePoolPage() {
       .catch(() => {});
   }, []);
 
+  // Reset to page 0 whenever filters change, otherwise page=5 with a
+  // freshly-filtered 12-row set would show an empty list. The effect's
+  // purpose IS to sync state from external inputs, so the rule is disabled.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setPage(0); }, [search, sort, platformFilter]);
+
+  // Filter → sort pipeline. Filtering happens first (platform + text search)
+  // then sorting, then pagination slicing.
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    const list = q
-      ? rows.filter(r =>
-          (r.name ?? "").toLowerCase().includes(q) ||
-          (r.channelName ?? "").toLowerCase().includes(q) ||
-          (r.tags ?? []).some(t => t.toLowerCase().includes(q))
-        )
-      : rows.slice();
+    const base = rows.filter(r => {
+      if (platformFilter !== "all" && rowPlatform(r) !== platformFilter) return false;
+      if (!q) return true;
+      return (
+        (r.name ?? "").toLowerCase().includes(q) ||
+        (r.channelName ?? "").toLowerCase().includes(q) ||
+        (r.tags ?? []).some(t => t.toLowerCase().includes(q))
+      );
+    });
     const score = (r: ReferenceEntry) => Number(r.metrics?.views ?? 0);
     const cmp = (a: ReferenceEntry, b: ReferenceEntry) => {
       if (sort === "Views")  return score(b) - score(a);
       if (sort === "Eng%")   return Number(b.metrics?.engagement ?? 0) - Number(a.metrics?.engagement ?? 0);
       if (sort === "VRS")    return Number(b.metrics?.vrsScore ?? 0)   - Number(a.metrics?.vrsScore ?? 0);
-      if (sort === "Length") return Number(b.metrics?.durationSeconds ?? 0) - Number(a.metrics?.durationSeconds ?? 0);
+      // Length sort now reads from the top-level durationSeconds so actual
+      // video length sorts correctly (the previous metrics-only path was 0
+      // for every row, so Length sort was a no-op).
+      if (sort === "Length") return readDurationSeconds(b) - readDurationSeconds(a);
       if (sort === "Recent") return (b.analyzedAt ?? "").localeCompare(a.analyzedAt ?? "");
       return (a.name ?? "").localeCompare(b.name ?? "");
     };
-    return list.sort(cmp);
-  }, [rows, search, sort]);
+    return base.sort(cmp);
+  }, [rows, search, sort, platformFilter]);
 
-  // Route all counts through the canonical pool-stats bucketer so numbers
-  // here AGREE with the Sidebar and the Landing page. Previously this panel
-  // read `metrics.durationSeconds` (never populated — duration lives at the
-  // top level) which is why Shorts and Full-Length both read "0" even though
-  // the pool has 703 shorts.
+  // Route all counts through the canonical pool-stats bucketer so the tiles
+  // here AGREE with the Sidebar and the Landing page. See pool-stats.ts.
   const poolStats = useMemo(() => computePoolStats(rows as unknown as MinimalEntry[]), [rows]);
   const totalViews = rows.reduce((s, r) => s + Number(r.metrics?.views ?? 0), 0);
   const creators   = poolStats.totalCreators;
   const shorts     = poolStats.totalShorts;
   const full       = poolStats.totalLong;
-  // Use bucketed total (skips entries with no platform field). Keeps number
-  // in sync with the Landing page's "Pool size" tile.
   const videos     = poolStats.totalEntries;
   const avgViews   = videos > 0 ? totalViews / videos : 0;
+
+  // Per-platform counts for the filter chips. Derived from computePoolStats
+  // so the numbers match every other surface.
+  const chipCounts = useMemo(() => {
+    const map: Record<string, number> = { all: videos };
+    for (const row of poolStats.rows) map[row.id] = row.count;
+    return map;
+  }, [poolStats, videos]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageRows  = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const firstRow  = filtered.length === 0 ? 0 : page * PAGE_SIZE + 1;
+  const lastRow   = Math.min(filtered.length, (page + 1) * PAGE_SIZE);
 
   return (
     <div style={{ padding: "16px 20px", position: "relative" }}>
@@ -443,17 +492,63 @@ export function ReferencePoolPage() {
             <StatTile v={fmtViews(avgViews)}    k="avg views"   c={T.amber} />
           </div>
 
+          {/* Platform filter chips — scope the browser view to a single
+              platform. Count inside each chip is the live total after
+              re-bucketing (matches sidebar + pool coverage). */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 9, letterSpacing: 1.3, color: T.inkFaint, textTransform: "uppercase", marginRight: 2 }}>Platform</span>
+            {([
+              { key: "all",           label: "All",     color: T.inkDim },
+              { key: "youtube",       label: "YTL",     color: T.red    },
+              { key: "youtube_short", label: "YTS",     color: T.pink   },
+              { key: "tiktok",        label: "TTK",     color: T.cyan   },
+              { key: "instagram",     label: "IGR",     color: T.purple },
+              { key: "x",             label: "X",       color: T.gray   },
+            ] as const).map(c => {
+              const active = platformFilter === c.key;
+              const count = chipCounts[c.key] ?? 0;
+              return (
+                <button
+                  key={c.key}
+                  onClick={() => setPlatformFilter(c.key as PlatformFilter)}
+                  style={{
+                    padding: "4px 10px", borderRadius: 2,
+                    display: "flex", alignItems: "center", gap: 6,
+                    fontFamily: "IBM Plex Mono, monospace", fontSize: 10,
+                    background: active ? `${c.color}14` : "transparent",
+                    border: `1px solid ${active ? `${c.color}55` : T.line}`,
+                    color: active ? c.color : T.inkDim, cursor: "pointer",
+                  }}
+                >
+                  <span style={{ width: 5, height: 5, borderRadius: 99, background: c.color, opacity: active ? 1 : 0.6 }} />
+                  {c.label}
+                  <span style={{ color: active ? c.color : T.inkFaint, fontSize: 9 }}>{fmtCount(count)}</span>
+                </button>
+              );
+            })}
+          </div>
+
           <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search videos, creators, or tags…"
+              placeholder="Search videos, creators, or tags… (live — no Enter needed)"
               style={{
                 flex: 1, padding: "8px 12px",
-                background: T.bgDeep, border: `1px solid ${T.line}`, borderRadius: 3,
+                background: T.bgDeep, border: `1px solid ${T.lineMid}`, borderRadius: 3,
                 color: T.inkDim, fontFamily: "IBM Plex Mono, monospace", fontSize: 11, outline: "none",
               }}
             />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                style={{
+                  padding: "4px 10px", borderRadius: 2,
+                  background: "transparent", border: `1px solid ${T.line}`,
+                  color: T.inkFaint, fontFamily: "IBM Plex Mono, monospace", fontSize: 10, cursor: "pointer",
+                }}
+              >× clear</button>
+            )}
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -472,18 +567,26 @@ export function ReferencePoolPage() {
               >{s}</button>
             ))}
             <span style={{ marginLeft: "auto", fontFamily: "IBM Plex Mono, monospace", fontSize: 10, color: T.inkFaint }}>
-              {filtered.length} result{filtered.length === 1 ? "" : "s"}
+              {filtered.length === 0
+                ? "no results"
+                : `${fmtCount(firstRow)}–${fmtCount(lastRow)} of ${fmtCount(filtered.length)}`}
             </span>
           </div>
 
           <div style={{ border: `1px solid ${T.line}`, borderRadius: 3, overflow: "hidden" }}>
+            {/* Columns widened from the old 70/1fr/70/80/60/60. New layout:
+                Platform (60) + Format (60) + Title/Creator (1fr) + Length (70)
+                + Views (85) + VRS (55) + Eng (60). Platform column is new so
+                RMs can see at a glance which platform each row is on. */}
             <div style={{
-              display: "grid", gridTemplateColumns: "70px 1fr 70px 80px 60px 60px",
-              padding: "8px 10px", background: "rgba(255,255,255,0.02)",
+              display: "grid", gridTemplateColumns: "60px 60px 1fr 70px 85px 55px 60px",
+              columnGap: 10,
+              padding: "8px 14px", background: "rgba(255,255,255,0.02)",
               fontFamily: "IBM Plex Mono, monospace", fontSize: 8.5, letterSpacing: 1.3,
               textTransform: "uppercase", color: T.inkFaint,
               borderBottom: `1px solid ${T.line}`,
             }}>
+              <div>Platform</div>
               <div>Format</div>
               <div>Title / Creator</div>
               <div style={{ textAlign: "right" }}>Length</div>
@@ -491,51 +594,82 @@ export function ReferencePoolPage() {
               <div style={{ textAlign: "right" }}>VRS</div>
               <div style={{ textAlign: "right" }}>Eng</div>
             </div>
-            {filtered.length === 0 ? (
+            {pageRows.length === 0 ? (
               <div style={{ padding: "24px 14px", fontSize: 12, color: T.inkFaint, fontStyle: "italic", textAlign: "center" }}>
-                {rows.length === 0 ? "Reference pool empty — analyze a creator to populate." : "No results match your search."}
+                {rows.length === 0
+                  ? "Reference pool empty — analyze a creator to populate."
+                  : filtered.length === 0
+                    ? "No results match your search + filters."
+                    : "No more rows."}
               </div>
             ) : (
-              filtered.slice(0, 50).map((r, i) => {
+              pageRows.map((r, i) => {
                 const views    = Number(r.metrics?.views ?? 0);
                 const eng      = Number(r.metrics?.engagement ?? 0);
                 const vrs      = Number(r.metrics?.vrsScore ?? 0);
-                // durationSeconds lives at the TOP level, not inside metrics.
-                // (The ingestion path stores it there; reading from metrics
-                // always returned 0 which made every row show "FULL" and the
-                // Shorts tile stuck at 0.)
-                const duration =
-                  Number((r as unknown as { durationSeconds?: number }).durationSeconds ?? 0) ||
-                  Number(r.metrics?.durationSeconds ?? 0);
+                const duration = readDurationSeconds(r);
                 const videoFormat = (r as unknown as { videoFormat?: string }).videoFormat ?? "";
                 const isShort  = videoFormat === "short" || (duration > 0 && duration <= 60);
                 const fmtLen   = duration > 0 ? `${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, "0")}` : "—";
+                const plat     = rowPlatform(r);
+                const platColor =
+                  plat === "youtube"       ? T.red    :
+                  plat === "youtube_short" ? T.pink   :
+                  plat === "tiktok"        ? T.cyan   :
+                  plat === "instagram"     ? T.purple :
+                  plat === "x"             ? T.gray   :
+                                             T.inkFaint;
+                const platCode =
+                  plat === "youtube"       ? "YTL" :
+                  plat === "youtube_short" ? "YTS" :
+                  plat === "tiktok"        ? "TTK" :
+                  plat === "instagram"     ? "IGR" :
+                  plat === "x"             ? "X"   :
+                                             "—";
                 return (
                   <div
                     key={i}
                     style={{
-                      display: "grid", gridTemplateColumns: "70px 1fr 70px 80px 60px 60px",
-                      padding: "9px 10px", alignItems: "center",
-                      borderBottom: i < filtered.length - 1 ? `1px solid ${T.line}` : "none",
+                      display: "grid", gridTemplateColumns: "60px 60px 1fr 70px 85px 55px 60px",
+                      columnGap: 10,
+                      padding: "9px 14px", alignItems: "center",
+                      borderBottom: i < pageRows.length - 1 ? `1px solid ${T.line}` : "none",
                       fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: T.inkDim,
                     }}
                   >
+                    {/* Platform chip */}
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      fontSize: 9.5, fontWeight: 600, letterSpacing: 0.4,
+                      color: platColor,
+                    }}>
+                      <span style={{ width: 5, height: 5, borderRadius: 99, background: platColor }} />
+                      {platCode}
+                    </span>
+                    {/* Format badge (SHORT/FULL) */}
                     <span style={{
                       padding: "2px 6px", borderRadius: 2,
                       background: isShort ? T.amberDim : T.redDim,
                       color:      isShort ? T.amber    : T.red,
                       fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textAlign: "center", width: 52,
                     }}>{isShort ? "SHORT" : "FULL"}</span>
+                    {/* Title + creator */}
                     <div style={{ minWidth: 0, overflow: "hidden" }}>
                       <div style={{ color: T.ink, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {r.name || "—"}
                       </div>
-                      <div style={{ color: T.inkFaint, fontSize: 10, marginTop: 1 }}>{r.channelName ?? ""}</div>
+                      <div style={{ color: T.inkFaint, fontSize: 10, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {r.channelName ?? ""}
+                      </div>
                     </div>
-                    <div style={{ textAlign: "right" }}>{fmtLen}</div>
-                    <div style={{ textAlign: "right", color: T.ink }}>{views > 0 ? fmtViews(views) : "—"}</div>
-                    <div style={{ textAlign: "right" }}>{vrs > 0 ? vrs.toFixed(0) : "—"}</div>
-                    <div style={{ textAlign: "right", color: eng > 3 ? T.green : T.inkDim }}>
+                    <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtLen}</div>
+                    <div style={{ textAlign: "right", color: T.ink, fontVariantNumeric: "tabular-nums" }}>
+                      {views > 0 ? fmtViews(views) : "—"}
+                    </div>
+                    <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                      {vrs > 0 ? vrs.toFixed(0) : "—"}
+                    </div>
+                    <div style={{ textAlign: "right", color: eng > 3 ? T.green : T.inkDim, fontVariantNumeric: "tabular-nums" }}>
                       {eng > 0 ? eng.toFixed(1) + "%" : "—"}
                     </div>
                   </div>
@@ -543,10 +677,49 @@ export function ReferencePoolPage() {
               })
             )}
           </div>
+
+          {/* Pagination — only shown when there's more than one page. Previously
+              the browser sliced to 50 entries with no way to see the rest; on
+              a 2,200-entry pool that hid ~98% of the data. */}
+          {filtered.length > PAGE_SIZE && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              marginTop: 10, fontFamily: "IBM Plex Mono, monospace", fontSize: 10.5,
+            }}>
+              <button
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+                disabled={page === 0}
+                style={paginationBtnStyle(page === 0)}
+              >← Prev</button>
+              <span style={{ color: T.inkMuted }}>
+                Page <span style={{ color: T.ink, fontWeight: 600 }}>{page + 1}</span> of {fmtCount(pageCount)}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(pageCount - 1, p + 1))}
+                disabled={page >= pageCount - 1}
+                style={paginationBtnStyle(page >= pageCount - 1)}
+              >Next →</button>
+              <span style={{ marginLeft: "auto", color: T.inkFaint }}>
+                {PAGE_SIZE} per page
+              </span>
+            </div>
+          )}
         </section>
       </div>
     </div>
   );
+}
+
+function paginationBtnStyle(disabled: boolean): React.CSSProperties {
+  return {
+    padding: "5px 12px", borderRadius: 3,
+    background: disabled ? "transparent" : T.bgPanelHi,
+    border: `1px solid ${disabled ? T.line : T.lineMid}`,
+    color: disabled ? T.inkFaint : T.inkDim,
+    fontFamily: "IBM Plex Mono, monospace", fontSize: 10.5,
+    cursor: disabled ? "default" : "pointer",
+    opacity: disabled ? 0.5 : 1,
+  };
 }
 
 // ═════════════════════════════ SHARED SUB-COMPONENTS ════════════════════
