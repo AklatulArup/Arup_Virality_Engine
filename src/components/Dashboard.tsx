@@ -233,7 +233,15 @@ export default function Dashboard({ headless = false }: DashboardProps = {}) {
       pending = raw;
     }
     if (!pending) return;
-    const t = setTimeout(() => { analyzeRef.current(pending!).catch(() => {}); }, 0);
+    // Previously: `.catch(() => {})` silently swallowed analyze failures
+    // so a missing API key / broken scraper would leave the user staring
+    // at an empty forecast screen with no feedback. Now surface the error
+    // into the dashboard's status bar (red) so it's visible.
+    const t = setTimeout(() => {
+      analyzeRef.current(pending!).catch(err => {
+        setError(err instanceof Error ? err.message : "Analyze failed — unknown error");
+      });
+    }, 0);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [headless]);
@@ -247,7 +255,11 @@ export default function Dashboard({ headless = false }: DashboardProps = {}) {
         // Clear any stale cold-mount sessionStorage so we don't double-fire
         // if a remount happens right after.
         window.sessionStorage.removeItem("ve_pending_analyze");
-        analyzeRef.current(detail.url).catch(() => {});
+        // Same error visibility fix as the cold-mount path — surface failures
+        // to the red error banner instead of silently swallowing them.
+        analyzeRef.current(detail.url).catch(err => {
+          setError(err instanceof Error ? err.message : "Analyze failed — unknown error");
+        });
       }
     };
     window.addEventListener("ve:analyze-url", h);
@@ -1395,6 +1407,40 @@ export default function Dashboard({ headless = false }: DashboardProps = {}) {
           provides its own sidebar)
       ══════════════════════════════════════ */}
       <main className="flex-1 flex flex-col min-h-screen" style={{ marginLeft: headless ? 0 : (sidebarOpen ? 240 : 0), transition: "margin-left 0.28s cubic-bezier(0.16,1,0.3,1)", position: "relative", zIndex: 2 }}>
+
+        {/* ── Headless status strip — visible feedback for analyze
+            progress + errors when running inside the new shell (where the
+            old sticky topbar + status-chips are hidden). Previously a
+            missing API key or scraper failure left the user with a blank
+            forecast screen and no clue what was happening. */}
+        {headless && (loading || status || error) && (
+          <div style={{
+            padding: "8px 18px", display: "flex", alignItems: "center", gap: 10,
+            fontFamily: "IBM Plex Mono, monospace", fontSize: 11,
+            background: error ? "rgba(228,87,78,0.08)" : loading ? "rgba(46,207,217,0.08)" : "rgba(46,204,138,0.08)",
+            borderBottom: `1px solid ${error ? "rgba(228,87,78,0.3)" : loading ? "rgba(46,207,217,0.3)" : "rgba(46,204,138,0.3)"}`,
+            color: error ? "#E4574E" : loading ? "#2ECFD9" : "#2ECC8A",
+          }}>
+            <span style={{
+              width: 6, height: 6, borderRadius: 99,
+              background: error ? "#E4574E" : loading ? "#2ECFD9" : "#2ECC8A",
+              animation: loading ? "pulse 1s ease-in-out infinite" : "none",
+            }} />
+            <span style={{ flex: 1 }}>
+              {error || status || (loading ? "Analyzing…" : "")}
+            </span>
+            {error && (
+              <button
+                onClick={() => setError(null)}
+                style={{
+                  padding: "3px 10px", borderRadius: 3,
+                  background: "transparent", border: "1px solid rgba(228,87,78,0.3)",
+                  color: "#E4574E", fontFamily: "IBM Plex Mono, monospace", fontSize: 10, cursor: "pointer",
+                }}
+              >dismiss</button>
+            )}
+          </div>
+        )}
 
         {/* ── Sticky topbar — hidden when headless (new shell provides one) ── */}
         {!headless && (
