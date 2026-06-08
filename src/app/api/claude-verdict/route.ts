@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchGemini, isGeminiConfigured } from "@/lib/gemini-keys";
 
 // ── Platform-specific + psychology-aware system prompts ──────────────────
 // Each persona knows the platform formula AND the psychological mechanisms
@@ -143,36 +144,35 @@ export async function POST(req: NextRequest) {
   const prompt = trim(body.prompt);
   const errors: string[] = [];
 
-  // 1. Gemini (primary)
-  const geminiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY_2;
-  if (geminiKey) {
+  // 1. Gemini (primary) — rotates across all configured GEMINI_API_KEY[_2.._5]
+  // via fetchGemini, so stacked free-tier keys all contribute quota to the war
+  // room too (previously this route read only the single primary key).
+  if (isGeminiConfigured()) {
     for (const model of ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"]) {
       try {
-        const r = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: system }] },
-              contents: [{ role: "user", parts: [{ text: prompt }] }],
-              generationConfig: { maxOutputTokens: 500, temperature: 0.65 },
-            }),
-          }
-        );
-        const d = await r.json();
-        if (!r.ok) {
-          const msg = d.error?.message ?? `HTTP ${r.status}`;
+        const gem = await fetchGemini({
+          model,
+          bodyJson: {
+            system_instruction: { parts: [{ text: system }] },
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 500, temperature: 0.65 },
+          },
+        });
+        if (gem.reason === "no_keys") { errors.push("Gemini: no GEMINI_API_KEY configured"); break; }
+        if (gem.reason === "all_keys_exhausted") { errors.push(`Gemini/${model}: all keys exhausted (429/403)`); continue; }
+        if (!gem.response) { errors.push(`Gemini/${model}: ${gem.lastError ?? "no response"}`); continue; }
+        const d = await gem.response.json();
+        if (!gem.response.ok) {
+          const msg = d.error?.message ?? `HTTP ${gem.response.status}`;
           errors.push(`Gemini/${model}: ${msg.slice(0, 100)}`);
-          if (r.status === 429 || msg.includes("quota") || msg.includes("not found")) continue;
-          break;
+          continue;
         }
         const text = d.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
         if (text.length > 10) return NextResponse.json({ text, source: model });
       } catch (e) { errors.push(`Gemini/${model}: ${e}`); }
     }
   } else {
-    errors.push("Gemini: GEMINI_API_KEY not set");
+    errors.push("Gemini: no GEMINI_API_KEY configured");
   }
 
   // 2. Anthropic (fallback)

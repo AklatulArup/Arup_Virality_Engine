@@ -59,7 +59,12 @@ export async function GET(req: NextRequest) {
 
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  // Fail CLOSED: if CRON_SECRET is unset we reject rather than run
+  // unauthenticated. (Previously `if (cronSecret && …)` skipped the check when
+  // the secret was missing, leaving this expensive Apify/KV endpoint publicly
+  // callable.) CRON_SECRET must be set on Vercel and match the GitHub Actions
+  // repo secret used by the hourly velocity workflow.
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

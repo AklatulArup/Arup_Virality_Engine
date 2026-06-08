@@ -19,17 +19,19 @@ Framework: Next.js 16 (Turbopack, React 19, React Compiler active). App router. 
 Persistent state: Upstash Redis via Vercel Marketplace integration. All env vars prefixed `KV_*`. There is a safe wrapper at `src/lib/kv.ts` that no-ops gracefully if env vars are missing.
 
 External APIs:
-- YouTube Data API (videos, channels, comments)
-- Apify (TikTok, Instagram, X scrapers — token env vars are `APIFY_TOKEN_TWITTER` plus fallbacks for `TikTok_API_Key` / `Instagram_API_Key` / canonical `APIFY_TOKEN`)
-- Google Gemini (war room expert outputs, sentiment analysis — key `GEMINI_API_KEY` with `_2` fallback)
+- YouTube Data API (videos, channels, comments — `YOUTUBE_API_KEY`, `YOUTUBE_API_KEY_2` fallback)
+- Apify (TikTok, Instagram, X scrapers). Tokens resolve through `src/lib/apify-token.ts` — set the canonical all-caps names `TIKTOK_API_KEY` / `INSTAGRAM_API_KEY` / `APIFY_TOKEN_TWITTER`, or the shared `APIFY_TOKEN`. Legacy mixed-case aliases (`TikTok_API_Key`, `Instagram_API_KEY_2`, `Instagram_API_Key`) are still accepted but discouraged — env var names are case-sensitive, so prefer the canonical names.
+- Google Gemini (war room, sentiment, thumbnail/hook/OCR vision). Multi-key rotation via `src/lib/gemini-keys.ts`: `GEMINI_API_KEY` + `GEMINI_API_KEY_2..5` (each free key adds ~1,500 req/day). All Gemini callers — including `claude-verdict` and `health` — now go through the rotation helper.
+- Groq (sentiment fallback when every Gemini key is exhausted — `GROQ_API_KEY`)
 - Anthropic Claude (fallback AI — `Claude_AI_Summary_API_KEY` / `ANTHROPIC_API_KEY`)
-- GNews (market volatility signal — key `GNEWS_API` with `GNEWS_API_KEY` fallback)
+- GNews (market volatility signal — `GNEWS_API_KEY`, then `GNEWS_API` / `NEWS_API_KEY`; silently degrades to free Google News RSS if unset)
+- Upstash Redis / KV (`KV_REST_API_URL` + `KV_REST_API_TOKEN`, or `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`)
 
 Crons (Vercel Hobby = once-daily limit):
 - `/api/cron/collect-outcomes` — 4am UTC (Vercel). Re-scrapes mature videos (platform-specific maturity: X=3d, TikTok=30d, IG=35d, YT=90d). Records actual views against stored predictions.
 - `/api/cron/track-velocity` — Vercel runs it once daily at 5:30am UTC as a safety net; the real cadence comes from the GitHub Actions workflow at `.github/workflows/track-velocity.yml`, which pings hourly at :05. This gives us the 1h/3h/6h/12h/24h/48h/72h samples the endpoint's schedule already defines. Hobby tier doesn't allow sub-daily Vercel crons, so GH Actions is the workaround. Requires repo secret `CRON_SECRET` (same value as Vercel env var).
 
-CRON_SECRET env var is set and checked by both cron endpoints (rejects unauthenticated pings with 401).
+CRON_SECRET gates both cron endpoints, and the check now FAILS CLOSED: if `CRON_SECRET` is unset the endpoints reject every request with 401 (previously an unset secret skipped the check, leaving them publicly callable). It must be set on Vercel AND match the GitHub Actions repo secret used by the hourly velocity workflow.
 
 ## Core files to know
 
@@ -51,6 +53,8 @@ Two exported functions: `computeCalibration()` (browser, reads localStorage) and
 - `src/lib/reputation.ts` — creator-level multiplier on baseline from local signals (engagement-rate trend recent-vs-early, recency of last post, baseline CV). Clamped [0.70, 1.25]. Threaded into `forecast()` alongside seasonality + niche multipliers as `reputationMultiplier`. No network calls — pure compute from `creatorHistory`.
 - `src/lib/lifecycle-tier.ts` — short-form distribution-tier classifier. `classifyLifecycleTier()` takes `(platform, currentViews, ageHours, velocitySamples)` and returns one of `tier-1-hook / tier-1-stuck / tier-2-rising / tier-2-stuck / tier-3-viral / tier-4-plateau / not-applicable`. Only applies to TikTok/IG/Shorts (X is time-decay, YT LF is evergreen). `applyTierCeiling()` is called inside `forecast()` after the trajectory blend and conformal step — clamps `lifetime.high` **down** when the tier implies the distribution has capped (stuck or plateau). Never raises the forecast. The hourly velocity workflow from `.github/workflows/track-velocity.yml` is what feeds this with sufficient signal to distinguish stuck vs rising tier states.
 - `src/lib/conformal.ts` — empirical quantile intervals. Computes `ConformalTable` from the snapshot pool; `applyConformalBounds()` is called inside `forecast()` to replace the hand-tuned upside/downside bands with residual-derived quantiles when a matching (platform × score-band) stratum has ≥20 samples. Falls through to the hand-tuned bands when data is thin — zero-regression. Persisted to KV at `config:conformal-quantiles`.
+- `src/lib/decay-fit.ts` — learned cumulative-share (decay) curves. Fits per-platform "what fraction of lifetime views by day N" from matured outcomes joined with velocity tracks; persisted to KV at `config:decay-curves`. `forecast()` uses the fitted curve (via the `shareAt` helper) when a platform has ≥15 matured videos, else the hand-tuned `lerpShare` knots — zero regression. Recomputed in `collect-outcomes` alongside conformal. An empirical measured curve, not a model. Endpoint: `/api/forecast/decay` (GET table, POST `recompute`/`clear`).
+- `src/lib/apify-token.ts` — single source of truth for the Apify token per platform (canonical all-caps + legacy mixed-case + shared `APIFY_TOKEN`); used by every TikTok/IG/X scrape + comments route.
 - `src/lib/analytics-ocr.ts` — Gemini Vision wrapper that parses a Creator Studio / Insights / YT Studio / X Premium screenshot into `Partial<ManualInputs>`. Called by `/api/analytics/ocr`. Uses `gemini-2.0-flash` with `responseMimeType: application/json`. Refuses to invent numbers — if a field isn't clearly visible it's omitted.
 - `src/lib/analytics-memory.ts` — per-creator KV memory of last-submitted `ManualInputs`. Keyed `creator-analytics:<platform>:<handle-normalized>`. Loaded on mount in `ForecastPanel` (pre-fills empty fields only — never clobbers RM input), saved on change (debounced 1.5s).
 - `src/lib/seasonality.ts` — day-of-week + market volatility

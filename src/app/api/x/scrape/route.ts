@@ -24,6 +24,7 @@
 import { NextRequest } from "next/server";
 
 import type { XPostData } from "@/lib/types";
+import { getApifyToken } from "@/lib/apify-token";
 
 const APIFY_BASE = "https://api.apify.com/v2";
 const ACTOR_ID   = "apidojo~tweet-scraper";
@@ -85,7 +86,7 @@ function mapPost(item: any): XPostData {
 }
 
 export async function POST(request: NextRequest) {
-  const token = process.env.APIFY_TOKEN_TWITTER || process.env.APIFY_TOKEN_TWITTER_2 || process.env.APIFY_TOKEN || process.env.TikTok_API_Key;
+  const token = getApifyToken("x");
   if (!token) {
     return Response.json({
       error: "No Apify token found. Set APIFY_TOKEN_TWITTER (or APIFY_TOKEN) in Vercel env vars.",

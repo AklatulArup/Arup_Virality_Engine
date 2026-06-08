@@ -5,6 +5,7 @@
  * normalised TikTokVideoData[] for the existing analysis pipeline.
  */
 import type { TikTokVideoData } from "@/lib/types";
+import { getApifyToken } from "@/lib/apify-token";
 
 const APIFY_BASE = "https://api.apify.com/v2";
 const ACTOR_ID = "clockworks~tiktok-scraper";
@@ -67,9 +68,9 @@ function mapItem(item: any): TikTokVideoData {
 }
 
 export async function POST(request: Request) {
-  const token = process.env.TikTok_API_Key || process.env.APIFY_TOKEN || process.env.TIKTOK_API_KEY || process.env.YOUTUBE_API_KEY_2;
+  const token = getApifyToken("tiktok");
   if (!token) {
-    return Response.json({ error: "No TikTok API key found. Set TikTok_API_Key in Vercel env vars." }, { status: 500 });
+    return Response.json({ error: "No TikTok API key found. Set TIKTOK_API_KEY (or APIFY_TOKEN) in Vercel env vars." }, { status: 500 });
   }
 
   const body = await request.json();

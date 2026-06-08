@@ -4,6 +4,7 @@
  * Calls Apify apify/instagram-scraper and returns normalised VideoData[]
  */
 import type { VideoData } from "@/lib/types";
+import { getApifyToken } from "@/lib/apify-token";
 
 const APIFY_BASE = "https://api.apify.com/v2";
 const ACTOR_ID = "apify~instagram-scraper";
@@ -66,9 +67,9 @@ function mapItem(item: any): VideoData | null {
 }
 
 export async function POST(request: Request) {
-  const token = process.env.Instagram_API_KEY_2 || process.env.Instagram_API_Key || process.env.APIFY_TOKEN || process.env.INSTAGRAM_API_KEY || process.env.YOUTUBE_API_KEY_2;
+  const token = getApifyToken("instagram");
   if (!token) {
-    return Response.json({ error: "No Instagram API key found. Set Instagram_API_KEY_2 in Vercel env vars." }, { status: 500 });
+    return Response.json({ error: "No Instagram API key found. Set INSTAGRAM_API_KEY (or APIFY_TOKEN) in Vercel env vars." }, { status: 500 });
   }
 
   const body = await request.json();

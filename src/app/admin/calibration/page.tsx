@@ -67,6 +67,21 @@ export default function CalibrationPage() {
         </p>
       </div>
 
+      {report && report.sampleSize > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, color: "#6B6964", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 10 }}>
+            What the engine can actually nail
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+            <HeadlineMetric label="Direction right" value={`${(report.directionCorrect * 100).toFixed(0)}%`} color="#2ECC8A" />
+            <HeadlineMetric label="Rank agreement (Spearman ρ)" value={report.spearman.toFixed(2)} color="#2ECC8A" />
+          </div>
+          <div style={{ fontSize: 11.5, color: "#8A8883", lineHeight: 1.55, marginTop: 8 }}>
+            Absolute view counts are heavy-tailed and have an irreducible error floor — &ldquo;median error&rdquo; below will never reach zero, and a few viral hits can wreck it. The achievable, decision-useful targets are getting the <span style={{ color: "#A8A6A1" }}>direction</span> right (will this beat the creator&apos;s median?) and <span style={{ color: "#A8A6A1" }}>ranking</span> winners above losers (ρ → 1.0). Optimise these.
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
         <HeadlineMetric label="Total snapshots"   value={(sampleSize ?? 0).toLocaleString()} />
         <HeadlineMetric label="With outcomes"     value={(withOutcomes ?? 0).toLocaleString()} />
@@ -228,7 +243,8 @@ function PlatformCard({ platform, report }: { platform: Platform; report: Calibr
           <Row label="Samples"   value={report.sampleSize.toString()} />
           <Row label="MdAPE"     value={`${(report.medianAPE * 100).toFixed(1)}%`} valueColor={mdapeColor} />
           <Row label="Coverage"  value={`${(report.coverage * 100).toFixed(0)}%`} />
-          <Row label="Direction" value={`${(report.directionCorrect * 100).toFixed(0)}%`} />
+          <Row label="Direction" value={`${(report.directionCorrect * 100).toFixed(0)}%`} valueColor="#2ECC8A" />
+          <Row label="Rank ρ"    value={report.spearman.toFixed(2)} valueColor="#2ECC8A" />
           <Row label="Bias"      value={`${report.meanSignedError > 0 ? "+" : ""}${(report.meanSignedError * 100).toFixed(0)}%`} />
         </div>
       ) : (

@@ -9,6 +9,7 @@
 // publicly-visible comments (the same set any logged-out visitor sees).
 
 import { NextRequest, NextResponse } from "next/server";
+import { getApifyToken } from "@/lib/apify-token";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,12 +31,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "not an Instagram post URL" }, { status: 400 });
     }
 
-    const token =
-      process.env.Instagram_API_KEY_2 ||
-      process.env.Instagram_API_Key   ||
-      process.env.APIFY_TOKEN         ||
-      process.env.INSTAGRAM_API_KEY   ||
-      process.env.APIFY_TOKEN_TWITTER;
+    const token = getApifyToken("instagram");
     if (!token) {
       return NextResponse.json({ ok: false, reason: "no_api_key" });
     }

@@ -34,6 +34,7 @@
 
 import type { EnrichedVideo, VideoData, VRSResult } from "./types";
 import { applyConformalBounds, type ConformalTable } from "./conformal";
+import { fittedCumulativeShare, type DecayTable } from "./decay-fit";
 import { classifyLifecycleTier, applyTierCeiling, type TierClassification } from "./lifecycle-tier";
 
 export type Platform = "youtube" | "youtube_short" | "tiktok" | "instagram" | "x";
@@ -67,6 +68,14 @@ export interface ForecastInput {
   // Applied to baseline alongside seasonality and niche. Clamped to [0.7, 1.25].
   reputationMultiplier?: number;
   reputationRationale?:  string;
+  // Optional: cross-platform reputation multiplier (see
+  // src/lib/cross-platform-reputation.ts). Aggregates the creator's standing on
+  // the OTHER platforms they post on (from the reference pool) — multi-platform
+  // presence and whether sentiment is consistent or split ("brand risk").
+  // Applied to baseline alongside the within-creator reputation multiplier.
+  // Clamped to [0.85, 1.15].
+  crossPlatformMultiplier?: number;
+  crossPlatformRationale?:  string;
   // Optional: platform config parameter overrides (from tuning admin page)
   configOverrides?: Record<string, Partial<{
     upsideMultiplier:   number;
@@ -78,6 +87,11 @@ export interface ForecastInput {
   // present with enough samples in a matching stratum, lifetime.low/high are
   // replaced with empirical residual quantiles. The median is never touched.
   conformalTable?: ConformalTable | null;
+  // Optional: fitted decay-curve table (from /api/forecast/decay). When a
+  // platform has enough matured videos, the empirical cumulative-share curve
+  // replaces the hand-tuned knots in PLATFORM_CONFIG. Falls back to the
+  // hand-tuned curve when absent or thin — zero regression.
+  decayTable?: DecayTable | null;
   // Optional: keys within `manualInputs` whose values came from AI estimation
   // (e.g. thumbnail CTR predicted from the thumbnail image) rather than from
   // the RM / a Creator Studio screenshot. The value still flows into the
@@ -297,6 +311,7 @@ export function projectAtDate(
   targetDate:   Date,
   publishedAt?: string,
   currentViews: number = 0,
+  decayTable?:  DecayTable | null,
 ): DateProjection {
   const cfg = PLATFORM_CONFIG[platform];
 
@@ -315,7 +330,7 @@ export function projectAtDate(
   }
 
   const beyondHorizon = daysFromPublish > cfg.horizonDays;
-  const share = cfg.cumulativeShare(daysFromPublish);
+  const share = fittedCumulativeShare(decayTable ?? null, platform, daysFromPublish) ?? cfg.cumulativeShare(daysFromPublish);
 
   // Scale lifetime forecast by share at target date
   let low    = Math.round(result.lifetime.low    * share);
@@ -558,7 +573,8 @@ function blendWithTrajectory(
   prior: { low: number; median: number; high: number },
   video: EnrichedVideo,
   platform: Platform,
-  velocitySamples?: VelocitySampleInput[],
+  velocitySamples: VelocitySampleInput[] | undefined,
+  shareAt: (d: number) => number,
 ): { blended: { low: number; median: number; high: number }; trajectory: TrajectoryAnalysis | null } {
 
   if (!video.publishedAt || video.views === 0) {
@@ -568,8 +584,8 @@ function blendWithTrajectory(
   const ageMs = Date.now() - new Date(video.publishedAt).getTime();
   const ageDays = Math.max(0.01, ageMs / 86_400_000);
 
-  const cfg = PLATFORM_CONFIG[platform];
-  const cumulativeSoFar = cfg.cumulativeShare(ageDays);
+  // Fitted decay curve when available, else hand-tuned (passed in by caller).
+  const cumulativeSoFar = shareAt(ageDays);
 
   // Baseline trajectory projection — current views / share-elapsed-so-far
   let trajectoryMedian = video.views / Math.max(0.01, cumulativeSoFar);
@@ -751,6 +767,12 @@ export function forecast(input: ForecastInput): Forecast {
     minBaselinePosts:   override.minBaselinePosts   ?? baseCfg.minBaselinePosts,
   };
 
+  // Cumulative-share curve: fitted-from-data when a platform has enough matured
+  // videos (input.decayTable), else the hand-tuned knots. Shared by the
+  // trajectory blend and milestone projection so both agree on one curve.
+  const shareAt = (d: number) =>
+    fittedCumulativeShare(input.decayTable ?? null, platform, d) ?? cfg.cumulativeShare(d);
+
   const dataUsed:      DataSource[] = [];
   const dataEstimated: DataSource[] = [];
   const dataMissing:   DataSource[] = [];
@@ -845,7 +867,11 @@ export function forecast(input: ForecastInput): Forecast {
   // out-of-range value — the module itself also clamps, but we don't trust it
   // blindly.
   const reputationMult = Math.max(0.70, Math.min(1.25, input.reputationMultiplier ?? 1.0));
-  const adjustedBaseline = baseline.median * seasonality * nicheMult * reputationMult;
+  // Cross-platform reputation — second-order on the within-creator reputation.
+  // Clamped tighter [0.85, 1.15]; defensive here in case a caller passes an
+  // out-of-range value (the module also clamps).
+  const crossPlatformMult = Math.max(0.85, Math.min(1.15, input.crossPlatformMultiplier ?? 1.0));
+  const adjustedBaseline = baseline.median * seasonality * nicheMult * reputationMult * crossPlatformMult;
 
   // Comment sentiment adjusts the UPSIDE specifically — positive sentiment
   // widens the high band (algorithm promotes), negative sentiment compresses it.
@@ -865,7 +891,7 @@ export function forecast(input: ForecastInput): Forecast {
   };
 
   // ── Step 6: Blend with observed trajectory ───────────────────────────
-  const { blended, trajectory } = blendWithTrajectory(prior, video, platform, velocitySamples);
+  const { blended, trajectory } = blendWithTrajectory(prior, video, platform, velocitySamples, shareAt);
   const lifetime = {
     low:    Math.round(blended.low),
     median: Math.round(blended.median),
@@ -913,7 +939,7 @@ export function forecast(input: ForecastInput): Forecast {
   }
 
   // ── Step 7: Project milestones from the lifetime number ──────────────
-  const shareAt = (d: number) => cfg.cumulativeShare(d);
+  // (shareAt defined above — fitted decay curve with hand-tuned fallback)
   const d1  = { low: Math.round(lifetime.low * shareAt(1)),  median: Math.round(lifetime.median * shareAt(1)),  high: Math.round(lifetime.high * shareAt(1))  };
   const d7  = { low: Math.round(lifetime.low * shareAt(7)),  median: Math.round(lifetime.median * shareAt(7)),  high: Math.round(lifetime.high * shareAt(7))  };
   const d30 = { low: Math.round(lifetime.low * shareAt(30)), median: Math.round(lifetime.median * shareAt(30)), high: Math.round(lifetime.high * shareAt(30)) };
@@ -947,6 +973,9 @@ export function forecast(input: ForecastInput): Forecast {
     notes.push(`Creator niche: ${input.nicheLabel}${input.nicheMultiplier && input.nicheMultiplier !== 1 ? ` (${input.nicheMultiplier.toFixed(2)}× baseline)` : ""}.`);
     if (input.nicheRationale) notes.push(`  · ${input.nicheRationale}`);
   }
+  if (input.crossPlatformMultiplier && Math.abs(input.crossPlatformMultiplier - 1) > 0.02) {
+    notes.push(`Cross-platform reputation: ${input.crossPlatformMultiplier.toFixed(2)}× baseline. ${input.crossPlatformRationale ?? ""}`.trim());
+  }
   if (input.reputationMultiplier != null && Math.abs(input.reputationMultiplier - 1) > 0.02) {
     notes.push(`Creator reputation: ${input.reputationMultiplier.toFixed(2)}× baseline.`);
     if (input.reputationRationale) notes.push(`  · ${input.reputationRationale}`);
@@ -963,6 +992,10 @@ export function forecast(input: ForecastInput): Forecast {
       const pct = Math.abs(Math.exp(conformalApplied.medianResidualLog) - 1) * 100;
       notes.push(`  · Historical ${dir}-prediction of ~${pct.toFixed(0)}% on the median — consider tuning.`);
     }
+  }
+  const fittedCurve = input.decayTable?.byPlatform?.[platform];
+  if (fittedCurve) {
+    notes.push(`Decay curve fitted from ${fittedCurve.videoCount} matured ${platform === "x" ? "posts" : "videos"} — replaces the hand-tuned curve.`);
   }
   if (lifecycleTier.tier !== "not-applicable" && lifecycleTier.tier !== "tier-1-hook") {
     notes.push(`Distribution tier: ${lifecycleTier.tier} (${lifecycleTier.confidence} confidence). ${lifecycleTier.rationale}`);

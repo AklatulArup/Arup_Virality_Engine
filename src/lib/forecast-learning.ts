@@ -76,6 +76,11 @@ export interface CalibrationReport {
   // Directional accuracy
   directionCorrect:     number;        // fraction where we got above/below baseline right
 
+  // Rank agreement — Spearman correlation of predicted vs actual views. The
+  // achievable "did we rank the winners right" metric (vs absolute MdAPE,
+  // which a few heavy-tailed hits can wreck). -1..1; 0 when <3 samples.
+  spearman:             number;
+
   // Bias
   meanSignedError:      number;        // positive = over-predicting, negative = under-predicting
 
@@ -275,6 +280,9 @@ export function computeCalibrationFrom(snapshots: ForecastSnapshot[], platform?:
     return predictedAbove === actualAbove;
   }).length / errors.length;
 
+  // Rank agreement between predicted and actual views across the pool.
+  const spearman = spearmanCorr(errors.map(e => e.predicted), errors.map(e => e.actual));
+
   // Breakdowns
   const scoreBands = [
     { min: 0, max: 40 }, { min: 40, max: 60 }, { min: 60, max: 80 }, { min: 80, max: 100 },
@@ -320,6 +328,7 @@ export function computeCalibrationFrom(snapshots: ForecastSnapshot[], platform?:
     coverage,
     coverageTarget:   0.80,
     directionCorrect,
+    spearman,
     meanSignedError:  mean(errors.map(e => e.signedError)),
     byScoreBand,
     byAgeBand,
@@ -338,11 +347,44 @@ function mean(arr: number[]): number {
   return arr.length === 0 ? 0 : arr.reduce((s, v) => s + v, 0) / arr.length;
 }
 
+// Spearman rank correlation = Pearson on the ranks. Ties get average ranks.
+// Returns 0 for <3 samples or zero variance (degenerate).
+function spearmanCorr(xs: number[], ys: number[]): number {
+  const n = xs.length;
+  if (n < 3 || ys.length !== n) return 0;
+  const rx = ranks(xs);
+  const ry = ranks(ys);
+  const mx = mean(rx);
+  const my = mean(ry);
+  let num = 0, dx = 0, dy = 0;
+  for (let i = 0; i < n; i++) {
+    const a = rx[i] - mx, b = ry[i] - my;
+    num += a * b; dx += a * a; dy += b * b;
+  }
+  const den = Math.sqrt(dx * dy);
+  return den === 0 ? 0 : Math.max(-1, Math.min(1, num / den));
+}
+
+// 1-based ranks with average-rank tie handling.
+function ranks(arr: number[]): number[] {
+  const idx = arr.map((v, i) => [v, i] as const).sort((a, b) => a[0] - b[0]);
+  const r = new Array<number>(arr.length).fill(0);
+  let i = 0;
+  while (i < idx.length) {
+    let j = i;
+    while (j + 1 < idx.length && idx[j + 1][0] === idx[i][0]) j++;
+    const avgRank = (i + j) / 2 + 1;
+    for (let k = i; k <= j; k++) r[idx[k][1]] = avgRank;
+    i = j + 1;
+  }
+  return r;
+}
+
 function emptyReport(platform: Platform | "all"): CalibrationReport {
   return {
     platform, sampleSize: 0,
     medianAPE: 0, meanAPE: 0, coverage: 0, coverageTarget: 0.80,
-    directionCorrect: 0, meanSignedError: 0,
+    directionCorrect: 0, spearman: 0, meanSignedError: 0,
     byScoreBand: [], byAgeBand: [],
     worstPredictions: [],
   };
@@ -384,6 +426,23 @@ export function suggestAdjustments(report: CalibrationReport): LearningAdjustmen
       confidence:     "medium",
       sampleSize:     report.sampleSize,
       rationale:      `80% interval only contains ${(report.coverage * 100).toFixed(0)}% of outcomes — the ranges are too tight. Lowering the score exponent widens bands at the extremes.`,
+    });
+  }
+
+  // Downside-band correction: when the interval misses LOW (actuals land below
+  // the range) AND we're over-predicting, the floor is too high — lower the
+  // downside multiplier to widen the low band. Complements the upside/exponent
+  // rules so both ends of the interval get tuned, not just the top.
+  if (report.coverage < 0.70 && report.meanSignedError > 0.10 && report.sampleSize >= 30) {
+    adjustments.push({
+      platform:       report.platform as Platform,
+      parameter:      "downsideMultiplier",
+      currentValue:   0,
+      suggestedValue: 0,
+      deltaPercent:   -15,  // lower floor = wider low band
+      confidence:     report.sampleSize >= 50 ? "medium" : "low",
+      sampleSize:     report.sampleSize,
+      rationale:      `Over-predicting by ${(report.meanSignedError * 100).toFixed(0)}% with only ${(report.coverage * 100).toFixed(0)}% interval coverage — actuals are landing below the low band. Lowering the downside multiplier widens the floor.`,
     });
   }
 

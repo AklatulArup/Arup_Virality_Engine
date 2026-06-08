@@ -4,13 +4,15 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { forecast, projectAtDate, PLATFORM_CONFIG, type ManualInputs, type Platform, type DataSource, type DateProjection } from "@/lib/forecast";
 import { T, PLATFORMS as SHELL_PLATFORMS } from "@/lib/design-tokens";
 import type { ConformalTable } from "@/lib/conformal";
+import type { DecayTable } from "@/lib/decay-fit";
 import { INPUT_TOOLTIPS, type InputTooltip } from "@/lib/input-tooltips";
 import { recordForecast } from "@/lib/forecast-learning";
 import { computeDayOfWeekProfile, fetchMarketVolatility, combineSeasonality, type DayOfWeekProfile, type MarketVolatilityProfile } from "@/lib/seasonality";
 import { classifyCreatorNiche, nicheAdjustment } from "@/lib/niche-classifier";
 import { assessCreatorReputation } from "@/lib/reputation";
+import { assessCrossPlatformReputation, type CrossPlatformReputation } from "@/lib/cross-platform-reputation";
 import { computePoolStats } from "@/lib/pool-stats";
-import type { EnrichedVideo, VideoData } from "@/lib/types";
+import type { EnrichedVideo, VideoData, ReferenceEntry } from "@/lib/types";
 import { formatNumber } from "@/lib/formatters";
 
 interface ForecastPanelProps {
@@ -262,6 +264,20 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
   // undefined and reputation.ts works with just the trend + recency signals.
   const reputation = useMemo(() => assessCreatorReputation({ creatorHistory }), [creatorHistory]);
 
+  // Full pool entries (not just per-platform counts) — retained so cross-
+  // platform reputation can find this creator's footprint on other platforms.
+  // Populated by the reference-store effect further down.
+  const [poolEntries, setPoolEntries] = useState<ReferenceEntry[]>([]);
+
+  // Cross-platform reputation — aggregates this creator's standing on the OTHER
+  // platforms they post on, drawn from the reference pool. Pure compute, no
+  // extra network call. Stays neutral (1.0×) until the pool loads or when the
+  // creator has no cross-platform footprint.
+  const crossPlatformRep = useMemo(
+    () => assessCrossPlatformReputation({ platform, channelName: video.channel ?? "", poolEntries }),
+    [platform, video.channel, poolEntries],
+  );
+
   // Pool coverage — count of reference-store entries per platform, used by the
   // right-rail "Pool coverage" column. Uses the shared computePoolStats()
   // bucketer so counts always match the Sidebar + Landing page panel. Re-
@@ -277,6 +293,7 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
         .then(d => {
           if (cancelled) return;
           const entries = Array.isArray(d?.entries) ? d.entries : Array.isArray(d) ? d : [];
+          setPoolEntries(entries as ReferenceEntry[]);
           const stats = computePoolStats(entries);
           const rowByPlatform = new Map(stats.rows.map(r => [r.id, r.count] as const));
           setPoolCoverage([
@@ -334,6 +351,18 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
     fetch("/api/forecast/conformal")
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.ok && d.table) setConformalTable(d.table as ConformalTable); })
+      .catch(() => {});
+  }, []);
+
+  // Fitted decay-curve table — empirical cumulative-share per platform, learned
+  // from matured videos. Null until enough mature; forecast() falls back to the
+  // hand-tuned curve when absent or thin.
+  const [decayTable, setDecayTable] = useState<DecayTable | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    fetch("/api/forecast/decay")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.ok && d.table) setDecayTable(d.table as DecayTable); })
       .catch(() => {});
   }, []);
 
@@ -533,11 +562,14 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
       nicheRationale: niche.rationale,
       reputationMultiplier: reputation.multiplier,
       reputationRationale:  reputation.rationale,
+      crossPlatformMultiplier: crossPlatformRep.multiplier,
+      crossPlatformRationale:  crossPlatformRep.rationale,
       configOverrides,
       conformalTable,
+      decayTable,
       aiEstimatedKeys: Array.from(aiEstimatedKeys),
     }),
-    [video, creatorHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj, reputation, configOverrides, conformalTable, aiEstimatedKeys],
+    [video, creatorHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj, reputation, crossPlatformRep, configOverrides, conformalTable, decayTable, aiEstimatedKeys],
   );
 
   // Persist snapshot for later calibration — debounced: only once per video + inputs combo
@@ -596,8 +628,8 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
     if (!targetDate) return null;
     const d = new Date(targetDate + "T12:00:00");
     if (isNaN(d.getTime())) return null;
-    return projectAtDate(result, platform, d, video.publishedAt, video.views);
-  }, [result, platform, targetDate, video.publishedAt, video.views]);
+    return projectAtDate(result, platform, d, video.publishedAt, video.views, decayTable);
+  }, [result, platform, targetDate, video.publishedAt, video.views, decayTable]);
 
   const update = (key: keyof ManualInputs, raw: string) => {
     const n = raw === "" ? undefined : Number(raw);
@@ -666,7 +698,7 @@ export default function ForecastPanel({ video, creatorHistory, platform }: Forec
 
   // "How we got here" signal list for the footer. Derived from the real
   // forecast result, not hard-coded.
-  const signals = buildSignals(result, reputation.multiplier, sentimentScore, sentimentRationale);
+  const signals = buildSignals(result, reputation.multiplier, sentimentScore, sentimentRationale, crossPlatformRep);
 
   return (
     <div style={panelStyle}>
@@ -1712,6 +1744,7 @@ function buildSignals(
   repMult:   number,
   sentScore?: number,
   sentRationale?: string,
+  xRep?:     CrossPlatformReputation,
 ): Array<{ k: string; v: string; sub?: string; tone: "pos" | "neg" | "neutral" }> {
   const out: Array<{ k: string; v: string; sub?: string; tone: "pos" | "neg" | "neutral" }> = [];
   out.push({
@@ -1726,6 +1759,20 @@ function buildSignals(
       v:    `×${repMult.toFixed(2)}`,
       sub:  "vs creator median",
       tone: repMult > 1.02 ? "pos" : repMult < 0.98 ? "neg" : "neutral",
+    });
+  }
+  // Cross-platform reputation — how the creator is received on the OTHER
+  // platforms they post on. Only shown when it moves the number or a brand-risk
+  // split is detected.
+  if (xRep && (Math.abs(xRep.multiplier - 1) > 0.02 || xRep.signals.polarized)) {
+    const xLabel: Record<string, string> = { youtube: "YouTube", tiktok: "TikTok", instagram: "Instagram", x: "X" };
+    out.push({
+      k:    "Cross-platform",
+      v:    `×${xRep.multiplier.toFixed(2)}`,
+      sub:  xRep.signals.polarized
+              ? "brand-risk: split standing"
+              : `also on ${xRep.platformsPresent.map((p) => xLabel[p] ?? p).join(", ")}`,
+      tone: xRep.signals.polarized ? "neg" : xRep.multiplier > 1.02 ? "pos" : xRep.multiplier < 0.98 ? "neg" : "neutral",
     });
   }
   // Comment sentiment — forecast() widens the upside band when positive,
@@ -1773,7 +1820,7 @@ function buildSignals(
           : "neutral",
     });
   }
-  return out.slice(0, 6);
+  return out.slice(0, 7);
 }
 
 // ─── V5 PRIMITIVES ──────────────────────────────────────────────────────

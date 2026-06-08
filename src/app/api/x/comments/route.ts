@@ -12,6 +12,7 @@
 // the same set any logged-out visitor would see on the post page.
 
 import { NextRequest, NextResponse } from "next/server";
+import { getApifyToken } from "@/lib/apify-token";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,11 +40,7 @@ export async function GET(req: NextRequest) {
     const candidate = authorRaw.replace(/^@/, "").split(/[\/\s?]/)[0];
     const authorHandle = /^[A-Za-z0-9_]{1,15}$/.test(candidate) ? candidate : "";
 
-    const token =
-      process.env.APIFY_TOKEN_TWITTER   ||
-      process.env.APIFY_TOKEN_TWITTER_2 ||
-      process.env.APIFY_TOKEN           ||
-      process.env.TikTok_API_Key;
+    const token = getApifyToken("x");
     if (!token) {
       return NextResponse.json({ ok: false, reason: "no_api_key" });
     }

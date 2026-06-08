@@ -10,6 +10,7 @@
 // web UI shows to any logged-out visitor.
 
 import { NextRequest, NextResponse } from "next/server";
+import { getApifyToken } from "@/lib/apify-token";
 
 export const runtime = "nodejs";
 // Reads `url` from request.url — must be dynamic.
@@ -32,11 +33,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "not a TikTok video URL" }, { status: 400 });
     }
 
-    const token =
-      process.env.TikTok_API_Key ||
-      process.env.APIFY_TOKEN    ||
-      process.env.TIKTOK_API_KEY ||
-      process.env.APIFY_TOKEN_TWITTER;
+    const token = getApifyToken("tiktok");
     if (!token) {
       return NextResponse.json({ ok: false, reason: "no_api_key" });
     }

@@ -92,33 +92,35 @@ function buildOcrPrompt(): string {
   return `You are extracting creator analytics values from a screenshot.
 The image is from one of: TikTok Creator Studio, Instagram Insights, YouTube Studio, or X Premium dashboard.
 
-Identify the platform, then extract any of these specific values if visible:
+Identify the platform, then extract any of these values if visible. Dashboards label the same metric many ways — match on MEANING, not exact wording (common labels listed):
 
 TikTok fields:
-- ttCompletionPct    — completion rate / average watched %, as a number 0-100 (no % sign)
-- ttRewatchPct       — rewatch rate / replay rate, as a number 0-100
-- ttFypViewPct       — percentage of views from For You Page, as a number 0-100
+- ttCompletionPct    — "completion rate" / "watched full video" / "average watch %". 0-100, no % sign. If only "average watch time" (e.g. 18s) and video length (e.g. 24s) are shown, COMPUTE 100×18/24.
+- ttRewatchPct       — "rewatch rate" / "replays" / "watched again" (replays ÷ views). 0-100.
+- ttFypViewPct       — "For You" share under "Traffic source" / "video views by section". 0-100.
 
-Instagram fields:
-- igSaves            — total saves, integer count
-- igSends            — total sends / shares to DMs, integer count
-- igReach            — accounts reached, integer count
-- igHold3s           — 3-second hold/retention percentage, as a number 0-100
+Instagram fields (Insights / professional dashboard):
+- igSaves            — "Saves" / "Saved". Integer count.
+- igSends            — "Shares" / "Sends" / paper-plane forwards. Integer. NOTE: on Instagram "Shares" usually means sends — capture it as igSends.
+- igReach            — "Accounts reached" / "Reach". Integer (NOT impressions or plays).
+- igHold3s           — 3-second / initial retention. If a retention graph shows the % still watching at ~3s, read that point. 0-100.
 
-YouTube fields:
-- ytAVDpct           — average view duration as a percentage of total duration, 0-100. If only absolute AVD (e.g. "2:34") and total duration are shown, compute the percentage.
-- ytCTRpct           — impressions click-through rate, as a number 0-100
-- ytImpressions      — total impressions, integer count
+YouTube fields (YouTube Studio):
+- ytAVDpct           — "Average percentage viewed" directly, OR COMPUTE 100×(average view duration ÷ video length) when both the AVD clock (e.g. "2:34") and the length are shown. 0-100.
+- ytCTRpct           — "Impressions click-through rate". 0-100.
+- ytImpressions      — "Impressions". Integer (NOT views).
 
 X fields:
-- xTweepCred         — TweepCred score, as a number 0-100
-- xReplyByAuthor     — count of replies the author engaged with, integer
+- xTweepCred         — TweepCred / account-reputation score. 0-100.
+- xReplyByAuthor     — replies the author replied back to. Integer.
 
 Rules:
-- ONLY extract a value if you can clearly read it in the screenshot. Never guess.
-- Convert units: "14.3K" → 14300; "2.1M" → 2100000; "72%" → 72 (strip the sign).
-- If a value is partially covered, ambiguous, or inferred, set confidence to "low" and include a note.
-- If the screenshot isn't from a creator-analytics dashboard at all, return an empty fields object and set detectedPlatform to "unknown".
+- ONLY extract a value you can clearly read, or directly COMPUTE from two visible numbers. Never guess from vibes.
+- Convert units: "14.3K" → 14300; "2.1M" → 2100000; "72%" → 72 (strip the sign); "1,204" → 1204.
+- When you COMPUTE a value (e.g. AVD% from clock ÷ length), set confidence "medium" and note the source numbers in "note".
+- If a value is a range or partially covered, set confidence "low" and add a note.
+- Prefer per-video values over account-level aggregates when both are visible; note if only account-level was available.
+- If the screenshot isn't a creator-analytics dashboard at all, return an empty fields object and set detectedPlatform to "unknown".
 
 Return ONLY valid JSON in this exact shape (omit any field not visible):
 {

@@ -22,6 +22,7 @@ import { kvGet, kvSet, kvListRange, isKvAvailable } from "@/lib/kv";
 import type { ForecastSnapshot } from "@/lib/forecast-learning";
 import type { Platform } from "@/lib/forecast";
 import { recomputeConformalTable } from "@/lib/conformal";
+import { recomputeDecayTable } from "@/lib/decay-fit";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 min — rescrapes can be slow
@@ -48,16 +49,19 @@ interface CollectorResult {
   durationMs:      number;
   conformalRecomputed?: boolean;
   conformalSampleCount?: number;
+  decayRecomputed?: boolean;
 }
 
 export async function GET(req: NextRequest) {
   const start = Date.now();
 
-  // Security: protect against random hits — require either Vercel's cron secret
-  // or a manual admin header. The CRON_SECRET is auto-injected by Vercel Cron.
+  // Security: fail CLOSED. If CRON_SECRET is unset we reject rather than run
+  // unauthenticated — otherwise this expensive re-scrape endpoint would be
+  // publicly callable. CRON_SECRET must be set on Vercel and match the GitHub
+  // Actions repo secret used by the hourly velocity workflow.
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
@@ -134,6 +138,14 @@ export async function GET(req: NextRequest) {
       } catch (e) {
         // Non-fatal — forecast falls back to hand-tuned bands.
         result.errors.push({ snapshotId: "conformal-recompute", error: e instanceof Error ? e.message : String(e) });
+      }
+      // Refit the empirical decay curves from velocity tracks + matured finals.
+      // Non-fatal — forecast falls back to hand-tuned cumulative-share knots.
+      try {
+        await recomputeDecayTable(new Date().toISOString());
+        result.decayRecomputed = true;
+      } catch (e) {
+        result.errors.push({ snapshotId: "decay-recompute", error: e instanceof Error ? e.message : String(e) });
       }
     }
 
