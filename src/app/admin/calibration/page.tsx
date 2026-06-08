@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { CalibrationReport, LearningAdjustment } from "@/lib/forecast-learning";
 import type { Platform } from "@/lib/forecast";
+import type { KeyHealthReport, KeyHealthResult } from "@/lib/key-health";
 
 interface CalibrationData {
   ok:            boolean;
@@ -88,6 +89,8 @@ export default function CalibrationPage() {
         <HeadlineMetric label="Median error"      value={report && report.sampleSize > 0 ? `${(report.medianAPE * 100).toFixed(1)}%` : "—"} color="#60A5FA" />
         <HeadlineMetric label="Interval coverage" value={report && report.sampleSize > 0 ? `${(report.coverage * 100).toFixed(0)}%` : "—"} color="#A78BFA" />
       </div>
+
+      <KeyHealthPanel />
 
       {suggestions && suggestions.length > 0 && (
         <section style={{ marginBottom: 28 }}>
@@ -484,6 +487,88 @@ const appliedOverrideStyle: React.CSSProperties = {
   padding: "12px 14px",
   marginBottom: 8,
 };
+
+// ─── API KEY HEALTH PANEL ─────────────────────────────────────────────────
+
+function KeyHealthPanel() {
+  const [report, setReport]   = useState<KeyHealthReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/key-health")
+      .then(r => r.json())
+      .then(d => { if (d?.ok) setReport(d.report ?? null); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const runLive = async () => {
+    setRunning(true); setError(null);
+    try {
+      const r = await fetch("/api/admin/key-health", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "run" }),
+      });
+      const d = await r.json();
+      if (d?.ok) setReport(d.report ?? null);
+      else setError(d?.error ?? "check failed");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const dot = (sev: KeyHealthResult["severity"]) =>
+    sev === "ok" ? "#2ECC8A" : sev === "warn" ? "#F59E0B" : sev === "error" ? "#FF6B7A" : "#6B6964";
+
+  return (
+    <section style={{ marginBottom: 28 }}>
+      <SectionHeading>API key health</SectionHeading>
+      <div style={{ fontSize: 12, color: "#A8A6A1", marginBottom: 10, lineHeight: 1.55 }}>
+        Live status of every external key — &ldquo;set in Vercel&rdquo; is not the same as working. Each run makes one tiny real call per key (throttled to once / 30s). Key values are never shown.
+      </div>
+
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, fontSize: 11.5, color: "#8A8883", fontFamily: "IBM Plex Mono, monospace", flexWrap: "wrap" }}>
+        <span>Last checked: <span style={{ color: "#E8E6E1" }}>{report?.checkedAt ? new Date(report.checkedAt).toLocaleString() : "never"}</span></span>
+        {report?.summary && (
+          <span>· <span style={{ color: "#2ECC8A" }}>{report.summary.ok} ok</span> · <span style={{ color: "#F59E0B" }}>{report.summary.warn} warn</span> · <span style={{ color: "#FF6B7A" }}>{report.summary.error} error</span> · <span style={{ color: "#6B6964" }}>{report.summary.missing} unset</span></span>
+        )}
+        {report?.apifyCredit && <span>· Apify: <span style={{ color: "#E8E6E1" }}>{report.apifyCredit}</span></span>}
+        <button onClick={runLive} disabled={running} style={{ ...buttonSecondaryStyle, marginLeft: "auto", opacity: running ? 0.5 : 1 }}>
+          {running ? "Checking…" : "Run live check"}
+        </button>
+      </div>
+      {error && <div style={{ fontSize: 11, color: "#FF6B7A", marginBottom: 8 }}>Error: {error}</div>}
+
+      {loading ? (
+        <div style={{ fontSize: 12, color: "#6B6964" }}>Loading…</div>
+      ) : !report || report.results.length === 0 ? (
+        <div style={{ fontSize: 12, color: "#6B6964", fontStyle: "italic" }}>
+          No check run yet. Click &quot;Run live check&quot; to test every key now.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {report.results.map((r, i) => (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "10px 92px 1fr auto", gap: 10, alignItems: "center", padding: "7px 10px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 6 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: dot(r.severity) }} />
+              <span style={{ color: "#E8E6E1", fontWeight: 500, fontSize: 11.5 }}>{r.service}</span>
+              <span style={{ color: "#8A8883", fontFamily: "IBM Plex Mono, monospace", fontSize: 10.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {r.keyVar}{r.detail ? ` · ${r.detail}` : ""}
+              </span>
+              <span style={{ color: dot(r.severity), fontFamily: "IBM Plex Mono, monospace", fontSize: 10.5, textAlign: "right" }}>
+                {r.httpStatus ? `${r.httpStatus} · ` : ""}{r.verdict}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
 
 // ─── CONFORMAL INTERVALS PANEL ────────────────────────────────────────────
 
