@@ -1,12 +1,7 @@
 import type { VideoData, ChannelData } from "./types";
+import { youtubeFetchJson } from "./youtube-keys";
 
 const API_BASE = "https://www.googleapis.com/youtube/v3";
-
-function getApiKey(): string {
-  const key = process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY_2;
-  if (!key) throw new Error("YOUTUBE_API_KEY not set");
-  return key;
-}
 
 function parseDuration(iso: string): { formatted: string; seconds: number } {
   const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -23,11 +18,9 @@ function parseDuration(iso: string): { formatted: string; seconds: number } {
 }
 
 export async function fetchVideo(id: string): Promise<VideoData | null> {
-  const key = getApiKey();
-  const res = await fetch(
-    `${API_BASE}/videos?part=snippet,statistics,contentDetails&id=${id}&key=${key}`
+  const data = await youtubeFetchJson(
+    (key) => `${API_BASE}/videos?part=snippet,statistics,contentDetails&id=${id}&key=${key}`
   );
-  const data = await res.json();
   checkApiError(data);
   if (!data.items?.length) return null;
 
@@ -68,11 +61,9 @@ function checkApiError(data: Record<string, unknown>): void {
 }
 
 export async function fetchChannel(id: string): Promise<ChannelData | null> {
-  const key = getApiKey();
-  const res = await fetch(
-    `${API_BASE}/channels?part=statistics,snippet,contentDetails&id=${id}&key=${key}`
+  const data = await youtubeFetchJson(
+    (key) => `${API_BASE}/channels?part=statistics,snippet,contentDetails&id=${id}&key=${key}`
   );
-  const data = await res.json();
   checkApiError(data);
   if (!data.items?.length) return null;
 
@@ -91,11 +82,9 @@ export async function fetchChannel(id: string): Promise<ChannelData | null> {
 export async function fetchByHandle(
   handle: string
 ): Promise<ChannelData | null> {
-  const key = getApiKey();
-  const res = await fetch(
-    `${API_BASE}/channels?part=statistics,snippet,contentDetails&forHandle=${handle}&key=${key}`
+  const data = await youtubeFetchJson(
+    (key) => `${API_BASE}/channels?part=statistics,snippet,contentDetails&forHandle=${handle}&key=${key}`
   );
-  const data = await res.json();
   checkApiError(data);
   if (!data.items?.length) return null;
 
@@ -115,13 +104,11 @@ export async function fetchPlaylistVideos(
   playlistId: string,
   max: number = 20
 ): Promise<VideoData[]> {
-  const key = getApiKey();
   // Cap a single-page request at 50 (YouTube API limit)
   const pageSize = Math.min(max, 50);
-  const res = await fetch(
-    `${API_BASE}/playlistItems?part=contentDetails&playlistId=${playlistId}&maxResults=${pageSize}&key=${key}`
+  const data = await youtubeFetchJson(
+    (key) => `${API_BASE}/playlistItems?part=contentDetails&playlistId=${playlistId}&maxResults=${pageSize}&key=${key}`
   );
-  const data = await res.json();
   checkApiError(data);
   if (!data.items?.length) return [];
 
@@ -129,10 +116,9 @@ export async function fetchPlaylistVideos(
     .map((i: { contentDetails: { videoId: string } }) => i.contentDetails.videoId)
     .join(",");
 
-  const vRes = await fetch(
-    `${API_BASE}/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${key}`
+  const vData = await youtubeFetchJson(
+    (key) => `${API_BASE}/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${key}`
   );
-  const vData = await vRes.json();
   checkApiError(vData);
 
   return (vData.items || []).map(
@@ -188,22 +174,21 @@ export async function fetchFullDiscography(
   uploadsPlaylistId: string,
   max: number = 200
 ): Promise<VideoData[]> {
-  const key = getApiKey();
   const collected: VideoData[] = [];
   let pageToken: string | undefined = undefined;
 
   while (collected.length < max) {
     const remaining = max - collected.length;
     const pageSize = Math.min(50, remaining);
-    const url = new URL(`${API_BASE}/playlistItems`);
-    url.searchParams.set("part", "contentDetails");
-    url.searchParams.set("playlistId", uploadsPlaylistId);
-    url.searchParams.set("maxResults", String(pageSize));
-    url.searchParams.set("key", key);
-    if (pageToken) url.searchParams.set("pageToken", pageToken);
-
-    const pageRes = await fetch(url.toString());
-    const pageData = await pageRes.json();
+    const pageData = await youtubeFetchJson((key) => {
+      const url = new URL(`${API_BASE}/playlistItems`);
+      url.searchParams.set("part", "contentDetails");
+      url.searchParams.set("playlistId", uploadsPlaylistId);
+      url.searchParams.set("maxResults", String(pageSize));
+      url.searchParams.set("key", key);
+      if (pageToken) url.searchParams.set("pageToken", pageToken);
+      return url.toString();
+    });
     checkApiError(pageData);
     if (!pageData.items?.length) break;
 
@@ -211,10 +196,9 @@ export async function fetchFullDiscography(
       .map((i: { contentDetails: { videoId: string } }) => i.contentDetails.videoId)
       .join(",");
 
-    const vRes = await fetch(
-      `${API_BASE}/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${key}`
+    const vData = await youtubeFetchJson(
+      (key) => `${API_BASE}/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${key}`
     );
-    const vData = await vRes.json();
     checkApiError(vData);
 
     for (const item of vData.items || []) {

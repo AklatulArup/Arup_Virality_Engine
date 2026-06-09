@@ -3,9 +3,9 @@ import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import type { ReferenceStore } from "@/lib/types";
 import { classifyVideoFormat, classifyOrientation, formatDuration, quickSentiment } from "@/lib/video-classifier";
+import { youtubeFetchJson, isYouTubeConfigured } from "@/lib/youtube-keys";
 
 const STORE_PATH = join(process.cwd(), "src/data/reference-store.json");
-const YT_KEY = process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY_2;
 
 function readStore(): ReferenceStore {
   try {
@@ -38,25 +38,23 @@ export async function POST() {
   let heuristicCount = 0;
 
   // Try to fetch durations from YouTube API if key is available
-  if (YT_KEY && videoEntries.length > 0) {
+  if (isYouTubeConfigured() && videoEntries.length > 0) {
     const ids = videoEntries.map((e) => e.id);
     const durationMap = new Map<string, { seconds: number; tags: string[]; description: string }>();
 
-    // Batch fetch 50 at a time
+    // Batch fetch 50 at a time — rotates across all YOUTUBE_API_KEY* keys
     for (let i = 0; i < ids.length; i += 50) {
       const batch = ids.slice(i, i + 50);
       try {
-        const params = new URLSearchParams({
-          part: "contentDetails,snippet",
-          id: batch.join(","),
-          key: YT_KEY,
+        const data = await youtubeFetchJson((key) => {
+          const params = new URLSearchParams({
+            part: "contentDetails,snippet",
+            id: batch.join(","),
+            key,
+          });
+          return `https://www.googleapis.com/youtube/v3/videos?${params}`;
         });
-        const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?${params}`);
-        if (!res.ok) {
-          // Quota exhausted — break out, fall through to heuristic
-          break;
-        }
-        const data = await res.json();
+        // All keys exhausted / error — fall through to heuristic classification
         if (data.error) break;
         for (const item of (data.items || [])) {
           durationMap.set(item.id, {

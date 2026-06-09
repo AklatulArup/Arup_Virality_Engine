@@ -20,8 +20,7 @@
 // Response object so the caller can stream / json-parse / inspect as usual.
 //
 // Environment variables consulted (in order):
-//   GEMINI_API_KEY, GEMINI_API_KEY_2, GEMINI_API_KEY_3,
-//   GEMINI_API_KEY_4, GEMINI_API_KEY_5
+//   GEMINI_API_KEY, GEMINI_API_KEY_2 … GEMINI_API_KEY_10
 //
 // Add more by following the naming convention — the module reads env at call
 // time so dynamic addition works without redeploy.
@@ -32,6 +31,11 @@ const KEY_ENV_VARS = [
   "GEMINI_API_KEY_3",
   "GEMINI_API_KEY_4",
   "GEMINI_API_KEY_5",
+  "GEMINI_API_KEY_6",
+  "GEMINI_API_KEY_7",
+  "GEMINI_API_KEY_8",
+  "GEMINI_API_KEY_9",
+  "GEMINI_API_KEY_10",
 ] as const;
 
 // Round-robin pointer across keys within a single process. Each key fetched

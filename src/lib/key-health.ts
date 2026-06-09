@@ -173,8 +173,10 @@ async function checkKV(): Promise<KeyHealthResult> {
 
 export async function checkAllKeys(): Promise<KeyHealthReport> {
   const settled = await Promise.all([
-    checkYouTube("YOUTUBE_API_KEY"), checkYouTube("YOUTUBE_API_KEY_2"),
+    checkYouTube("YOUTUBE_API_KEY"), checkYouTube("YOUTUBE_API_KEY_2"), checkYouTube("YOUTUBE_API_KEY_3"), checkYouTube("YOUTUBE_API_KEY_4"), checkYouTube("YOUTUBE_API_KEY_5"),
+    checkYouTube("YOUTUBE_API_KEY_6"), checkYouTube("YOUTUBE_API_KEY_7"), checkYouTube("YOUTUBE_API_KEY_8"), checkYouTube("YOUTUBE_API_KEY_9"), checkYouTube("YOUTUBE_API_KEY_10"),
     checkGemini("GEMINI_API_KEY"), checkGemini("GEMINI_API_KEY_2"), checkGemini("GEMINI_API_KEY_3"), checkGemini("GEMINI_API_KEY_4"), checkGemini("GEMINI_API_KEY_5"),
+    checkGemini("GEMINI_API_KEY_6"), checkGemini("GEMINI_API_KEY_7"), checkGemini("GEMINI_API_KEY_8"), checkGemini("GEMINI_API_KEY_9"), checkGemini("GEMINI_API_KEY_10"),
     checkApifyPlatform("tiktok"), checkApifyPlatform("instagram"), checkApifyPlatform("x"),
     checkAnthropic("Claude_AI_Summary_API_KEY"), checkAnthropic("ANTHROPIC_API_KEY"),
     checkGNews("GNEWS_API_KEY"), checkGNews("GNEWS_API"),

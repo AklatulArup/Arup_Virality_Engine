@@ -4,6 +4,7 @@
 // Used by the sentiment pipeline; also usable anywhere else that needs comments.
 
 import { NextRequest, NextResponse } from "next/server";
+import { youtubeFetchJson, isYouTubeConfigured } from "@/lib/youtube-keys";
 
 export const runtime = "nodejs";
 // Reads `videoId` from request.url query — cannot be statically rendered.
@@ -22,24 +23,23 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "videoId required" }, { status: 400 });
     }
 
-    const key = process.env.YOUTUBE_API_KEY ?? process.env.YOUTUBE_API_KEY_2;
-    if (!key) {
+    if (!isYouTubeConfigured()) {
       return NextResponse.json({ ok: false, reason: "no_api_key" });
     }
 
-    const apiUrl = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${encodeURIComponent(videoId)}&maxResults=${max}&order=relevance&key=${key}`;
-    const r = await fetch(apiUrl, { cache: "force-cache" });
+    // Rotates across all YOUTUBE_API_KEY* keys; advances past quota/dead keys.
+    const data = await youtubeFetchJson((key) =>
+      `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${encodeURIComponent(videoId)}&maxResults=${max}&order=relevance&key=${key}`
+    );
 
-    if (!r.ok) {
-      const errText = await r.text().catch(() => "");
-      // Comments disabled on some videos = 403
-      if (r.status === 403 && errText.includes("commentsDisabled")) {
-        return NextResponse.json({ ok: false, reason: "comments_disabled", comments: [] });
-      }
-      return NextResponse.json({ ok: false, reason: "api_error", status: r.status });
+    const reason = data?.error?.errors?.[0]?.reason;
+    if (reason === "commentsDisabled") {
+      return NextResponse.json({ ok: false, reason: "comments_disabled", comments: [] });
+    }
+    if (data?.error) {
+      return NextResponse.json({ ok: false, reason: "api_error", detail: typeof data.error.message === "string" ? data.error.message.slice(0, 120) : undefined });
     }
 
-    const data = await r.json();
     const comments: string[] = (data?.items ?? [])
       .map((item: { snippet?: { topLevelComment?: { snippet?: { textDisplay?: string } } } }) =>
         item?.snippet?.topLevelComment?.snippet?.textDisplay ?? "")

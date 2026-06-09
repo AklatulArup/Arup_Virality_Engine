@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { classifyVideoFormat, classifyOrientation, formatDuration, quickSentiment } from "@/lib/video-classifier";
+import { youtubeFetchJson, isYouTubeConfigured } from "@/lib/youtube-keys";
 import type { Blocklist } from "@/lib/types";
 
-const YT_KEY = process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY_2;
 const BLOCKLIST_PATH = join(process.cwd(), "src/data/blocklist.json");
 
 function readBlocklist(): Blocklist {
@@ -53,24 +53,23 @@ async function searchVideos(
   language?: string,
   pageToken?: string
 ): Promise<{ results: SearchResult[]; nextPageToken?: string }> {
-  const params = new URLSearchParams({
-    part: "snippet",
-    type: "video",
-    q: query,
-    maxResults: String(Math.min(maxResults, 50)),
-    order: "relevance",
-    key: YT_KEY!,
+  const data = await youtubeFetchJson((key) => {
+    const params = new URLSearchParams({
+      part: "snippet",
+      type: "video",
+      q: query,
+      maxResults: String(Math.min(maxResults, 50)),
+      order: "relevance",
+      key,
+    });
+    if (language) params.set("relevanceLanguage", language);
+    if (pageToken) params.set("pageToken", pageToken);
+    return `https://www.googleapis.com/youtube/v3/search?${params}`;
   });
-  if (language) params.set("relevanceLanguage", language);
-  if (pageToken) params.set("pageToken", pageToken);
-
-  const res = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error?.message || "YouTube search failed");
+  if (data.error) {
+    throw new Error(data.error.message || "YouTube search failed");
   }
 
-  const data = await res.json();
   const results: SearchResult[] = (data.items || []).map(
     (item: { id: { videoId: string }; snippet: { title: string; channelId: string; channelTitle: string; publishedAt: string; thumbnails: { high?: { url: string }; medium?: { url: string } } } }) => ({
       videoId: item.id.videoId,
@@ -89,16 +88,16 @@ async function searchVideos(
 async function fetchVideoDetails(ids: string[]): Promise<VideoDetail[]> {
   if (ids.length === 0) return [];
 
-  const params = new URLSearchParams({
-    part: "snippet,statistics,contentDetails",
-    id: ids.join(","),
-    key: YT_KEY!,
+  const data = await youtubeFetchJson((key) => {
+    const params = new URLSearchParams({
+      part: "snippet,statistics,contentDetails",
+      id: ids.join(","),
+      key,
+    });
+    return `https://www.googleapis.com/youtube/v3/videos?${params}`;
   });
+  if (data.error) return [];
 
-  const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?${params}`);
-  if (!res.ok) return [];
-
-  const data = await res.json();
   return (data.items || []).map(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (item: any) => ({
@@ -122,7 +121,7 @@ async function fetchVideoDetails(ids: string[]): Promise<VideoDetail[]> {
 
 // POST: Search and fetch videos, return for reference pool addition
 export async function POST(req: NextRequest) {
-  if (!YT_KEY) {
+  if (!isYouTubeConfigured()) {
     return NextResponse.json({ error: "YOUTUBE_API_KEY not set" }, { status: 500 });
   }
 
@@ -230,7 +229,7 @@ export async function POST(req: NextRequest) {
 
 // GET: Quick search for a single keyword (for testing)
 export async function GET(req: NextRequest) {
-  if (!YT_KEY) {
+  if (!isYouTubeConfigured()) {
     return NextResponse.json({ error: "YOUTUBE_API_KEY not set" }, { status: 500 });
   }
 
