@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, Clapperboard, Users, LibraryBig, ShieldCheck, Search } from "lucide-react";
+import { House, Clapperboard, Users, LibraryBig, ShieldCheck, Search, BookOpen } from "lucide-react";
 import { usePool } from "@/hooks/use-pool";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ const NAV = [
 const NAV_SECONDARY = [
   { href: "/library/pool", label: "Library", icon: LibraryBig, match: "/library" },
   { href: "/trust", label: "Trust Center", icon: ShieldCheck, match: "/trust" },
+  { href: "/guide", label: "How to use", icon: BookOpen, match: "/guide" },
 ] as const;
 
 export function SidebarNav({ onOpenCommand }: { onOpenCommand: () => void }) {
