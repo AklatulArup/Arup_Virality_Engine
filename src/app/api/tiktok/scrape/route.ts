@@ -6,6 +6,7 @@
  */
 import type { TikTokVideoData } from "@/lib/types";
 import { getApifyToken } from "@/lib/apify-token";
+import { fetchTikwmVideo } from "@/lib/tikwm";
 
 const APIFY_BASE = "https://api.apify.com/v2";
 const ACTOR_ID = "clockworks~tiktok-scraper";
@@ -68,17 +69,33 @@ function mapItem(item: any): TikTokVideoData {
 }
 
 export async function POST(request: Request) {
-  const token = getApifyToken("tiktok");
-  if (!token) {
-    return Response.json({ error: "No TikTok API key found. Set TIKTOK_API_KEY (or APIFY_TOKEN) in Vercel env vars." }, { status: 500 });
-  }
-
   const body = await request.json();
   const { url, handle, limit = 30 } = body as {
     url?: string;
     handle?: string;
     limit?: number;
   };
+
+  // ── Single-video URL → TikWM first (exact counters, ~2s, free) ──────────
+  // TikWM returns precise play/digg/comment/share/collect counts where the
+  // Apify actor returns UI-rounded numbers (verified on the same video:
+  // 11,558 exact vs 11,600 rounded). Exact counts matter downstream — the
+  // outcome-grading and velocity crons re-scrape through this same route and
+  // feed the learning loop (conformal bands, decay fitting). Any TikWM
+  // failure (incl. a Cloudflare challenge of this server's IP) falls through
+  // to the existing Apify path, so behavior can only degrade to today's.
+  if (url && url.includes("/video/")) {
+    const tikwm = await fetchTikwmVideo(url);
+    if (tikwm.ok && tikwm.video) {
+      return Response.json({ success: true, videos: [tikwm.video], count: 1, source: "tikwm" });
+    }
+    console.warn(`[tiktok/scrape] TikWM miss (${tikwm.reason ?? "unknown"}) — falling back to Apify`, tikwm.detail ?? "");
+  }
+
+  const token = getApifyToken("tiktok");
+  if (!token) {
+    return Response.json({ error: "No TikTok API key found. Set TIKTOK_API_KEY (or APIFY_TOKEN) in Vercel env vars." }, { status: 500 });
+  }
 
   let input: object;
   try {
@@ -106,7 +123,7 @@ export async function POST(request: Request) {
     const items: any[] = await res.json();
     const videos: TikTokVideoData[] = items.map(mapItem).filter((v) => v.views > 0 || v.title);
 
-    return Response.json({ success: true, videos, count: videos.length });
+    return Response.json({ success: true, videos, count: videos.length, source: "apify" });
   } catch (e) {
     return Response.json({ error: (e as Error).message }, { status: 500 });
   }

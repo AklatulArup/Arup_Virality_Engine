@@ -12,6 +12,7 @@
 // parallel, so one slow provider can't hang the whole check.
 
 import { getApifyToken, describeApifyTokenSource, type ApifyPlatform } from "./apify-token";
+import { probeTikwm } from "./tikwm";
 
 const TIMEOUT_MS = 8000;
 
@@ -158,6 +159,16 @@ async function checkGroq(): Promise<KeyHealthResult> {
   return warn("Groq", "GROQ_API_KEY", r.status, `HTTP ${r.status}`);
 }
 
+// TikWM is keyless — the check is service reachability from THIS server (a
+// Cloudflare challenge of the egress IP silently degrades TikTok single-video
+// scrapes back to Apify, which is worth surfacing).
+async function checkTikwm(): Promise<KeyHealthResult> {
+  const p = await probeTikwm();
+  if (p.reachable) return ok("TikWM", "tikwm.com (keyless)", "working", "exact TikTok counters");
+  if (p.blocked) return warn("TikWM", "tikwm.com (keyless)", null, "blocked from this server — TikTok falls back to Apify");
+  return warn("TikWM", "tikwm.com (keyless)", null, p.detail);
+}
+
 async function checkKV(): Promise<KeyHealthResult> {
   const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
   const tok = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -178,6 +189,7 @@ export async function checkAllKeys(): Promise<KeyHealthReport> {
     checkGemini("GEMINI_API_KEY"), checkGemini("GEMINI_API_KEY_2"), checkGemini("GEMINI_API_KEY_3"), checkGemini("GEMINI_API_KEY_4"), checkGemini("GEMINI_API_KEY_5"),
     checkGemini("GEMINI_API_KEY_6"), checkGemini("GEMINI_API_KEY_7"), checkGemini("GEMINI_API_KEY_8"), checkGemini("GEMINI_API_KEY_9"), checkGemini("GEMINI_API_KEY_10"),
     checkApifyPlatform("tiktok"), checkApifyPlatform("instagram"), checkApifyPlatform("x"),
+    checkTikwm(),
     checkAnthropic("Claude_AI_Summary_API_KEY"), checkAnthropic("ANTHROPIC_API_KEY"),
     checkGNews("GNEWS_API_KEY"), checkGNews("GNEWS_API"),
     checkGroq(),

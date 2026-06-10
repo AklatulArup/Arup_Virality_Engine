@@ -21,6 +21,7 @@ Persistent state: Upstash Redis via Vercel Marketplace integration. All env vars
 External APIs:
 - YouTube Data API (videos, channels, comments — `YOUTUBE_API_KEY`, `YOUTUBE_API_KEY_2` fallback)
 - Apify (TikTok, Instagram, X scrapers). Tokens resolve through `src/lib/apify-token.ts` — set the canonical all-caps names `TIKTOK_API_KEY` / `INSTAGRAM_API_KEY` / `APIFY_TOKEN_TWITTER`, or the shared `APIFY_TOKEN`. Legacy mixed-case aliases (`TikTok_API_Key`, `Instagram_API_KEY_2`, `Instagram_API_Key`) are still accepted but discouraged — env var names are case-sensitive, so prefer the canonical names.
+- TikWM (`src/lib/tikwm.ts`, keyless) — PRIMARY source for TikTok single-video URLs inside `/api/tiktok/scrape`: exact counters (`play_count` etc., vs Apify's UI-rounded numbers) + saves/duration/sound in ~2s. Profile scrapes stay on Apify (TikWM's feed endpoint is Cloudflare-challenged). Any TikWM failure falls back to Apify automatically; the key-health panel surfaces reachability. Requests need the browser User-Agent already set in the lib.
 - Google Gemini (war room, sentiment, thumbnail/hook/OCR vision). Multi-key rotation via `src/lib/gemini-keys.ts`: `GEMINI_API_KEY` + `GEMINI_API_KEY_2..5` (each free key adds ~1,500 req/day). All Gemini callers — including `claude-verdict` and `health` — now go through the rotation helper.
 - Groq (sentiment fallback when every Gemini key is exhausted — `GROQ_API_KEY`)
 - Anthropic Claude (fallback AI — `Claude_AI_Summary_API_KEY` / `ANTHROPIC_API_KEY`)
