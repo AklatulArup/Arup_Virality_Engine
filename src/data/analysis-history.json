@@ -1,1 +1,32 @@
-{"entries":[]}
+{
+  "entries": [
+    {
+      "id": "1781071593799",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "platform": "youtube",
+      "title": "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)",
+      "channelName": "Rick Astley",
+      "checkedAt": "2026-06-10T06:06:33.799Z",
+      "metrics": {
+        "views": 1781305646,
+        "likes": 19148221,
+        "engagement": 1.21,
+        "velocity": 293412,
+        "vrsScore": 33,
+        "subscribers": 4510000
+      },
+      "firstCheckedAt": "2026-06-10T06:04:42.017Z",
+      "previousSnapshot": {
+        "checkedAt": "2026-06-10T06:04:42.017Z",
+        "metrics": {
+          "views": 1781303487,
+          "likes": 19148214,
+          "engagement": 1.21,
+          "velocity": 293412,
+          "vrsScore": 31,
+          "subscribers": 4510000
+        }
+      }
+    }
+  ]
+}

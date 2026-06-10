@@ -42,9 +42,28 @@ export function isYouTubeConfigured(): boolean {
   return getYouTubeKeys().length > 0;
 }
 
+// Returns a rotate-worthy reason when the response says the KEY (not the
+// request) is the problem — quota or dead key — else null. Google reports a
+// dead key inconsistently: sometimes errors[0].reason="keyInvalid", but the
+// YouTube Data API commonly returns reason="badRequest" with message "API key
+// not valid…" and details[].reason="API_KEY_INVALID", so all three forms are
+// checked (the badRequest form previously slipped through and made every
+// request that round-robined onto a dead key fail instead of rotating).
 function rotateReason(data: unknown): string | null {
-  const err = (data as { error?: { errors?: Array<{ reason?: string }> } })?.error;
-  return err?.errors?.[0]?.reason ?? null;
+  const err = (data as {
+    error?: {
+      message?: string;
+      errors?: Array<{ reason?: string }>;
+      details?: Array<{ reason?: string }>;
+    };
+  })?.error;
+  if (!err) return null;
+  const reason = err.errors?.[0]?.reason;
+  if (reason && ROTATE_REASONS.has(reason)) return reason;
+  const detailReason = err.details?.find((d) => typeof d?.reason === "string")?.reason;
+  if (detailReason === "API_KEY_INVALID") return "keyInvalid";
+  if (typeof err.message === "string" && /api key (not valid|expired)/i.test(err.message)) return "keyInvalid";
+  return null;
 }
 
 /**
@@ -70,8 +89,7 @@ export async function youtubeFetchJson(makeUrl: (key: string) => string): Promis
     try {
       const res = await fetch(makeUrl(key), { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
-      const reason = rotateReason(data);
-      if (reason && ROTATE_REASONS.has(reason)) { last = data; continue; }
+      if (rotateReason(data)) { last = data; continue; }
       return data;   // success, or a non-key error the caller should surface
     } catch (e) {
       last = { error: { message: e instanceof Error ? e.message : String(e) } };
