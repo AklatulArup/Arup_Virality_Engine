@@ -114,6 +114,13 @@ export function TrajectoryCard({
               {dateProjection.beyondHorizon ? (
                 <span className="text-[10.5px] text-muted-foreground">past the {f.horizonDays}d horizon — flat from there</span>
               ) : null}
+              {dateProjection.low === dateProjection.median &&
+              dateProjection.median === dateProjection.high &&
+              dateProjection.median === video.views ? (
+                <span className="text-[10.5px] text-[#F0B35A]">
+                  pinned at today&apos;s views — the model expects little additional growth by this date
+                </span>
+              ) : null}
             </div>
           ) : (
             <span className="text-[11.5px] text-muted-foreground">Pick a date on or after the publish date.</span>

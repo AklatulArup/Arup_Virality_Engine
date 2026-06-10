@@ -63,7 +63,15 @@ export function ForecastBandChart({
         <ChartTooltip
           content={
             <ChartTooltipContent
-              labelFormatter={(label: unknown) => `Day ${Math.round(Number(label))}`}
+              labelFormatter={(label: unknown, payload: unknown) => {
+                // Some hover targets pass a non-numeric label (mixed actual/
+                // projection points) — fall back to the point's own day.
+                const n = Number(label);
+                if (Number.isFinite(n)) return `Day ${Math.round(n)}`;
+                const p = payload as Array<{ payload?: { day?: number } }> | undefined;
+                const d = p?.[0]?.payload?.day;
+                return Number.isFinite(d) ? `Day ${Math.round(d!)}` : "—";
+              }}
               formatter={(value: unknown, name: unknown) => {
                 if (Array.isArray(value)) {
                   return [`${fmtCompactViews(value[0])} – ${fmtCompactViews(value[1])}`, "Range"];

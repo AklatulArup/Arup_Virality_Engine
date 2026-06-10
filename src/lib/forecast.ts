@@ -339,10 +339,11 @@ export function projectAtDate(
 
   // Invariant: views can't go backwards. If current views already exceed the
   // scaled projection, lift ALL three bands so low ≤ median ≤ high is preserved.
-  // Only applies when target date is in the future — past projections are
-  // retrospective and shouldn't be lifted.
+  // Only applies when the target day hasn't fully elapsed — date pickers send
+  // midnight, so compare against the END of the target day or "today" reads as
+  // past and shows a projection below the views the video already has.
   const now = Date.now();
-  const targetInFuture = targetMs >= now;
+  const targetInFuture = targetMs + 86_400_000 > now;
   if (targetInFuture && currentViews > 0) {
     low    = Math.max(low,    currentViews);
     median = Math.max(median, currentViews, low);
@@ -620,7 +621,19 @@ function blendWithTrajectory(
   // early in the post's life — acceleration resolves the noise.
   const baseBlend = Math.pow(cumulativeSoFar, 0.7);
   const velocityBoost = velocitySamples && velocitySamples.length >= 3 ? 0.15 : 0;
-  const blendWeight = Math.min(0.95, baseBlend + velocityBoost);
+  let blendWeight = Math.min(0.95, baseBlend + velocityBoost);
+
+  // Evidence-overrides-prior guard: when CURRENT views already exceed the
+  // prior's entire range, the prior is falsified — continuing to weight it by
+  // age alone drags a measured outlier down to a fiction (observed: a 161×
+  // outlier at day 3 kept 73% prior weight, halving every projection and
+  // freezing date projections at the current-views floor). The further past
+  // prior.high reality already is, the closer the trajectory weight moves to
+  // its 0.95 cap. Normal videos (views ≤ prior.high) are unaffected.
+  if (video.views > prior.high && prior.high > 0) {
+    const evidenceWeight = Math.min(0.95, 1 - prior.high / video.views);
+    blendWeight = Math.max(blendWeight, evidenceWeight);
+  }
 
   const blendedMedian = prior.median * (1 - blendWeight) + trajectoryMedian * blendWeight;
 
@@ -630,7 +643,13 @@ function blendWithTrajectory(
   const rangeInflate = 1 + Math.min(0.5, disagreement * 0.3);
   const velocityTighten = velocitySamples && velocitySamples.length >= 3 ? 0.8 : 1.0;
 
-  const halfRange = ((prior.high - prior.low) / 2) * rangeInflate * velocityTighten;
+  // Band width must scale with the BLENDED median, not just the prior's
+  // absolute width — otherwise an outlier whose median moved 30× past the
+  // prior inherits the prior's (tiny) band and reports a deceptive ±2% range.
+  // The relative floor widens with how much of the curve is still unknown.
+  const priorHalfRange = ((prior.high - prior.low) / 2) * rangeInflate * velocityTighten;
+  const relativeFloor = blendedMedian * (0.10 + 0.40 * (1 - cumulativeSoFar)) * velocityTighten;
+  const halfRange = Math.max(priorHalfRange, relativeFloor);
   const blended = {
     median: blendedMedian,
     low:    Math.max(video.views, blendedMedian - halfRange),
