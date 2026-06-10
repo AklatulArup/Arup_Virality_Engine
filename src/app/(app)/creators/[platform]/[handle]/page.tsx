@@ -1,24 +1,20 @@
-import { PageHeader } from "@/components/layout/page-header";
-import { PhasePlaceholder } from "@/components/layout/phase-placeholder";
+import { CreatorReportScreen } from "@/components/creator/creator-report-screen";
+import type { Platform } from "@/lib/forecast";
 
 // Creator Report card route. Next 16: params is a Promise — awaited here, then
-// passed as plain props to the client screen (arrives with the P4 surface).
+// passed as plain props to the client screen (keyed so a different creator
+// remounts cleanly).
 export default async function CreatorReportPage({
   params,
 }: {
   params: Promise<{ platform: string; handle: string }>;
 }) {
-  const { platform, handle } = await params;
-  const decoded = decodeURIComponent(handle);
-  const label = decoded.startsWith("UC") && decoded.length === 24 ? decoded : `@${decoded.replace(/^@/, "")}`;
+  const { platform: rawPlatform, handle: rawHandle } = await params;
+  const handle = decodeURIComponent(rawHandle);
+  const platform: Platform =
+    rawPlatform === "tiktok" || rawPlatform === "instagram" || rawPlatform === "x" || rawPlatform === "youtube_short"
+      ? rawPlatform
+      : "youtube";
 
-  return (
-    <div>
-      <PageHeader
-        title={`Creator — ${label}`}
-        description={`Partner report card for ${label} on ${platform}. Should we work with them?`}
-      />
-      <PhasePlaceholder note="The Creator Report card (verdict, reputation, track record) is being rebuilt here — it lands soon." />
-    </div>
-  );
+  return <CreatorReportScreen key={`${platform}:${handle}`} platform={platform} handle={handle} />;
 }

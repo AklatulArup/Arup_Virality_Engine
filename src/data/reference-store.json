@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-06-10T06:20:56.171Z",
+  "lastUpdated": "2026-06-10T06:30:03.857Z",
   "entries": [
     {
       "id": "UCeJxIYs8EphzMfP3f897Ibw",
@@ -69735,13 +69735,22 @@
       "name": "Rick Astley",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.137Z",
+      "analyzedAt": "2026-06-10T06:30:03.822Z",
       "metrics": {
         "subs": 4510000,
-        "medianViews": 27588,
-        "videoCount": 12
+        "medianViews": 35905,
+        "velocity": 1051,
+        "engagement": 3.77,
+        "outlierRate": 10,
+        "trend": "declining",
+        "uploadFrequency": 4,
+        "videoCount": 20
       },
-      "archetypes": []
+      "archetypes": [
+        "myth-busting",
+        "educational",
+        "trend-riding"
+      ]
     },
     {
       "id": "LjmOX9jGoR4",
@@ -69750,7 +69759,7 @@
       "name": "Rick Astley - Raindrops (Official Video)",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.136Z",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
       "metrics": {
         "views": 98562,
         "engagement": 5.82
@@ -69786,7 +69795,7 @@
       "name": "Summer shows kicked off this week in Sweden and Denmark!! 🇸🇪🇩🇰",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.136Z",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
       "metrics": {
         "views": 59726,
         "engagement": 2.71
@@ -69810,7 +69819,7 @@
       "name": "One of my favourite parts of the show! What a song by @RAYEofficial #whereismyhusband #rickastley",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.136Z",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
       "metrics": {
         "views": 51979,
         "engagement": 2.32
@@ -69834,7 +69843,7 @@
       "name": "And just like that, the Reflection Tour is over ❤️",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.136Z",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
       "metrics": {
         "views": 44157,
         "engagement": 3.76
@@ -69858,7 +69867,7 @@
       "name": "Ever wondered what happens 5 minutes before we hit the stage? 🕺 #tour",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.136Z",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
       "metrics": {
         "views": 33168,
         "engagement": 4.74
@@ -69882,7 +69891,7 @@
       "name": "Bit of @b@baftaed carpet madness. Congratulations to all the winners! Thanks for a fun night 👏👏❤️",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.137Z",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
       "metrics": {
         "views": 30448,
         "engagement": 4.94
@@ -69906,7 +69915,7 @@
       "name": "Raindrops, from rehearsals to the Reflection Tour stage. Music video out now.🌦️ #rickastley",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.137Z",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
       "metrics": {
         "views": 24727,
         "engagement": 4.32
@@ -69930,7 +69939,7 @@
       "name": "Raindrops, from rehearsals to the Reflection Tour stage. Music video out now.🌦️ #rickastley",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.137Z",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
       "metrics": {
         "views": 24696,
         "engagement": 5.07
@@ -69954,7 +69963,7 @@
       "name": "Thank you for having us Jelling Musikfestival! ♥️🇩🇰",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.137Z",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
       "metrics": {
         "views": 22938,
         "engagement": 3.57
@@ -69978,7 +69987,7 @@
       "name": "What a fantastic night in Gothenburg. Really had a lot of fun. Would love to come back! 🎶🕺🏾💕☀️",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.137Z",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
       "metrics": {
         "views": 21149,
         "engagement": 5.47
@@ -70002,7 +70011,7 @@
       "name": "Had a lovely message from a dear friend, Gary Barlow on the last night of tour 🙏❤️ #takethat",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.137Z",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
       "metrics": {
         "views": 19538,
         "engagement": 3.77
@@ -70026,7 +70035,7 @@
       "name": "A closer look at the ‘Raindrops’ artwork shoot 📸🌦️",
       "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
       "channelName": "Rick Astley",
-      "analyzedAt": "2026-06-10T06:20:56.137Z",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
       "metrics": {
         "views": 19411,
         "engagement": 8.56
@@ -70037,6 +70046,209 @@
       "tags": [],
       "durationSeconds": 49,
       "duration": "0:49",
+      "videoFormat": "short",
+      "orientation": "vertical",
+      "sentiment": "neutral",
+      "sentimentScore": 0,
+      "description": ""
+    },
+    {
+      "id": "3RbyMUnksg4",
+      "type": "video",
+      "platform": "youtube_short",
+      "name": "This never gets old! #rickastley #nevergonnagiveyouup",
+      "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
+      "channelName": "Rick Astley",
+      "analyzedAt": "2026-06-10T06:30:03.823Z",
+      "metrics": {
+        "views": 5815702,
+        "engagement": 0.71
+      },
+      "archetypes": [
+        "myth-busting"
+      ],
+      "tags": [],
+      "durationSeconds": 25,
+      "duration": "0:25",
+      "videoFormat": "short",
+      "orientation": "vertical",
+      "sentiment": "negative",
+      "sentimentScore": -0.3333333333333333,
+      "description": ""
+    },
+    {
+      "id": "aPzoOGz7h5E",
+      "type": "video",
+      "platform": "youtube_short",
+      "name": "Any guesses? 👇 #rickastley #rickastleytour #reflectiontour",
+      "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
+      "channelName": "Rick Astley",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
+      "metrics": {
+        "views": 323700,
+        "engagement": 1.09
+      },
+      "archetypes": [
+        "educational"
+      ],
+      "tags": [],
+      "durationSeconds": 17,
+      "duration": "0:17",
+      "videoFormat": "short",
+      "orientation": "vertical",
+      "sentiment": "neutral",
+      "sentimentScore": 0,
+      "description": ""
+    },
+    {
+      "id": "QYQTY5i6obo",
+      "type": "video",
+      "platform": "youtube_short",
+      "name": "So excited my new single ‘Raindrops’ is out right now! 🌦️💙",
+      "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
+      "channelName": "Rick Astley",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
+      "metrics": {
+        "views": 83412,
+        "engagement": 2.96
+      },
+      "archetypes": [
+        "trend-riding"
+      ],
+      "tags": [
+        "Raindrops",
+        "Rick astley",
+        "New music",
+        "Reflection tour"
+      ],
+      "durationSeconds": 43,
+      "duration": "0:43",
+      "videoFormat": "short",
+      "orientation": "vertical",
+      "sentiment": "neutral",
+      "sentimentScore": 0,
+      "description": ""
+    },
+    {
+      "id": "TLPGufb08nQ",
+      "type": "video",
+      "platform": "youtube_short",
+      "name": "Rick & @sharleenspiterimusic singing ‘Ain’t No Mountain High Enough’ together in 2023 😍 - Team Rick",
+      "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
+      "channelName": "Rick Astley",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
+      "metrics": {
+        "views": 58181,
+        "engagement": 3.77
+      },
+      "archetypes": [
+        "educational"
+      ],
+      "tags": [
+        "Rick Astley",
+        "Sharleen spiteri",
+        "Ain’t no mountain high enough",
+        "Cover songs",
+        "Cover music"
+      ],
+      "durationSeconds": 37,
+      "duration": "0:37",
+      "videoFormat": "short",
+      "orientation": "vertical",
+      "sentiment": "neutral",
+      "sentimentScore": 0,
+      "description": ""
+    },
+    {
+      "id": "-ufrap__gUc",
+      "type": "video",
+      "platform": "youtube",
+      "name": "Happy birthday Edie! 🎂",
+      "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
+      "channelName": "Rick Astley",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
+      "metrics": {
+        "views": 53409,
+        "engagement": 3.21
+      },
+      "archetypes": [
+        "educational"
+      ],
+      "tags": [],
+      "durationSeconds": 65,
+      "duration": "1:05",
+      "videoFormat": "full",
+      "orientation": "horizontal",
+      "sentiment": "neutral",
+      "sentimentScore": 0,
+      "description": ""
+    },
+    {
+      "id": "uF_w7eg0ltc",
+      "type": "video",
+      "platform": "youtube_short",
+      "name": "Rehearsals day 2 ✅ Only one week to go!! #RAReflectionTour2026 #rickastley",
+      "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
+      "channelName": "Rick Astley",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
+      "metrics": {
+        "views": 38641,
+        "engagement": 4.45
+      },
+      "archetypes": [
+        "educational"
+      ],
+      "tags": [],
+      "durationSeconds": 45,
+      "duration": "0:45",
+      "videoFormat": "short",
+      "orientation": "vertical",
+      "sentiment": "neutral",
+      "sentimentScore": 0,
+      "description": ""
+    },
+    {
+      "id": "3ifB_qViIHg",
+      "type": "video",
+      "platform": "youtube",
+      "name": "It started with an old guitar.. 🎸Behind ’Waiting On You’ part 1. #waitingonyou #rickastley",
+      "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
+      "channelName": "Rick Astley",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
+      "metrics": {
+        "views": 33095,
+        "engagement": 4.53
+      },
+      "archetypes": [
+        "behind-scenes"
+      ],
+      "tags": [],
+      "durationSeconds": 90,
+      "duration": "1:30",
+      "videoFormat": "full",
+      "orientation": "horizontal",
+      "sentiment": "neutral",
+      "sentimentScore": 0,
+      "description": ""
+    },
+    {
+      "id": "4zZMkdkRJM4",
+      "type": "video",
+      "platform": "youtube_short",
+      "name": "And then there was a jukebox in a laundromat ✍️ Behind ‘Waiting On You’ part 2: lyrics. #rickastley",
+      "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
+      "channelName": "Rick Astley",
+      "analyzedAt": "2026-06-10T06:30:03.824Z",
+      "metrics": {
+        "views": 20092,
+        "engagement": 3.57
+      },
+      "archetypes": [
+        "behind-scenes"
+      ],
+      "tags": [],
+      "durationSeconds": 60,
+      "duration": "1:00",
       "videoFormat": "short",
       "orientation": "vertical",
       "sentiment": "neutral",
