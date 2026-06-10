@@ -1,0 +1,13 @@
+{
+  "skillVersion": "5.1",
+  "calibrationStamp": "June 2026",
+  "syncedAt": "2026-06-10T10:14:48.016Z",
+  "skillDir": "/Users/aklatulislamarup/.claude/skills/platform-content-virality",
+  "domainAStaleDays": 60,
+  "universal": {
+    "kappa": 50,
+    "wilsonZ": 1.96,
+    "sigmoidK": 10,
+    "sigmoidM": 0.5
+  }
+}

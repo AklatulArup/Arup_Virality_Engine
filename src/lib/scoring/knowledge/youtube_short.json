@@ -1,0 +1,58 @@
+{
+  "platform": "youtube_short",
+  "calibrationStamp": "June 2026",
+  "syncedAt": "2026-06-10T10:14:48.016Z",
+  "weights": {
+    "w_comp": 0.4,
+    "w_loop": 0.3,
+    "w_share": 0.25,
+    "w_neg": 0.2
+  },
+  "params": {
+    "vvs_threshold": 0.5,
+    "vvs_k": 4,
+    "comp_floor": 0.7,
+    "loop_strong": 0.2
+  },
+  "gates": [
+    {
+      "name": "V_vs",
+      "threshold": 0.5,
+      "phase": 1,
+      "kind": "rate"
+    },
+    {
+      "name": "C_comp",
+      "threshold": 0.7,
+      "phase": 1,
+      "kind": "rate"
+    }
+  ],
+  "phaseWindows": [
+    {
+      "phase": 1,
+      "startH": 0,
+      "endH": 1.5
+    },
+    {
+      "phase": 2,
+      "startH": 1.5,
+      "endH": 48
+    },
+    {
+      "phase": 3,
+      "startH": 48,
+      "endH": 168
+    },
+    {
+      "phase": 4,
+      "startH": 168,
+      "endH": null
+    }
+  ],
+  "coaching": {
+    "phase1": "Frame 1 IS the content. No fade-ins, no logos, no 'Hey guys.' Pattern interrupt immediately.",
+    "phase2": "Design loops: ending flows into beginning. Cross-share to WhatsApp/Twitter — Shorts' secret weapon.",
+    "phase34": "Use Shorts to funnel to Long-Form. The algorithm connects Shorts audiences to your long-form."
+  }
+}

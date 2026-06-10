@@ -1,0 +1,40 @@
+{
+  "platform": "x",
+  "calibrationStamp": "June 2026",
+  "syncedAt": "2026-06-10T10:14:48.016Z",
+  "weights": {
+    "authorRepliedReply": 75,
+    "quote": 25,
+    "reply": 13.5,
+    "profileClickEng": 12,
+    "convoClickEng": 11,
+    "dwell2min": 10,
+    "repost": 1,
+    "bookmark": 10,
+    "like": 0.5,
+    "video50": 0.005,
+    "muteBlock": -74,
+    "report": -369
+  },
+  "params": {
+    "halfLifeHours": 6,
+    "tweepCredFloor": 65,
+    "premiumInNetwork": 4,
+    "premiumOutOfNetwork": 2
+  },
+  "gates": [
+    {
+      "name": "TweepCred",
+      "threshold": 65,
+      "phase": 1,
+      "kind": "score"
+    }
+  ],
+  "phaseWindows": [],
+  "coaching": {
+    "phase1": "Reply bait > like bait. Ask a question that can't be ignored. Post when your audience is active — first 6 hours are your entire window.",
+    "phase2": "Reply to every comment in the first hour. One reply chain where you engage back = 150x a like algorithmically.",
+    "phase34": "Links kill reach — put them in replies. Build bookmark-worthy content. Conversation depth is everything on X."
+  },
+  "decayModel": true
+}

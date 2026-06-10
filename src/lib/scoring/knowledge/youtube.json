@@ -1,0 +1,60 @@
+{
+  "platform": "youtube",
+  "calibrationStamp": "June 2026",
+  "syncedAt": "2026-06-10T10:14:48.016Z",
+  "weights": {
+    "w_sat": 0.35,
+    "w_avd": 0.35,
+    "w_ctr": 0.2,
+    "w_session": 0.1
+  },
+  "params": {
+    "ctr_floor": 0.02,
+    "r30s_floor": 0.5,
+    "like_rate_bonus": 0.04,
+    "comment_rate_bonus": 0.005
+  },
+  "gates": [
+    {
+      "name": "CTR",
+      "threshold": 0.04,
+      "killFloor": 0.02,
+      "phase": 1,
+      "kind": "rate"
+    },
+    {
+      "name": "R_30s",
+      "threshold": 0.5,
+      "phase": 1,
+      "kind": "rate"
+    }
+  ],
+  "phaseWindows": [
+    {
+      "phase": 1,
+      "startH": 0,
+      "endH": 48
+    },
+    {
+      "phase": 2,
+      "startH": 48,
+      "endH": 168
+    },
+    {
+      "phase": 3,
+      "startH": 168,
+      "endH": 720
+    },
+    {
+      "phase": 4,
+      "startH": 720,
+      "endH": null
+    }
+  ],
+  "coaching": {
+    "phase1": "Your thumbnail is your resume. Below 4% CTR, nothing else matters. Front-load value in first 7 seconds — not 15, not 30. Seven.",
+    "phase2": "Retention is trust. If they clicked but left, you broke a promise. Add pattern interrupts every 30–60s.",
+    "phase34": "Build for search. Say keywords naturally. Evergreen topics compound for years. Satisfaction > watch time."
+  },
+  "evergreen": true
+}

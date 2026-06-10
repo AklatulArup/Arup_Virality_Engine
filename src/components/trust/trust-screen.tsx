@@ -68,6 +68,105 @@ function fmtCompact(n: number): string {
   return String(Math.round(n));
 }
 
+// ── Skill probability calibration (algorithm-math.md §4) ───────────────────
+
+interface SkillCalReport {
+  ranAt: string;
+  sampleSize: number;
+  positives: number;
+  brierCandidate: number;
+  brierFrozen: number;
+  adopted: boolean;
+  notes: string[];
+  deciles: Array<{ decile: number; n: number; meanPredicted: number; hitRate: number }>;
+}
+
+function SkillCalibrationCard() {
+  const [current, setCurrent] = useState<{ adoptedAt: string; brier: number; sampleSize: number } | null>(null);
+  const [report, setReport] = useState<SkillCalReport | null>(null);
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/calibration/run")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.ok) {
+          setCurrent(d.current ?? null);
+          setReport(d.lastReport ?? null);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const run = async () => {
+    setRunning(true);
+    try {
+      const r = await fetch("/api/calibration/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const d = await r.json().catch(() => null);
+      if (d?.ok && d.report) {
+        setReport(d.report);
+        if (d.report.adopted) {
+          toast.success("New probability weights adopted — they beat the frozen ones on the backtest.");
+          setCurrent({ adoptedAt: d.report.ranAt, brier: d.report.brierCandidate, sampleSize: d.report.sampleSize });
+        } else {
+          toast.info(d.report.notes?.[0] ?? "Run complete — frozen weights retained.");
+        }
+      }
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <Card className="mt-4">
+      <CardHeader className="flex-row items-center justify-between pb-0">
+        <div>
+          <CardTitle className="text-[14px] font-semibold">Probability calibration (algorithm models)</CardTitle>
+          <p className="text-[11.5px] text-muted-foreground">
+            Turns the algorithm-read scores into honest probabilities by fitting them against real outcomes. New
+            weights are adopted only when they beat the current ones on held-out posts.
+          </p>
+        </div>
+        <Button size="sm" variant="outline" className="h-7 text-[11.5px]" onClick={() => void run()} disabled={running}>
+          {running ? "Fitting…" : "Run calibration"}
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-x-6 gap-y-1 font-mono text-[11.5px] text-muted-foreground">
+          <span>
+            Status:{" "}
+            <span style={{ color: current ? "#2ECC8A" : "#F0B35A" }}>
+              {current ? `calibrated (Brier ${current.brier.toFixed(3)}, n=${current.sampleSize})` : "prior — uncalibrated"}
+            </span>
+          </span>
+          {report ? (
+            <span>
+              Last run: {new Date(report.ranAt).toLocaleDateString()} · n={report.sampleSize} ({report.positives} viral) ·
+              candidate {Number.isFinite(report.brierCandidate) ? report.brierCandidate.toFixed(3) : "—"} vs frozen{" "}
+              {Number.isFinite(report.brierFrozen) ? report.brierFrozen.toFixed(3) : "—"} · {report.adopted ? "ADOPTED" : "retained"}
+            </span>
+          ) : (
+            <span>No runs yet — scores accumulate automatically; run once posts mature (≥30 days).</span>
+          )}
+        </div>
+        {report && report.deciles.some((d) => d.n > 0) ? (
+          <div className="mt-2 flex gap-1.5">
+            {report.deciles.map((d) => (
+              <div key={d.decile} className="flex-1 rounded border border-border bg-background px-1 py-1 text-center font-mono text-[9.5px] text-muted-foreground">
+                <div>{(d.meanPredicted * 100).toFixed(0)}%</div>
+                <div style={{ color: d.n > 0 && Number.isFinite(d.hitRate) ? "#E8E6E1" : undefined }}>
+                  {d.n > 0 && Number.isFinite(d.hitRate) ? `${(d.hitRate * 100).toFixed(0)}%` : "—"}
+                </div>
+                <div>n{d.n}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 function Stat({ label, value, sub, color = "#E8E6E1" }: { label: string; value: string; sub: string; color?: string }) {
   return (
     <Card className="py-0">
@@ -338,6 +437,8 @@ export function TrustScreen() {
           </CardContent>
         </Card>
       ) : null}
+
+      <SkillCalibrationCard />
 
       {/* Worst misses + system health */}
       <Card className="mt-4">

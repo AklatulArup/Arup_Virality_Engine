@@ -13,6 +13,8 @@ import { xPostToEnrichedVideo } from "@/lib/x-adapter";
 import type { AnalysisResult, ChannelData, EnrichedVideo, VideoData, XPostData } from "@/lib/types";
 import type { Platform } from "@/lib/forecast";
 import { PageHeader } from "@/components/layout/page-header";
+import { useSkillScore } from "@/hooks/use-skill-score";
+import { AlgorithmReadCard } from "./algorithm-read-card";
 import { IdentityBar } from "./identity-bar";
 import { VerdictHero } from "./verdict-hero";
 import { KpiRow } from "./kpi-row";
@@ -166,6 +168,13 @@ function FullReport({
     platform,
   });
   const f = bundle.result;
+  const skill = useSkillScore({
+    video,
+    platform,
+    manualInputs: bundle.manualInputs,
+    aiEstimatedKeys: bundle.aiEstimatedKeys,
+    forecast: f,
+  });
 
   return (
     <div>
@@ -206,6 +215,7 @@ function FullReport({
         setPasteCaptureEnabled={bundle.setPasteCaptureEnabled}
       />
       <SignalsCard forecast={f} bundle={bundle} platform={platform} />
+      <AlgorithmReadCard contract={skill.contract} loading={skill.loading} />
       <WarRoomCard video={video} forecast={f} platform={platform} thumbnailCTR={bundle.thumbnailCTR} hookStrength={bundle.hookStrength} />
       <IntelligenceCard intel={intel} platform={platform} />
       <ForecastLogCard

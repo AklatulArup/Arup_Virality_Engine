@@ -1,0 +1,60 @@
+{
+  "platform": "instagram",
+  "calibrationStamp": "June 2026",
+  "syncedAt": "2026-06-10T10:14:48.016Z",
+  "weights": {
+    "w_wt": 0.3,
+    "w_dm": 0.3,
+    "w_save": 0.15,
+    "w_likes": 0.1,
+    "w_loop": 0.1,
+    "w_neg": 0.15
+  },
+  "params": {
+    "h3s_weak": 0.4,
+    "h3s_strong": 0.6,
+    "comp_explore": 0.5
+  },
+  "gates": [
+    {
+      "name": "H_3s",
+      "threshold": 0.6,
+      "weakFloor": 0.4,
+      "phase": 1,
+      "kind": "rate"
+    },
+    {
+      "name": "originality",
+      "threshold": 1,
+      "phase": 0,
+      "kind": "binary"
+    }
+  ],
+  "phaseWindows": [
+    {
+      "phase": 1,
+      "startH": 0,
+      "endH": 1
+    },
+    {
+      "phase": 2,
+      "startH": 1,
+      "endH": 24
+    },
+    {
+      "phase": 3,
+      "startH": 24,
+      "endH": 72
+    },
+    {
+      "phase": 4,
+      "startH": 72,
+      "endH": null
+    }
+  ],
+  "coaching": {
+    "phase1": "Hook in 1.5 seconds — before the caption overlay. Never repost TikToks with watermarks. Test with Trial Reels first.",
+    "phase2": "Would someone DM this to a friend? That is the ONLY question. Teach something surprising.",
+    "phase34": "Content that is both shareable (DMs) AND saveable (utility) is the holy grail for Reels."
+  }
+}
