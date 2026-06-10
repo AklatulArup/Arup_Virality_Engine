@@ -1,14 +1,14 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { PhasePlaceholder } from "@/components/layout/phase-placeholder";
+import { VideosIndex } from "@/components/video/videos-index";
 
 export default function VideosPage() {
   return (
     <div>
       <PageHeader
         title="Videos"
-        description="Every video the team has analyzed — forecasts, outcomes, and what happened since we looked."
+        description="Every video the team has analyzed — forecasts, what happened since we looked, and the predictions we put on the record."
       />
-      <PhasePlaceholder note="The video index is being rebuilt. For now, paste a link in the command bar (⌘K) — analysis lands here next." />
+      <VideosIndex />
     </div>
   );
 }
