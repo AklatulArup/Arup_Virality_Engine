@@ -1,5 +1,5 @@
-import { PhasePlaceholder } from "@/components/layout/phase-placeholder";
+import { BlocklistManager } from "@/components/library/blocklist-manager";
 
 export default function LibraryBlocklistPage() {
-  return <PhasePlaceholder note="The creator blocklist manager is being rebuilt here." />;
+  return <BlocklistManager />;
 }

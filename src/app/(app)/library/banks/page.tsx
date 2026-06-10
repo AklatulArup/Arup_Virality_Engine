@@ -1,5 +1,5 @@
-import { PhasePlaceholder } from "@/components/layout/phase-placeholder";
+import { BanksManager } from "@/components/library/banks-manager";
 
 export default function LibraryBanksPage() {
-  return <PhasePlaceholder note="Keyword, hashtag, and competitor banks are being rebuilt here." />;
+  return <BanksManager />;
 }

@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { PhasePlaceholder } from "@/components/layout/phase-placeholder";
+import { TrustScreen } from "@/components/trust/trust-screen";
 
 export default function TrustPage() {
   return (
@@ -8,7 +8,7 @@ export default function TrustPage() {
         title="Trust Center"
         description="How reliable our forecasts are — measured against real results — and whether every data source is healthy."
       />
-      <PhasePlaceholder note="The Trust Center is being rebuilt here. Until it lands, the existing accuracy page at /admin/calibration has the full picture." />
+      <TrustScreen />
     </div>
   );
 }

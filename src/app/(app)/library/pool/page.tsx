@@ -1,5 +1,5 @@
-import { PhasePlaceholder } from "@/components/layout/phase-placeholder";
+import { PoolBrowser } from "@/components/library/pool-browser";
 
 export default function LibraryPoolPage() {
-  return <PhasePlaceholder note="The evidence-pool browser is being rebuilt here." />;
+  return <PoolBrowser />;
 }

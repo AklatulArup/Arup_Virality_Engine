@@ -1,5 +1,5 @@
-import { PhasePlaceholder } from "@/components/layout/phase-placeholder";
+import { ImportPanel } from "@/components/library/import-panel";
 
 export default function LibraryImportPage() {
-  return <PhasePlaceholder note="Bulk CSV import and the reference pool builder are being rebuilt here." />;
+  return <ImportPanel />;
 }
