@@ -115,7 +115,7 @@ export default function CompetitorBankManager({
       <div className="space-y-2">
         {/* Competitor rows */}
         {competitors.length === 0 ? (
-          <div className="text-[10px] text-muted text-center py-4">
+          <div className="text-[10px] text-[#9E9C97] text-center py-4">
             No competitors tracked yet
           </div>
         ) : (
@@ -153,7 +153,7 @@ export default function CompetitorBankManager({
                         .map((p) => {
                           const { label, color } = PLATFORM_LABELS[p] || {
                             label: p,
-                            color: "var(--color-text-muted)",
+                            color: "var(--color-text-[#9E9C97])",
                           };
                           return (
                             <span
@@ -172,7 +172,7 @@ export default function CompetitorBankManager({
                       {Object.values(c.handles).every((h) => !h) && (
                         <span
                           className="text-[8px] font-mono"
-                          style={{ color: "var(--color-text-muted)" }}
+                          style={{ color: "var(--color-text-[#9E9C97])" }}
                         >
                           No handles set
                         </span>
@@ -187,7 +187,7 @@ export default function CompetitorBankManager({
                       className="text-[9px] font-mono px-2 py-1 rounded"
                       style={{
                         border: "1px solid var(--color-border)",
-                        color: "var(--color-text-muted)",
+                        color: "var(--color-text-[#9E9C97])",
                       }}
                       title="Edit competitor"
                     >
@@ -227,7 +227,7 @@ export default function CompetitorBankManager({
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-[8px] font-mono uppercase tracking-wider"
-                  style={{ color: "var(--color-text-muted)" }}>
+                  style={{ color: "var(--color-text-[#9E9C97])" }}>
                   Name *
                 </label>
                 <input
@@ -245,7 +245,7 @@ export default function CompetitorBankManager({
               </div>
               <div>
                 <label className="text-[8px] font-mono uppercase tracking-wider"
-                  style={{ color: "var(--color-text-muted)" }}>
+                  style={{ color: "var(--color-text-[#9E9C97])" }}>
                   Space
                 </label>
                 <input
@@ -261,7 +261,7 @@ export default function CompetitorBankManager({
             {/* Platform handles */}
             <div>
               <div className="text-[8px] font-mono uppercase tracking-wider mb-1.5"
-                style={{ color: "var(--color-text-muted)" }}>
+                style={{ color: "var(--color-text-[#9E9C97])" }}>
                 Platform Handles
               </div>
               <div className="grid grid-cols-1 gap-1.5">
@@ -306,7 +306,7 @@ export default function CompetitorBankManager({
                 className="text-[10px] font-mono px-3 py-1.5 rounded font-bold"
                 style={{
                   background: !form.name.trim() ? "rgba(255,255,255,0.04)" : "#6366f1",
-                  color: !form.name.trim() ? "var(--color-text-muted)" : "#fff",
+                  color: !form.name.trim() ? "var(--color-text-[#9E9C97])" : "#fff",
                   opacity: busy ? 0.5 : 1,
                 }}
               >
@@ -318,7 +318,7 @@ export default function CompetitorBankManager({
                 className="text-[10px] font-mono px-3 py-1.5 rounded"
                 style={{
                   border: "1px solid var(--color-border)",
-                  color: "var(--color-text-muted)",
+                  color: "var(--color-text-[#9E9C97])",
                 }}
               >
                 Cancel
@@ -331,7 +331,7 @@ export default function CompetitorBankManager({
             className="w-full text-[9px] font-mono py-1.5 rounded border-dashed"
             style={{
               border: "1px dashed var(--color-border)",
-              color: "var(--color-text-muted)",
+              color: "var(--color-text-[#9E9C97])",
             }}
           >
             + Add competitor

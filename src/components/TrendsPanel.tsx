@@ -81,7 +81,7 @@ export default function TrendsPanel({ bank }: TrendsPanelProps) {
       <div className="space-y-3">
         {/* Quick keywords */}
         <div>
-          <div className="text-[8px] font-mono text-muted tracking-widest mb-1">QUICK TREND CHECK</div>
+          <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-1">QUICK TREND CHECK</div>
           <div className="flex flex-wrap gap-1">
             {quickKeywords.map((kw) => (
               <button
@@ -102,7 +102,7 @@ export default function TrendsPanel({ bank }: TrendsPanelProps) {
           onClick={compareFirms}
           disabled={loading}
           className="text-[9px] font-mono px-3 py-1 rounded border border-border hover:border-accent transition-colors"
-          style={{ color: "var(--color-accent)" }}
+          style={{ color: "#60A5FA" }}
         >
           {loading ? "Loading..." : "Compare Top 5 Prop Firms"}
         </button>
@@ -138,11 +138,11 @@ export default function TrendsPanel({ bank }: TrendsPanelProps) {
 
             <div className="flex gap-4 text-[8px] font-mono">
               <div>
-                <span className="text-muted">Current:</span>{" "}
+                <span className="text-[#9E9C97]">Current:</span>{" "}
                 <span className="font-bold">{trendData.currentInterest}</span>
               </div>
               <div>
-                <span className="text-muted">Peak:</span>{" "}
+                <span className="text-[#9E9C97]">Peak:</span>{" "}
                 <span className="font-bold">{trendData.peakInterest}</span>
               </div>
             </div>
@@ -150,13 +150,13 @@ export default function TrendsPanel({ bank }: TrendsPanelProps) {
             {/* Related queries */}
             {trendData.relatedQueries.length > 0 && (
               <div className="mt-2">
-                <div className="text-[7px] font-mono text-muted tracking-widest mb-0.5">RELATED QUERIES</div>
+                <div className="text-[7px] font-mono text-[#9E9C97] tracking-widest mb-0.5">RELATED QUERIES</div>
                 <div className="flex flex-wrap gap-1">
                   {trendData.relatedQueries.slice(0, 6).map((q) => (
                     <button
                       key={q.query}
                       onClick={() => fetchTrend(q.query)}
-                      className="text-[7px] font-mono px-1 py-0.5 rounded bg-background text-subtle hover:text-accent transition-colors"
+                      className="text-[7px] font-mono px-1 py-0.5 rounded bg-background text-subtle hover:text-[#60A5FA] transition-colors"
                     >
                       {q.query}
                     </button>
@@ -170,7 +170,7 @@ export default function TrendsPanel({ bank }: TrendsPanelProps) {
         {/* Comparison result */}
         {comparison && (
           <div className="p-2 rounded border border-border">
-            <div className="text-[9px] font-mono text-muted mb-2">PROP FIRM TREND COMPARISON</div>
+            <div className="text-[9px] font-mono text-[#9E9C97] mb-2">PROP FIRM TREND COMPARISON</div>
             {comparison.summaries.sort((a, b) => b.currentAvg - a.currentAvg).map((s) => {
               const maxCurrent = Math.max(...comparison.summaries.map((x) => x.currentAvg), 1);
               return (
@@ -181,13 +181,13 @@ export default function TrendsPanel({ bank }: TrendsPanelProps) {
                       className="h-full rounded-sm"
                       style={{
                         width: `${(s.currentAvg / maxCurrent) * 100}%`,
-                        background: "var(--color-accent)",
+                        background: "#60A5FA",
                         opacity: 0.6,
                       }}
                     />
                   </div>
                   <span className="text-[8px] font-mono w-8 text-right">{s.currentAvg}</span>
-                  <span className="text-[7px] font-mono text-muted w-12 text-right">pk: {s.peak}</span>
+                  <span className="text-[7px] font-mono text-[#9E9C97] w-12 text-right">pk: {s.peak}</span>
                 </div>
               );
             })}

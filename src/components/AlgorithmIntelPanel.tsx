@@ -21,7 +21,7 @@ const WEIGHT_COLORS: Record<string, string> = {
   highest: "var(--color-vrs-excellent)",
   strong: "var(--color-vrs-strong)",
   moderate: "var(--color-vrs-competitive)",
-  low: "var(--color-text-muted)",
+  low: "var(--color-text-[#9E9C97])",
 };
 
 export default function AlgorithmIntelPanel({
@@ -47,12 +47,12 @@ export default function AlgorithmIntelPanel({
               className="text-[10px] font-mono px-2.5 py-1.5 rounded transition-colors"
               style={{
                 background: isActive
-                  ? "color-mix(in srgb, var(--color-accent) 15%, transparent)"
+                  ? "color-mix(in srgb, #60A5FA 15%, transparent)"
                   : "var(--color-surface)",
                 color: isActive
-                  ? "var(--color-accent)"
+                  ? "#60A5FA"
                   : "var(--color-text-subtle)",
-                border: `1px solid ${isActive ? "color-mix(in srgb, var(--color-accent) 30%, transparent)" : "var(--color-border)"}`,
+                border: `1px solid ${isActive ? "color-mix(in srgb, #60A5FA 30%, transparent)" : "var(--color-border)"}`,
               }}
             >
               {p.icon} {p.name}
@@ -63,7 +63,7 @@ export default function AlgorithmIntelPanel({
 
       {/* Signals */}
       <div>
-        <div className="text-[10px] text-muted font-mono mb-2">
+        <div className="text-[10px] text-[#9E9C97] font-mono mb-2">
           RANKING SIGNALS
         </div>
         <div className="space-y-1.5">
@@ -102,20 +102,20 @@ export default function AlgorithmIntelPanel({
       {/* Two-column: Key Behaviors + Optimal Formats */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <div className="text-[10px] text-muted font-mono mb-1.5">
+          <div className="text-[10px] text-[#9E9C97] font-mono mb-1.5">
             KEY BEHAVIORS
           </div>
           <div className="space-y-1">
             {platform.keyBehaviors.map((b, i) => (
               <div key={i} className="flex gap-1.5 text-[10px] text-subtle leading-relaxed">
-                <span className="text-accent shrink-0">&#9656;</span>
+                <span className="text-[#60A5FA] shrink-0">&#9656;</span>
                 <span>{b}</span>
               </div>
             ))}
           </div>
         </div>
         <div>
-          <div className="text-[10px] text-muted font-mono mb-1.5">
+          <div className="text-[10px] text-[#9E9C97] font-mono mb-1.5">
             OPTIMAL FORMATS
           </div>
           <div className="space-y-1">
@@ -131,7 +131,7 @@ export default function AlgorithmIntelPanel({
 
       {/* Anti-patterns */}
       <div>
-        <div className="text-[10px] text-muted font-mono mb-1.5">
+        <div className="text-[10px] text-[#9E9C97] font-mono mb-1.5">
           ANTI-PATTERNS (AVOID)
         </div>
         <div className="space-y-1">

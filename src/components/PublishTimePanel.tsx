@@ -19,7 +19,7 @@ export default function PublishTimePanel({ heatmap }: PublishTimePanelProps) {
     <CollapsibleSection
       title="Publish Time Optimization"
       subtitle={`${heatmap.totalVideosAnalyzed} videos analyzed — best posting windows`}
-      accentColor="var(--color-accent)"
+      accentColor="#60A5FA"
     >
       {/* Heatmap grid */}
       <div className="overflow-x-auto">
@@ -27,13 +27,13 @@ export default function PublishTimePanel({ heatmap }: PublishTimePanelProps) {
           {/* Header row */}
           <div />
           {hourLabels.map((h) => (
-            <div key={h} className="text-[8px] text-muted text-center font-mono">{h}</div>
+            <div key={h} className="text-[8px] text-[#9E9C97] text-center font-mono">{h}</div>
           ))}
 
           {/* Data rows */}
           {heatmap.dayLabels.map((day, d) => (
             <>
-              <div key={`label-${d}`} className="text-[9px] text-muted font-mono flex items-center">{day}</div>
+              <div key={`label-${d}`} className="text-[9px] text-[#9E9C97] font-mono flex items-center">{day}</div>
               {hourBlocks.map((h, hi) => {
                 // Average the 3-hour block
                 const blockViews = [0, 1, 2].reduce((s, offset) => {
@@ -68,7 +68,7 @@ export default function PublishTimePanel({ heatmap }: PublishTimePanelProps) {
       {/* Best slots */}
       {heatmap.bestSlots.length > 0 && (
         <div className="mt-3">
-          <div className="text-[9px] font-mono text-muted tracking-widest mb-1">BEST POSTING TIMES</div>
+          <div className="text-[9px] font-mono text-[#9E9C97] tracking-widest mb-1">BEST POSTING TIMES</div>
           <div className="flex flex-wrap gap-1.5">
             {heatmap.bestSlots.map((slot, i) => (
               <span

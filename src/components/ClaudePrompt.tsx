@@ -55,7 +55,7 @@ export default function ClaudePrompt({
       }}
       onClick={handleCopy}
     >
-      <div className="text-[9px] font-mono tracking-widest mb-1.5" style={{ color: "var(--color-accent)" }}>
+      <div className="text-[9px] font-mono tracking-widest mb-1.5" style={{ color: "#60A5FA" }}>
         &#x1F4CB; COPY TO CLAUDE FOR FULL ANALYSIS
       </div>
       <div
@@ -75,7 +75,7 @@ export default function ClaudePrompt({
       </div>
       <div
         className="text-[8px] mt-1"
-        style={{ color: copied ? "var(--color-vrs-excellent)" : "var(--color-accent)" }}
+        style={{ color: copied ? "var(--color-vrs-excellent)" : "#60A5FA" }}
       >
         {copied ? "Copied!" : "Click to copy"}
       </div>

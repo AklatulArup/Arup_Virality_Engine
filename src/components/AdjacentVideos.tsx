@@ -23,7 +23,7 @@ export default function AdjacentVideos({
 
   return (
     <div className="bg-surface border border-border rounded-[10px] p-3.5">
-      <div className="text-[9px] font-mono text-muted tracking-widest mb-3">
+      <div className="text-[9px] font-mono text-[#9E9C97] tracking-widest mb-3">
         UPLOAD TIMELINE CONTEXT
       </div>
 
@@ -31,12 +31,12 @@ export default function AdjacentVideos({
         {/* Video Before */}
         {before ? (
           <div className="flex items-center gap-2.5 py-2 border-b" style={{ borderColor: "rgba(139,92,246,0.08)" }}>
-            <div className="text-[9px] font-mono text-muted w-14 shrink-0 text-right">
+            <div className="text-[9px] font-mono text-[#9E9C97] w-14 shrink-0 text-right">
               BEFORE
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[10px] text-subtle truncate">{before.title}</div>
-              <div className="text-[9px] text-muted">{formatDate(before.publishedAt)}</div>
+              <div className="text-[9px] text-[#9E9C97]">{formatDate(before.publishedAt)}</div>
             </div>
             <div className="text-[10px] font-mono shrink-0">{formatNumber(before.views)}</div>
             <div
@@ -48,7 +48,7 @@ export default function AdjacentVideos({
           </div>
         ) : (
           <div className="flex items-center gap-2.5 py-2 border-b" style={{ borderColor: "rgba(139,92,246,0.08)" }}>
-            <div className="text-[9px] font-mono text-muted w-14 shrink-0 text-right">BEFORE</div>
+            <div className="text-[9px] font-mono text-[#9E9C97] w-14 shrink-0 text-right">BEFORE</div>
             <div className="text-[10px] text-border-light italic">No previous video on this channel</div>
           </div>
         )}
@@ -82,10 +82,10 @@ export default function AdjacentVideos({
           className="flex items-center gap-2.5 py-2 border-b rounded"
           style={{
             borderColor: "rgba(139,92,246,0.08)",
-            background: "color-mix(in srgb, var(--color-accent) 5%, transparent)",
+            background: "color-mix(in srgb, #60A5FA 5%, transparent)",
           }}
         >
-          <div className="text-[9px] font-mono w-14 shrink-0 text-right" style={{ color: "var(--color-accent)" }}>
+          <div className="text-[9px] font-mono w-14 shrink-0 text-right" style={{ color: "#60A5FA" }}>
             THIS
           </div>
           <div className="flex-1 min-w-0">
@@ -127,12 +127,12 @@ export default function AdjacentVideos({
         {/* Video After */}
         {after ? (
           <div className="flex items-center gap-2.5 py-2">
-            <div className="text-[9px] font-mono text-muted w-14 shrink-0 text-right">
+            <div className="text-[9px] font-mono text-[#9E9C97] w-14 shrink-0 text-right">
               AFTER
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[10px] text-subtle truncate">{after.title}</div>
-              <div className="text-[9px] text-muted">{formatDate(after.publishedAt)}</div>
+              <div className="text-[9px] text-[#9E9C97]">{formatDate(after.publishedAt)}</div>
             </div>
             <div className="text-[10px] font-mono shrink-0">{formatNumber(after.views)}</div>
             <div
@@ -144,7 +144,7 @@ export default function AdjacentVideos({
           </div>
         ) : (
           <div className="flex items-center gap-2.5 py-2">
-            <div className="text-[9px] font-mono text-muted w-14 shrink-0 text-right">AFTER</div>
+            <div className="text-[9px] font-mono text-[#9E9C97] w-14 shrink-0 text-right">AFTER</div>
             <div className="text-[10px] text-border-light italic">No video uploaded after this yet</div>
           </div>
         )}

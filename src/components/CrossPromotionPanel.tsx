@@ -19,7 +19,7 @@ export default function CrossPromotionPanel({ promo }: CrossPromotionPanelProps)
       <div className="flex gap-4 items-start mb-3">
         <div className="text-center">
           <div className="text-[24px] font-mono font-bold" style={{ color: scoreColor }}>{promo.ecosystemScore}</div>
-          <div className="text-[8px] text-muted">ECOSYSTEM</div>
+          <div className="text-[8px] text-[#9E9C97]">ECOSYSTEM</div>
         </div>
 
         <div className="flex-1 grid grid-cols-2 gap-1.5">
@@ -65,7 +65,7 @@ export default function CrossPromotionPanel({ promo }: CrossPromotionPanelProps)
       {/* Social platforms detected */}
       {promo.socialLinks.length > 0 && (
         <div className="mb-2.5">
-          <div className="text-[8px] font-mono text-muted tracking-widest mb-0.5">SOCIAL PLATFORMS</div>
+          <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-0.5">SOCIAL PLATFORMS</div>
           <div className="flex flex-wrap gap-1">
             {promo.socialLinks.map((s, i) => (
               <span key={i} className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-background text-subtle">
@@ -79,7 +79,7 @@ export default function CrossPromotionPanel({ promo }: CrossPromotionPanelProps)
       {/* Suggestions */}
       {promo.suggestions.length > 0 && (
         <div>
-          <div className="text-[8px] font-mono text-muted tracking-widest mb-0.5">SUGGESTIONS</div>
+          <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-0.5">SUGGESTIONS</div>
           {promo.suggestions.map((s, i) => (
             <div key={i} className="text-[8px] text-subtle py-0.5">
               <span style={{ color: "var(--color-vrs-competitive)" }}>{"\u2192"}</span> {s}

@@ -12,7 +12,7 @@ interface KeywordBankManagerProps {
 type CategoryKey = "niche" | "competitors" | "contentType" | "language";
 
 const CATEGORY_LABELS: Record<CategoryKey, { label: string; color: string }> = {
-  niche: { label: "Niche keywords", color: "var(--color-accent)" },
+  niche: { label: "Niche keywords", color: "#60A5FA" },
   competitors: { label: "Competitor handles", color: "#f59e0b" },
   contentType: { label: "Content types", color: "#6366f1" },
   language: { label: "Languages", color: "var(--color-accent-blue)" },
@@ -124,7 +124,7 @@ export default function KeywordBankManager({
     <CollapsibleSection
       title="Keyword Bank Manager"
       subtitle={`${bank.categories.niche.length} niche · ${bank.categories.competitors.length} competitors · ${bank.categories.contentType.length} content types · ${bank.categories.language.length} languages`}
-      accentColor="var(--color-accent)"
+      accentColor="#60A5FA"
     >
       <div className="space-y-2.5">
         {/* Tabs */}
@@ -146,7 +146,7 @@ export default function KeywordBankManager({
                   background: active
                     ? `color-mix(in srgb, ${color} 12%, transparent)`
                     : "transparent",
-                  color: active ? color : "var(--color-text-muted)",
+                  color: active ? color : "var(--color-text-[#9E9C97])",
                   border: `1px solid ${active ? color : "var(--color-border)"}`,
                 }}
               >
@@ -174,7 +174,7 @@ export default function KeywordBankManager({
             className="text-[8px] font-mono px-2 py-1 rounded"
             style={{
               border: "1px solid var(--color-border)",
-              color: "var(--color-text-muted)",
+              color: "var(--color-text-[#9E9C97])",
               opacity: filtered.length === 0 ? 0.4 : 1,
             }}
           >
@@ -203,7 +203,7 @@ export default function KeywordBankManager({
           style={{ background: "rgba(255,255,255,0.015)" }}
         >
           {filtered.length === 0 ? (
-            <div className="text-[10px] text-muted text-center py-3">
+            <div className="text-[10px] text-[#9E9C97] text-center py-3">
               {items.length === 0
                 ? `No ${CATEGORY_LABELS[activeTab].label.toLowerCase()} yet`
                 : "No matches"}
@@ -258,8 +258,8 @@ export default function KeywordBankManager({
               style={{
                 background: !addText.trim()
                   ? "rgba(255,255,255,0.04)"
-                  : "var(--color-accent)",
-                color: !addText.trim() ? "var(--color-text-muted)" : "#000",
+                  : "#60A5FA",
+                color: !addText.trim() ? "var(--color-text-[#9E9C97])" : "#000",
                 opacity: busy ? 0.5 : 1,
               }}
             >

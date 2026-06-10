@@ -24,7 +24,7 @@ export default function ViewPrediction({ prediction }: ViewPredictionProps) {
       {/* Main prediction bar */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <div className="text-[10px] text-muted font-mono">
+          <div className="text-[10px] text-[#9E9C97] font-mono">
             PREDICTED VIEW RANGE FOR NEXT VIDEO
           </div>
           <ConfidenceLabel level={prediction.confidence} />
@@ -45,8 +45,8 @@ export default function ViewPrediction({ prediction }: ViewPredictionProps) {
               className="absolute top-0 bottom-0 w-[3px] rounded-full"
               style={{
                 left: `${Math.min(Math.max(expectedPct, 5), 95)}%`,
-                background: "var(--color-accent)",
-                boxShadow: "0 0 8px var(--color-accent)",
+                background: "#60A5FA",
+                boxShadow: "0 0 8px #60A5FA",
               }}
             />
           </div>
@@ -57,22 +57,22 @@ export default function ViewPrediction({ prediction }: ViewPredictionProps) {
               <div className="text-[16px] font-bold font-mono" style={{ color: "var(--color-vrs-competitive)" }}>
                 {formatNumber(prediction.low)}
               </div>
-              <div className="text-[8px] text-muted font-mono">LOW</div>
+              <div className="text-[8px] text-[#9E9C97] font-mono">LOW</div>
             </div>
             <div className="text-center">
               <div
                 className="text-[20px] font-extrabold font-mono"
-                style={{ color: "var(--color-accent)" }}
+                style={{ color: "#60A5FA" }}
               >
                 {formatNumber(prediction.expected)}
               </div>
-              <div className="text-[8px] text-muted font-mono">EXPECTED</div>
+              <div className="text-[8px] text-[#9E9C97] font-mono">EXPECTED</div>
             </div>
             <div className="text-right">
               <div className="text-[16px] font-bold font-mono" style={{ color: "var(--color-vrs-excellent)" }}>
                 {formatNumber(prediction.high)}
               </div>
-              <div className="text-[8px] text-muted font-mono">HIGH</div>
+              <div className="text-[8px] text-[#9E9C97] font-mono">HIGH</div>
             </div>
           </div>
         </div>
@@ -81,7 +81,7 @@ export default function ViewPrediction({ prediction }: ViewPredictionProps) {
       {/* Growth rate indicator */}
       <div className="flex items-center gap-3">
         <div className="bg-surface rounded-lg p-2.5 flex-1">
-          <div className="text-[9px] text-muted font-mono">GROWTH RATE</div>
+          <div className="text-[9px] text-[#9E9C97] font-mono">GROWTH RATE</div>
           <div
             className="text-[18px] font-bold font-mono mt-0.5"
             style={{
@@ -95,14 +95,14 @@ export default function ViewPrediction({ prediction }: ViewPredictionProps) {
             {isGrowing ? "+" : ""}
             {growthPct}%
           </div>
-          <div className="text-[9px] text-muted">monthly</div>
+          <div className="text-[9px] text-[#9E9C97]">monthly</div>
         </div>
         <div className="bg-surface rounded-lg p-2.5 flex-1">
-          <div className="text-[9px] text-muted font-mono">MULTIPLIER</div>
+          <div className="text-[9px] text-[#9E9C97] font-mono">MULTIPLIER</div>
           <div className="text-[18px] font-bold font-mono mt-0.5">
             {prediction.growthRate.toFixed(2)}x
           </div>
-          <div className="text-[9px] text-muted">vs historical</div>
+          <div className="text-[9px] text-[#9E9C97]">vs historical</div>
         </div>
       </div>
 
@@ -121,7 +121,7 @@ export default function ViewPrediction({ prediction }: ViewPredictionProps) {
       {/* Comparable videos */}
       {prediction.comparableVideos.length > 0 && (
         <div>
-          <div className="text-[9px] text-muted font-mono mb-1.5">
+          <div className="text-[9px] text-[#9E9C97] font-mono mb-1.5">
             COMPARABLE VIDEOS USED FOR HIGH RANGE
           </div>
           <div className="space-y-1">
@@ -136,7 +136,7 @@ export default function ViewPrediction({ prediction }: ViewPredictionProps) {
                 </span>
                 <span
                   className="text-[10px] font-mono font-bold shrink-0"
-                  style={{ color: "var(--color-accent)" }}
+                  style={{ color: "#60A5FA" }}
                 >
                   {formatNumber(v.views)}
                 </span>

@@ -25,10 +25,10 @@ export default function UploadCadencePanel({ cadence }: UploadCadencePanelProps)
             <div className="flex items-center justify-between mb-0.5">
               <span className="text-[9px] font-semibold truncate mr-2">{entry.channelName}</span>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[8px] font-mono px-1 py-0.5 rounded bg-background text-muted">
+                <span className="text-[8px] font-mono px-1 py-0.5 rounded bg-background text-[#9E9C97]">
                   {entry.cadenceLabel}
                 </span>
-                <span className="text-[8px] font-mono text-muted">
+                <span className="text-[8px] font-mono text-[#9E9C97]">
                   {entry.avgDaysBetweenUploads}d avg
                 </span>
                 <span className="text-[8px] font-mono" style={{

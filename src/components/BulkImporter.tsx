@@ -19,7 +19,7 @@ interface BulkImporterProps {
 const STATUS_COLORS: Record<ImportResult["status"], string> = {
   ok: "var(--color-vrs-excellent)",
   stub: "var(--color-accent-blue)",
-  skipped: "var(--color-text-muted)",
+  skipped: "var(--color-text-[#9E9C97])",
   error: "var(--color-vrs-rework)",
 };
 
@@ -154,17 +154,17 @@ export default function BulkImporter({ onComplete }: BulkImporterProps) {
     <CollapsibleSection
       title="Bulk Importer"
       subtitle="Paste video/channel links from YouTube, TikTok, Instagram — auto-fetches full creator discography"
-      accentColor="var(--color-accent)"
+      accentColor="#60A5FA"
       defaultOpen
     >
       <div className="space-y-3">
         {/* Input area */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-[9px] font-mono text-muted tracking-widest">
+            <label className="text-[9px] font-mono text-[#9E9C97] tracking-widest">
               URLS / HANDLES (ONE PER LINE)
             </label>
-            <span className="text-[9px] font-mono text-muted">
+            <span className="text-[9px] font-mono text-[#9E9C97]">
               {urlCount} item{urlCount !== 1 ? "s" : ""}
             </span>
           </div>
@@ -216,11 +216,11 @@ export default function BulkImporter({ onComplete }: BulkImporterProps) {
             }}
           />
           {csvName && (
-            <span className="text-[9px] font-mono text-muted">{csvName}</span>
+            <span className="text-[9px] font-mono text-[#9E9C97]">{csvName}</span>
           )}
 
           <div className="flex items-center gap-1.5 ml-auto">
-            <label className="text-[8px] font-mono text-muted tracking-widest">
+            <label className="text-[8px] font-mono text-[#9E9C97] tracking-widest">
               DEPTH PER CREATOR
             </label>
             <input
@@ -237,7 +237,7 @@ export default function BulkImporter({ onComplete }: BulkImporterProps) {
               className="w-14 bg-background border border-border rounded px-1.5 py-0.5 text-[10px] font-mono text-right focus:outline-none focus:border-accent"
               style={{ color: "var(--color-foreground)" }}
             />
-            <span className="text-[8px] font-mono text-muted">videos</span>
+            <span className="text-[8px] font-mono text-[#9E9C97]">videos</span>
           </div>
         </div>
 
@@ -251,10 +251,10 @@ export default function BulkImporter({ onComplete }: BulkImporterProps) {
               background:
                 loading || urlCount === 0
                   ? "rgba(255,255,255,0.04)"
-                  : "var(--color-accent)",
+                  : "#60A5FA",
               color:
                 loading || urlCount === 0
-                  ? "var(--color-text-muted)"
+                  ? "var(--color-text-[#9E9C97])"
                   : "#000",
               opacity: loading || urlCount === 0 ? 0.5 : 1,
             }}
@@ -269,7 +269,7 @@ export default function BulkImporter({ onComplete }: BulkImporterProps) {
               className="text-[9px] font-mono px-2 py-1 rounded transition-colors"
               style={{
                 border: "1px solid var(--color-border)",
-                color: "var(--color-text-muted)",
+                color: "var(--color-text-[#9E9C97])",
                 background: "transparent",
               }}
             >
@@ -277,7 +277,7 @@ export default function BulkImporter({ onComplete }: BulkImporterProps) {
             </button>
           )}
           {progress && (
-            <span className="text-[9px] font-mono text-muted">{progress}</span>
+            <span className="text-[9px] font-mono text-[#9E9C97]">{progress}</span>
           )}
         </div>
 
@@ -306,10 +306,10 @@ export default function BulkImporter({ onComplete }: BulkImporterProps) {
             <span style={{ color: "var(--color-vrs-excellent)" }}>
               + {summary.added} new entries
             </span>
-            <span className="text-muted">
+            <span className="text-[#9E9C97]">
               {summary.processed} URL{summary.processed !== 1 ? "s" : ""} processed
             </span>
-            <span className="text-muted">
+            <span className="text-[#9E9C97]">
               {summary.total} total in pool
             </span>
           </div>
@@ -319,7 +319,7 @@ export default function BulkImporter({ onComplete }: BulkImporterProps) {
         {results && results.length > 0 && (
           <div className="border border-border rounded overflow-hidden">
             <div
-              className="flex items-center gap-1.5 px-2 py-1.5 text-[7px] font-mono text-muted tracking-widest"
+              className="flex items-center gap-1.5 px-2 py-1.5 text-[7px] font-mono text-[#9E9C97] tracking-widest"
               style={{ background: "rgba(255,255,255,0.02)" }}
             >
               <span className="w-12 shrink-0">STATUS</span>
@@ -343,14 +343,14 @@ export default function BulkImporter({ onComplete }: BulkImporterProps) {
                   >
                     {r.status}
                   </span>
-                  <span className="w-16 shrink-0 text-muted uppercase">
+                  <span className="w-16 shrink-0 text-[#9E9C97] uppercase">
                     {r.platform.replace("youtube-", "yt ")}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="truncate" style={{ color: "var(--color-foreground)" }}>
                       {r.channelName || r.url}
                     </div>
-                    <div className="text-[8px] text-muted truncate">
+                    <div className="text-[8px] text-[#9E9C97] truncate">
                       {r.message}
                     </div>
                   </div>
@@ -359,8 +359,8 @@ export default function BulkImporter({ onComplete }: BulkImporterProps) {
                     style={{
                       color:
                         r.videoCount && r.videoCount > 0
-                          ? "var(--color-accent)"
-                          : "var(--color-text-muted)",
+                          ? "#60A5FA"
+                          : "var(--color-text-[#9E9C97])",
                     }}
                   >
                     {r.videoCount ? `+${r.videoCount}` : "—"}

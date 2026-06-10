@@ -45,10 +45,10 @@ export default function CsvUpload({
         className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors"
         style={{
           borderColor: dragOver
-            ? "var(--color-accent)"
+            ? "#60A5FA"
             : "var(--color-border)",
           background: dragOver
-            ? "color-mix(in srgb, var(--color-accent) 5%, transparent)"
+            ? "color-mix(in srgb, #60A5FA 5%, transparent)"
             : "transparent",
         }}
       >
@@ -62,11 +62,11 @@ export default function CsvUpload({
             if (file) handleFile(file);
           }}
         />
-        <div className="text-[11px] text-muted">
+        <div className="text-[11px] text-[#9E9C97]">
           {fileName ? (
             <>
-              <span style={{ color: "var(--color-accent)" }}>{fileName}</span>
-              <span className="text-muted"> selected</span>
+              <span style={{ color: "#60A5FA" }}>{fileName}</span>
+              <span className="text-[#9E9C97]"> selected</span>
             </>
           ) : (
             "Drop TikTok CSV here or click to browse"
@@ -90,8 +90,8 @@ export default function CsvUpload({
           style={{
             background: loading
               ? "rgba(255,255,255,0.05)"
-              : "var(--color-accent)",
-            color: loading ? "var(--color-text-muted)" : "#000",
+              : "#60A5FA",
+            color: loading ? "var(--color-text-[#9E9C97])" : "#000",
           }}
         >
           {loading ? "Analyzing..." : "Upload & Analyze"}
@@ -100,7 +100,7 @@ export default function CsvUpload({
 
       {/* Last upload status */}
       {lastUpload && (
-        <div className="text-[9px] text-muted font-mono">
+        <div className="text-[9px] text-[#9E9C97] font-mono">
           Last upload: {lastUpload.videoCount} videos &middot; Upload #{lastUpload.uploadCount}
         </div>
       )}

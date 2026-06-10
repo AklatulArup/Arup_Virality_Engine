@@ -33,13 +33,13 @@ export default function ArchetypeMatrix({ performance }: ArchetypeMatrixProps) {
             className="flex items-center gap-2 py-1.5 px-1 rounded"
             style={{
               background: isTop
-                ? "color-mix(in srgb, var(--color-accent) 8%, transparent)"
+                ? "color-mix(in srgb, #60A5FA 8%, transparent)"
                 : undefined,
             }}
           >
             <div
               className="w-[160px] text-[11px] font-medium truncate"
-              style={{ color: isTop ? "var(--color-accent)" : "var(--color-foreground)" }}
+              style={{ color: isTop ? "#60A5FA" : "var(--color-foreground)" }}
             >
               {p.label}
             </div>
@@ -50,7 +50,7 @@ export default function ArchetypeMatrix({ performance }: ArchetypeMatrixProps) {
                   style={{
                     width: `${Math.max(pct, 3)}%`,
                     background: isTop
-                      ? "var(--color-accent)"
+                      ? "#60A5FA"
                       : "var(--color-accent-blue)",
                     opacity: 0.5 + (pct / 100) * 0.5,
                   }}
@@ -66,7 +66,7 @@ export default function ArchetypeMatrix({ performance }: ArchetypeMatrixProps) {
             <div className="w-[40px] text-[11px] font-mono text-center text-subtle">
               {p.avgEngagement.toFixed(1)}
             </div>
-            <div className="w-[24px] text-[11px] font-mono text-center text-muted">
+            <div className="w-[24px] text-[11px] font-mono text-center text-[#9E9C97]">
               {p.videoCount}
             </div>
             <div
@@ -75,7 +75,7 @@ export default function ArchetypeMatrix({ performance }: ArchetypeMatrixProps) {
                 color:
                   p.outlierCount > 0
                     ? "var(--color-vrs-excellent)"
-                    : "var(--color-text-muted)",
+                    : "var(--color-text-[#9E9C97])",
               }}
             >
               {p.outlierCount}
@@ -85,7 +85,7 @@ export default function ArchetypeMatrix({ performance }: ArchetypeMatrixProps) {
       })}
 
       {performance[0]?.bestVideo && (
-        <div className="text-[10px] text-muted mt-2 px-1">
+        <div className="text-[10px] text-[#9E9C97] mt-2 px-1">
           Top performer: &ldquo;{performance[0].bestVideo.title}&rdquo; ({formatNumber(performance[0].bestVideo.views)} views)
         </div>
       )}

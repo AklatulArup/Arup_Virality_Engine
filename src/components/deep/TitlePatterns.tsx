@@ -22,7 +22,7 @@ export default function TitlePatterns({ patterns }: TitlePatternsProps) {
             <div className="flex items-center justify-between">
               <span
                 className="text-[12px] font-semibold"
-                style={{ color: isTop ? "var(--color-accent)" : "var(--color-foreground)" }}
+                style={{ color: isTop ? "#60A5FA" : "var(--color-foreground)" }}
               >
                 {p.pattern}
               </span>
@@ -38,13 +38,13 @@ export default function TitlePatterns({ patterns }: TitlePatternsProps) {
                 style={{
                   width: `${Math.max(pct, 3)}%`,
                   background: isTop
-                    ? "var(--color-accent)"
+                    ? "#60A5FA"
                     : "var(--color-accent-blue)",
                   opacity: 0.6 + (pct / 100) * 0.4,
                 }}
               />
             </div>
-            <div className="text-[10px] text-muted leading-relaxed">
+            <div className="text-[10px] text-[#9E9C97] leading-relaxed">
               {p.examples.slice(0, 2).map((ex, j) => (
                 <div key={j} className="truncate">
                   &ldquo;{ex}&rdquo;

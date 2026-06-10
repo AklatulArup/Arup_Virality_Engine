@@ -31,7 +31,7 @@ export default function DescriptionSEOPanel({ seo }: DescriptionSEOPanelProps) {
         {/* Score */}
         <div className="text-center">
           <div className="text-[24px] font-mono font-bold" style={{ color: scoreColor }}>{seo.overallScore}</div>
-          <div className="text-[8px] text-muted">SEO SCORE</div>
+          <div className="text-[8px] text-[#9E9C97]">SEO SCORE</div>
         </div>
 
         {/* Checklist */}
@@ -48,7 +48,7 @@ export default function DescriptionSEOPanel({ seo }: DescriptionSEOPanelProps) {
       {/* Above-fold preview */}
       {seo.aboveFoldHook && (
         <div className="mb-2.5">
-          <div className="text-[8px] font-mono text-muted tracking-widest mb-0.5">ABOVE-THE-FOLD PREVIEW</div>
+          <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-0.5">ABOVE-THE-FOLD PREVIEW</div>
           <div className="text-[9px] text-subtle bg-background rounded p-2 font-mono leading-relaxed">
             {seo.aboveFoldHook.slice(0, 200)}
           </div>
@@ -58,7 +58,7 @@ export default function DescriptionSEOPanel({ seo }: DescriptionSEOPanelProps) {
       {/* Keywords found */}
       {seo.keywordDensity.length > 0 && (
         <div className="mb-2.5">
-          <div className="text-[8px] font-mono text-muted tracking-widest mb-0.5">KEYWORDS FOUND</div>
+          <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-0.5">KEYWORDS FOUND</div>
           <div className="flex flex-wrap gap-1">
             {seo.keywordDensity.slice(0, 8).map((kw) => (
               <span key={kw.keyword} className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-background text-subtle">
@@ -72,7 +72,7 @@ export default function DescriptionSEOPanel({ seo }: DescriptionSEOPanelProps) {
       {/* Issues + Suggestions */}
       {seo.issues.length > 0 && (
         <div className="mb-2">
-          <div className="text-[8px] font-mono text-muted tracking-widest mb-0.5">ISSUES</div>
+          <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-0.5">ISSUES</div>
           {seo.issues.map((issue, i) => (
             <div key={i} className="text-[8px] text-subtle py-0.5">
               <span style={{ color: "var(--color-vrs-rework)" }}>{"\u2717"}</span> {issue}
@@ -82,7 +82,7 @@ export default function DescriptionSEOPanel({ seo }: DescriptionSEOPanelProps) {
       )}
       {seo.suggestions.length > 0 && (
         <div>
-          <div className="text-[8px] font-mono text-muted tracking-widest mb-0.5">SUGGESTIONS</div>
+          <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-0.5">SUGGESTIONS</div>
           {seo.suggestions.map((s, i) => (
             <div key={i} className="text-[8px] text-subtle py-0.5">
               <span style={{ color: "var(--color-vrs-competitive)" }}>{"\u2192"}</span> {s}

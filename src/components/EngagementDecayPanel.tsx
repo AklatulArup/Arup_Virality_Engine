@@ -17,7 +17,7 @@ const PHASE_COLORS: Record<string, string> = {
 };
 
 export default function EngagementDecayPanel({ decay, currentViews }: EngagementDecayPanelProps) {
-  const phaseColor = PHASE_COLORS[decay.currentPhase] || "var(--color-muted)";
+  const phaseColor = PHASE_COLORS[decay.currentPhase] || "#9E9C97";
 
   return (
     <CollapsibleSection
@@ -31,28 +31,28 @@ export default function EngagementDecayPanel({ decay, currentViews }: Engagement
           <div className="text-[20px] font-mono font-bold" style={{ color: phaseColor }}>
             {decay.phaseLabel}
           </div>
-          <div className="text-[8px] text-muted mt-0.5">CURRENT PHASE</div>
+          <div className="text-[8px] text-[#9E9C97] mt-0.5">CURRENT PHASE</div>
         </div>
 
         {/* Metrics */}
         <div className="flex-1 grid grid-cols-2 gap-2">
           <div>
-            <div className="text-[8px] text-muted font-mono">DAILY VELOCITY</div>
+            <div className="text-[8px] text-[#9E9C97] font-mono">DAILY VELOCITY</div>
             <div className="text-[12px] font-mono font-bold">{formatNumber(Math.round(decay.dailyVelocity))}</div>
           </div>
           <div>
-            <div className="text-[8px] text-muted font-mono">WEEKLY VELOCITY</div>
+            <div className="text-[8px] text-[#9E9C97] font-mono">WEEKLY VELOCITY</div>
             <div className="text-[12px] font-mono font-bold">{formatNumber(decay.weeklyVelocity)}</div>
           </div>
           <div>
-            <div className="text-[8px] text-muted font-mono">DECAY RATE</div>
+            <div className="text-[8px] text-[#9E9C97] font-mono">DECAY RATE</div>
             <div className="text-[12px] font-mono font-bold" style={{ color: decay.decayRate > 0.5 ? "var(--color-vrs-rework)" : "var(--color-vrs-excellent)" }}>
               {Math.round(decay.decayRate * 100)}%
             </div>
           </div>
           <div>
-            <div className="text-[8px] text-muted font-mono">EST. LIFETIME VIEWS</div>
-            <div className="text-[12px] font-mono font-bold" style={{ color: "var(--color-accent)" }}>
+            <div className="text-[8px] text-[#9E9C97] font-mono">EST. LIFETIME VIEWS</div>
+            <div className="text-[12px] font-mono font-bold" style={{ color: "#60A5FA" }}>
               {formatNumber(decay.estimatedLifetimeViews)}
             </div>
           </div>
@@ -76,14 +76,14 @@ export default function EngagementDecayPanel({ decay, currentViews }: Engagement
         </div>
         <div className="flex justify-between mt-0.5">
           {["Growth", "Plateau", "Decay", "Evergreen"].map((label) => (
-            <span key={label} className="text-[7px] text-muted font-mono">{label}</span>
+            <span key={label} className="text-[7px] text-[#9E9C97] font-mono">{label}</span>
           ))}
         </div>
       </div>
 
       {/* Progress bar: current vs lifetime */}
       <div className="mt-2.5">
-        <div className="flex justify-between text-[8px] font-mono text-muted mb-0.5">
+        <div className="flex justify-between text-[8px] font-mono text-[#9E9C97] mb-0.5">
           <span>Current: {formatNumber(currentViews)}</span>
           <span>Projected: {formatNumber(decay.estimatedLifetimeViews)}</span>
         </div>
@@ -105,7 +105,7 @@ export default function EngagementDecayPanel({ decay, currentViews }: Engagement
         </div>
       )}
 
-      <div className="mt-2 text-[8px] text-muted">{decay.phaseBasis}</div>
+      <div className="mt-2 text-[8px] text-[#9E9C97]">{decay.phaseBasis}</div>
     </CollapsibleSection>
   );
 }

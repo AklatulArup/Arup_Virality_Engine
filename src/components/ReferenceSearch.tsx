@@ -255,7 +255,7 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
         {/* Stats row */}
         <div className="flex gap-2 flex-wrap">
           {[
-            { label: "Videos", value: stats.videos, color: "var(--color-accent)" },
+            { label: "Videos", value: stats.videos, color: "#60A5FA" },
             { label: "Shorts", value: stats.shorts, color: "#f59e0b" },
             { label: "Full-Length", value: stats.fullLen, color: "#6366f1" },
             { label: "Channels", value: stats.channels, color: "var(--color-accent-blue)" },
@@ -264,7 +264,7 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
           ].map((s) => (
             <div key={s.label} className="text-center px-2.5 py-1.5 rounded border border-border bg-background">
               <div className="text-[11px] font-mono font-bold" style={{ color: s.color }}>{s.value}</div>
-              <div className="text-[7px] font-mono text-muted tracking-widest">{s.label.toUpperCase()}</div>
+              <div className="text-[7px] font-mono text-[#9E9C97] tracking-widest">{s.label.toUpperCase()}</div>
             </div>
           ))}
         </div>
@@ -283,7 +283,7 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
             {query && (
               <button
                 onClick={() => handleQuery("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted hover:text-subtle"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#9E9C97] hover:text-subtle"
               >
                 {"\u2715"}
               </button>
@@ -298,8 +298,8 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
                 className="text-[8px] font-mono px-2 py-1 rounded transition-colors"
                 style={{
                   background: filterType === t ? "rgba(0,229,160,0.1)" : "transparent",
-                  color: filterType === t ? "var(--color-accent)" : "var(--color-text-muted)",
-                  border: `1px solid ${filterType === t ? "var(--color-accent)" : "var(--color-border)"}`,
+                  color: filterType === t ? "#60A5FA" : "var(--color-text-[#9E9C97])",
+                  border: `1px solid ${filterType === t ? "#60A5FA" : "var(--color-border)"}`,
                 }}
               >
                 {t === "all" ? `All (${entries.length})` : t === "video" ? `Videos (${stats.videos})` : `Ch (${stats.channels})`}
@@ -319,7 +319,7 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
                 className="text-[8px] font-mono px-2 py-1 rounded transition-colors"
                 style={{
                   background: formatFilter === key ? `color-mix(in srgb, ${color} 12%, transparent)` : "transparent",
-                  color: formatFilter === key ? color : "var(--color-text-muted)",
+                  color: formatFilter === key ? color : "var(--color-text-[#9E9C97])",
                   border: `1px solid ${formatFilter === key ? color : "var(--color-border)"}`,
                 }}
               >
@@ -331,7 +331,7 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
 
         {/* Sort bar + bulk actions */}
         <div className="flex items-center gap-1">
-          <span className="text-[7px] font-mono text-muted tracking-widest mr-1">SORT</span>
+          <span className="text-[7px] font-mono text-[#9E9C97] tracking-widest mr-1">SORT</span>
           {SORT_OPTIONS.map((opt) => (
             <button
               key={opt.key}
@@ -339,14 +339,14 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
               className="text-[8px] font-mono px-1.5 py-0.5 rounded transition-colors"
               style={{
                 background: sortBy === opt.key ? "rgba(100,149,237,0.12)" : "transparent",
-                color: sortBy === opt.key ? "var(--color-accent-blue)" : "var(--color-text-muted)",
+                color: sortBy === opt.key ? "var(--color-accent-blue)" : "var(--color-text-[#9E9C97])",
                 border: `1px solid ${sortBy === opt.key ? "var(--color-accent-blue)" : "transparent"}`,
               }}
             >
               {opt.label}
             </button>
           ))}
-          <span className="text-[8px] text-muted font-mono ml-auto">
+          <span className="text-[8px] text-[#9E9C97] font-mono ml-auto">
             {filtered.length} result{filtered.length !== 1 ? "s" : ""}
           </span>
           {selected.size > 0 && (
@@ -388,18 +388,18 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
         <div className="border border-border rounded overflow-hidden">
           {/* Table header */}
           <div
-            className="flex items-center gap-1.5 px-2 py-1.5 text-[7px] font-mono text-muted tracking-widest"
+            className="flex items-center gap-1.5 px-2 py-1.5 text-[7px] font-mono text-[#9E9C97] tracking-widest"
             style={{ background: "rgba(255,255,255,0.02)" }}
           >
             <button
               onClick={togglePageAll}
               className="w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors"
               style={{
-                borderColor: pageAllSelected ? "var(--color-accent)" : "var(--color-border)",
+                borderColor: pageAllSelected ? "#60A5FA" : "var(--color-border)",
                 background: pageAllSelected ? "rgba(0,229,160,0.15)" : "transparent",
               }}
             >
-              {pageAllSelected && <span className="text-[8px]" style={{ color: "var(--color-accent)" }}>{"\u2713"}</span>}
+              {pageAllSelected && <span className="text-[8px]" style={{ color: "#60A5FA" }}>{"\u2713"}</span>}
             </button>
             <span className="w-10 shrink-0">FORMAT</span>
             <span className="flex-1">TITLE / CREATOR</span>
@@ -414,7 +414,7 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
           {/* Entries */}
           <div className="max-h-[420px] overflow-y-auto">
             {pageEntries.length === 0 && (
-              <div className="text-[10px] text-muted text-center py-6">
+              <div className="text-[10px] text-[#9E9C97] text-center py-6">
                 {query.length >= 2 ? `No matches for \u201c${query}\u201d` : "No entries in reference pool"}
               </div>
             )}
@@ -478,7 +478,7 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
                     >
                       {entry.name}
                     </a>
-                    <div className="text-[7px] text-muted font-mono" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>
+                    <div className="text-[7px] text-[#9E9C97] font-mono" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>
                       {entry.channelName}
                       {entry.tags && entry.tags.length > 0 && (
                         <span className="ml-1 opacity-50">
@@ -489,7 +489,7 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
                   </div>
 
                   {/* Duration / Length */}
-                  <span className="text-[8px] font-mono w-12 text-right shrink-0 text-muted">
+                  <span className="text-[8px] font-mono w-12 text-right shrink-0 text-[#9E9C97]">
                     {durStr}
                   </span>
 
@@ -497,7 +497,7 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
                   <span
                     className="text-[9px] font-mono w-14 text-right shrink-0"
                     style={{
-                      color: views >= 100000 ? "var(--color-vrs-excellent)" : views >= 10000 ? "var(--color-accent)" : "var(--color-text-muted)",
+                      color: views >= 100000 ? "var(--color-vrs-excellent)" : views >= 10000 ? "#60A5FA" : "var(--color-text-[#9E9C97])",
                     }}
                   >
                     {views > 0 ? formatNumber(views) : "\u2014"}
@@ -507,7 +507,7 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
                   <span
                     className="text-[9px] font-mono w-10 text-right shrink-0"
                     style={{
-                      color: eng >= 5 ? "var(--color-vrs-excellent)" : eng >= 2 ? "var(--color-accent)" : "var(--color-text-muted)",
+                      color: eng >= 5 ? "var(--color-vrs-excellent)" : eng >= 2 ? "#60A5FA" : "var(--color-text-[#9E9C97])",
                     }}
                   >
                     {eng > 0 ? `${eng.toFixed(1)}%` : "\u2014"}
@@ -562,13 +562,13 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
               disabled={page === 0}
               className="text-[8px] font-mono px-2 py-0.5 rounded border border-border transition-colors"
               style={{
-                color: page === 0 ? "var(--color-text-muted)" : "var(--color-accent)",
+                color: page === 0 ? "var(--color-text-[#9E9C97])" : "#60A5FA",
                 opacity: page === 0 ? 0.4 : 1,
               }}
             >
               {"\u2190"} Prev
             </button>
-            <span className="text-[8px] font-mono text-muted">
+            <span className="text-[8px] font-mono text-[#9E9C97]">
               Page {page + 1} of {totalPages} {"\u00b7"} showing {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}
             </span>
             <button
@@ -576,7 +576,7 @@ export default function ReferenceSearch({ entries, onRemove, onBlockCreator }: R
               disabled={page >= totalPages - 1}
               className="text-[8px] font-mono px-2 py-0.5 rounded border border-border transition-colors"
               style={{
-                color: page >= totalPages - 1 ? "var(--color-text-muted)" : "var(--color-accent)",
+                color: page >= totalPages - 1 ? "var(--color-text-[#9E9C97])" : "#60A5FA",
                 opacity: page >= totalPages - 1 ? 0.4 : 1,
               }}
             >

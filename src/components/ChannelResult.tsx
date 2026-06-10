@@ -47,7 +47,7 @@ export default function ChannelResult({
           )}
           <div className="flex-1">
             <h2 className="text-base font-bold">{channel.name}</h2>
-            <div className="text-[11px] text-muted">
+            <div className="text-[11px] text-[#9E9C97]">
               {formatNumber(channel.subs)} subs &middot; {channel.videoCount}{" "}
               videos &middot; {formatNumber(channel.totalViews)} total views
             </div>
@@ -99,14 +99,14 @@ export default function ChannelResult({
           <MetricCard
             label="Analyzed"
             value={String(videos.length)}
-            color="var(--color-accent)"
+            color="#60A5FA"
           />
         </div>
       </div>
 
       {/* Videos list */}
       <div className="bg-surface border border-border rounded-[10px] p-3.5">
-        <div className="text-[9px] font-mono text-muted tracking-widest mb-2">
+        <div className="text-[9px] font-mono text-[#9E9C97] tracking-widest mb-2">
           VIDEOS BY VIEWS
         </div>
         {videos.map((v) => {
@@ -136,7 +136,7 @@ export default function ChannelResult({
                 >
                   {v.title}
                 </div>
-                <div className="text-[9px] text-muted">
+                <div className="text-[9px] text-[#9E9C97]">
                   {v.days}d &middot; {v.duration} &middot;{" "}
                   {v.engagement.toFixed(1)}% eng
                 </div>
@@ -152,7 +152,7 @@ export default function ChannelResult({
                 >
                   {formatNumber(v.views)}
                 </div>
-                <div className="text-[9px] text-muted font-mono">
+                <div className="text-[9px] text-[#9E9C97] font-mono">
                   {formatNumber(v.velocity)}/d
                 </div>
               </div>
@@ -164,7 +164,7 @@ export default function ChannelResult({
                   >
                     {v.vrs.estimatedFullScore}
                   </div>
-                  <div className="text-[7px] text-muted font-mono">VRS</div>
+                  <div className="text-[7px] text-[#9E9C97] font-mono">VRS</div>
                 </div>
               )}
               {isOut && (
@@ -203,13 +203,13 @@ export default function ChannelResult({
       {/* Reference Context */}
       {referenceContext && referenceContext.length > 0 && (
         <div className="bg-surface border border-border rounded-[10px] p-3.5">
-          <div className="text-[9px] font-mono text-muted tracking-widest mb-2">
+          <div className="text-[9px] font-mono text-[#9E9C97] tracking-widest mb-2">
             REFERENCE LIBRARY &middot; {referenceContext.length} RELATED ENTRIES
           </div>
           {referenceContext.map((ref) => (
             <div key={ref.id} className="flex justify-between py-1 border-b" style={{ borderColor: "rgba(139,92,246,0.06)" }}>
               <span className="text-[10px] text-subtle truncate mr-2">{ref.name}</span>
-              <span className="text-[10px] font-mono text-muted shrink-0">
+              <span className="text-[10px] font-mono text-[#9E9C97] shrink-0">
                 {ref.metrics.medianViews ? `${formatNumber(ref.metrics.medianViews)} med` : ""}
                 {ref.metrics.trend ? ` · ${ref.metrics.trend}` : ""}
               </span>

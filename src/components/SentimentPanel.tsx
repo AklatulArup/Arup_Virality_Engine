@@ -34,7 +34,7 @@ export default function SentimentPanel({ analysis }: SentimentPanelProps) {
               <div style={{ width: `${analysis.distribution.negative}%`, background: SENTIMENT_COLORS.negative, opacity: 0.7 }} />
             )}
           </div>
-          <div className="flex justify-between mt-0.5 text-[7px] font-mono text-muted">
+          <div className="flex justify-between mt-0.5 text-[7px] font-mono text-[#9E9C97]">
             <span style={{ color: SENTIMENT_COLORS.positive }}>{analysis.distribution.positive}% positive</span>
             <span style={{ color: SENTIMENT_COLORS.neutral }}>{analysis.distribution.neutral}% neutral</span>
             <span style={{ color: SENTIMENT_COLORS.negative }}>{analysis.distribution.negative}% negative</span>
@@ -44,7 +44,7 @@ export default function SentimentPanel({ analysis }: SentimentPanelProps) {
         {/* Firm sentiment comparison */}
         {analysis.firmSentiment.length > 0 && (
           <div>
-            <div className="text-[8px] font-mono text-muted tracking-widest mb-1">SENTIMENT BY PROP FIRM</div>
+            <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-1">SENTIMENT BY PROP FIRM</div>
             <div className="space-y-1.5">
               {analysis.firmSentiment.map((fs) => (
                 <div key={fs.firm} className="flex items-center gap-2">
@@ -66,7 +66,7 @@ export default function SentimentPanel({ analysis }: SentimentPanelProps) {
                   <span className="text-[8px] font-mono w-8 text-right" style={{ color: SENTIMENT_COLORS[fs.sentiment] }}>
                     {fs.score > 0 ? "+" : ""}{fs.score}
                   </span>
-                  <span className="text-[7px] font-mono text-muted w-6 text-right">{fs.videoCount}v</span>
+                  <span className="text-[7px] font-mono text-[#9E9C97] w-6 text-right">{fs.videoCount}v</span>
                 </div>
               ))}
             </div>

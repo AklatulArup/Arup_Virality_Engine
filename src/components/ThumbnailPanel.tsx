@@ -19,7 +19,7 @@ export default function ThumbnailPanel({ analysis }: ThumbnailPanelProps) {
       <div className="flex gap-4 items-start">
         <div className="text-center">
           <div className="text-[24px] font-mono font-bold" style={{ color: scoreColor }}>{analysis.score}</div>
-          <div className="text-[8px] text-muted">METADATA</div>
+          <div className="text-[8px] text-[#9E9C97]">METADATA</div>
         </div>
 
         <div className="flex-1 space-y-1">
@@ -35,7 +35,7 @@ export default function ThumbnailPanel({ analysis }: ThumbnailPanelProps) {
             </span>
             <span className="text-[9px] text-subtle">16:9 aspect ratio</span>
           </div>
-          <div className="text-[9px] text-muted">Max resolution: {analysis.maxResolution}</div>
+          <div className="text-[9px] text-[#9E9C97]">Max resolution: {analysis.maxResolution}</div>
         </div>
       </div>
 

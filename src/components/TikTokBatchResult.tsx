@@ -59,7 +59,7 @@ export default function TikTokBatchResult({
             <div className="text-[13px] font-bold">
               TikTok Batch Analysis
             </div>
-            <div className="text-[10px] text-muted">
+            <div className="text-[10px] text-[#9E9C97]">
               {videos.length} videos analyzed &middot; {competitorBreakdown.length} creators
             </div>
           </div>
@@ -68,19 +68,19 @@ export default function TikTokBatchResult({
         {/* Key metrics */}
         <div className="grid grid-cols-4 gap-2 mt-3">
           <div className="bg-background rounded-lg p-2 text-center">
-            <div className="text-[9px] text-muted font-mono">TOTAL VIEWS</div>
+            <div className="text-[9px] text-[#9E9C97] font-mono">TOTAL VIEWS</div>
             <div className="text-[15px] font-bold font-mono mt-0.5">
               {formatNumber(totalViews)}
             </div>
           </div>
           <div className="bg-background rounded-lg p-2 text-center">
-            <div className="text-[9px] text-muted font-mono">AVG VIEWS</div>
+            <div className="text-[9px] text-[#9E9C97] font-mono">AVG VIEWS</div>
             <div className="text-[15px] font-bold font-mono mt-0.5">
               {formatNumber(avgViews)}
             </div>
           </div>
           <div className="bg-background rounded-lg p-2 text-center">
-            <div className="text-[9px] text-muted font-mono">AVG TRS</div>
+            <div className="text-[9px] text-[#9E9C97] font-mono">AVG TRS</div>
             <div
               className="text-[15px] font-bold font-mono mt-0.5"
               style={{ color: getVRSColor(avgTRS) }}
@@ -89,7 +89,7 @@ export default function TikTokBatchResult({
             </div>
           </div>
           <div className="bg-background rounded-lg p-2 text-center">
-            <div className="text-[9px] text-muted font-mono">AVG SHARES</div>
+            <div className="text-[9px] text-[#9E9C97] font-mono">AVG SHARES</div>
             <div className="text-[15px] font-bold font-mono mt-0.5">
               {formatNumber(avgShares)}
             </div>
@@ -101,12 +101,12 @@ export default function TikTokBatchResult({
       <CollapsibleSection
         title="TRS Score Distribution"
         subtitle={`Across ${videos.length} videos`}
-        accentColor="var(--color-accent)"
+        accentColor="#60A5FA"
       >
         <div className="space-y-1.5">
           {bandCounts.map((b) => (
             <div key={b.label} className="flex items-center gap-2">
-              <div className="w-12 text-[9px] font-mono text-muted text-right">
+              <div className="w-12 text-[9px] font-mono text-[#9E9C97] text-right">
                 {b.label}
               </div>
               <div className="flex-1 h-4 rounded-sm overflow-hidden bg-background">
@@ -144,7 +144,7 @@ export default function TikTokBatchResult({
                 <div className="flex-1 text-[11px] font-mono">
                   @{c.handle}
                 </div>
-                <div className="text-[10px] font-mono text-muted">
+                <div className="text-[10px] font-mono text-[#9E9C97]">
                   {c.videoCount} videos
                 </div>
                 <div className="text-[10px] font-mono font-bold">

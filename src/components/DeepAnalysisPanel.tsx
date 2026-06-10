@@ -22,7 +22,7 @@ export default function DeepAnalysisPanel({
 
   return (
     <div className="space-y-2 mt-4">
-      <div className="text-[10px] text-muted font-mono px-1 mb-2">
+      <div className="text-[10px] text-[#9E9C97] font-mono px-1 mb-2">
         DEEP ANALYSIS &middot; {channelName.toUpperCase()}
       </div>
 

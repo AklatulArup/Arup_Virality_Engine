@@ -23,15 +23,15 @@ const PRIORITY_STYLES: Record<
     labelColor: "var(--color-vrs-competitive)",
   },
   low: {
-    border: "var(--color-text-muted)",
+    border: "var(--color-text-[#9E9C97])",
     bg: "transparent",
     label: "LOW",
-    labelColor: "var(--color-text-muted)",
+    labelColor: "var(--color-text-[#9E9C97])",
   },
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  content: "var(--color-accent)",
+  content: "#60A5FA",
   title: "var(--color-accent-blue)",
   timing: "var(--color-mode-e)",
   format: "var(--color-mode-c)",
@@ -51,7 +51,7 @@ export default function Recommendations({
 }: RecommendationsProps) {
   if (recommendations.length === 0) {
     return (
-      <div className="text-[11px] text-muted text-center py-4">
+      <div className="text-[11px] text-[#9E9C97] text-center py-4">
         Not enough data to generate recommendations. Analyze more videos.
       </div>
     );
@@ -93,7 +93,7 @@ export default function Recommendations({
               </div>
               <div className="flex-1">
                 <div className="text-[12px] leading-relaxed">{rec.text}</div>
-                <div className="text-[10px] text-muted mt-1.5 leading-relaxed">
+                <div className="text-[10px] text-[#9E9C97] mt-1.5 leading-relaxed">
                   {rec.evidence}
                 </div>
                 {rec.platformContext && rec.platformContext.length > 0 && (

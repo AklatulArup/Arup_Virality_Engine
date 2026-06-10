@@ -27,7 +27,7 @@ export default function CompetitorGapPanel({ matrix }: CompetitorGapPanelProps) 
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-semibold truncate mr-2">{comp.competitorName}</span>
               <div className="flex items-center gap-3 shrink-0">
-                <span className="text-[9px] font-mono text-muted">{comp.totalVideos} videos</span>
+                <span className="text-[9px] font-mono text-[#9E9C97]">{comp.totalVideos} videos</span>
                 <span className="text-[9px] font-mono">{formatNumber(comp.avgViews)} avg</span>
                 <span className="text-[9px] font-mono font-bold" style={{ color: getVRSColor(comp.avgVRS) }}>
                   {comp.avgVRS}
@@ -60,7 +60,7 @@ export default function CompetitorGapPanel({ matrix }: CompetitorGapPanelProps) 
       {/* Missing formats */}
       {matrix.missingFormats.length > 0 && (
         <div className="mb-2.5">
-          <div className="text-[8px] font-mono text-muted tracking-widest mb-1">CONTENT GAPS</div>
+          <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-1">CONTENT GAPS</div>
           <div className="flex flex-wrap gap-1">
             {matrix.missingFormats.map((f) => (
               <span key={f} className="text-[8px] font-mono px-1.5 py-0.5 rounded border border-border text-subtle">
@@ -74,7 +74,7 @@ export default function CompetitorGapPanel({ matrix }: CompetitorGapPanelProps) 
       {/* Opportunities */}
       {matrix.opportunities.length > 0 && (
         <div>
-          <div className="text-[8px] font-mono text-muted tracking-widest mb-1">OPPORTUNITIES</div>
+          <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-1">OPPORTUNITIES</div>
           {matrix.opportunities.map((o, i) => (
             <div key={i} className="text-[8px] text-subtle py-0.5">
               <span style={{ color: "var(--color-vrs-competitive)" }}>{"\u2192"}</span> {o}

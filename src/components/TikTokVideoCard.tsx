@@ -23,7 +23,7 @@ export default function TikTokVideoCard({ video, rank }: TikTokVideoCardProps) {
         {rank !== undefined && (
           <div
             className="text-[13px] font-extrabold font-mono w-6 text-center shrink-0"
-            style={{ color: rank <= 3 ? "var(--color-vrs-excellent)" : "var(--color-text-muted)" }}
+            style={{ color: rank <= 3 ? "var(--color-vrs-excellent)" : "var(--color-text-[#9E9C97])" }}
           >
             #{rank}
           </div>
@@ -37,32 +37,32 @@ export default function TikTokVideoCard({ video, rank }: TikTokVideoCardProps) {
           </div>
 
           {/* Creator + date */}
-          <div className="text-[9px] text-muted mb-2">
+          <div className="text-[9px] text-[#9E9C97] mb-2">
             @{video.channel} &middot; {video.duration}
           </div>
 
           {/* Metrics row */}
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-mono">
             <span>
-              <span className="text-muted">Views </span>
+              <span className="text-[#9E9C97]">Views </span>
               <span className="font-bold">{formatNumber(video.views)}</span>
             </span>
             <span>
-              <span className="text-muted">Likes </span>
+              <span className="text-[#9E9C97]">Likes </span>
               <span className="font-bold">{formatNumber(video.likes)}</span>
             </span>
             <span>
-              <span className="text-muted">Comments </span>
+              <span className="text-[#9E9C97]">Comments </span>
               <span className="font-bold">{formatNumber(video.comments)}</span>
             </span>
             <span>
-              <span className="text-muted">Shares </span>
+              <span className="text-[#9E9C97]">Shares </span>
               <span className="font-bold" style={{ color: shareRate >= 1 ? "var(--color-vrs-excellent)" : shareRate >= 0.3 ? "var(--color-vrs-competitive)" : undefined }}>
                 {formatNumber(video.shares ?? 0)}
               </span>
             </span>
             <span>
-              <span className="text-muted">Saves </span>
+              <span className="text-[#9E9C97]">Saves </span>
               <span className="font-bold" style={{ color: saveRate >= 0.5 ? "var(--color-vrs-excellent)" : saveRate >= 0.2 ? "var(--color-vrs-competitive)" : undefined }}>
                 {formatNumber(video.saves ?? 0)}
               </span>
@@ -70,7 +70,7 @@ export default function TikTokVideoCard({ video, rank }: TikTokVideoCardProps) {
           </div>
 
           {/* Rate indicators */}
-          <div className="flex gap-3 mt-1.5 text-[9px] font-mono text-muted">
+          <div className="flex gap-3 mt-1.5 text-[9px] font-mono text-[#9E9C97]">
             <span>
               Share rate:{" "}
               <span style={{ color: shareRate >= 1 ? "var(--color-vrs-excellent)" : shareRate >= 0.3 ? "var(--color-vrs-competitive)" : "var(--color-vrs-rework)" }}>
@@ -107,8 +107,8 @@ export default function TikTokVideoCard({ video, rank }: TikTokVideoCardProps) {
                 key={tag}
                 className="text-[8px] px-1.5 py-0.5 rounded font-mono"
                 style={{
-                  background: "color-mix(in srgb, var(--color-accent) 8%, transparent)",
-                  color: "var(--color-accent)",
+                  background: "color-mix(in srgb, #60A5FA 8%, transparent)",
+                  color: "#60A5FA",
                 }}
               >
                 #{tag}
@@ -125,7 +125,7 @@ export default function TikTokVideoCard({ video, rank }: TikTokVideoCardProps) {
           >
             {video.vrs.estimatedFullScore}
           </div>
-          <div className="text-[7px] text-muted font-mono">TRS</div>
+          <div className="text-[7px] text-[#9E9C97] font-mono">TRS</div>
         </div>
       </div>
     </div>

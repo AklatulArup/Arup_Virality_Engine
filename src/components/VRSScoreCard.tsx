@@ -42,7 +42,7 @@ export default function VRSScoreCard({ vrs, label = "VRS", referenceCount = 0 }:
       <div className="flex items-center justify-between mb-3.5">
         <div>
           <div className="flex items-center gap-1.5 mb-0.5">
-            <div className="text-[10px] font-mono text-muted tracking-widest">
+            <div className="text-[10px] font-mono text-[#9E9C97] tracking-widest">
               VIRAL READINESS SCORE
             </div>
             {/* Info tooltip trigger */}
@@ -53,8 +53,8 @@ export default function VRSScoreCard({ vrs, label = "VRS", referenceCount = 0 }:
                 onClick={() => setShowInfoTooltip(!showInfoTooltip)}
                 className="w-[16px] h-[16px] rounded-full flex items-center justify-center text-[9px] font-bold transition-colors"
                 style={{
-                  background: showInfoTooltip ? "var(--color-accent)" : "rgba(255,255,255,0.08)",
-                  color: showInfoTooltip ? "#000" : "var(--color-text-muted)",
+                  background: showInfoTooltip ? "#60A5FA" : "rgba(255,255,255,0.08)",
+                  color: showInfoTooltip ? "#000" : "var(--color-text-[#9E9C97])",
                 }}
               >
                 ?
@@ -74,14 +74,14 @@ export default function VRSScoreCard({ vrs, label = "VRS", referenceCount = 0 }:
                     {explanation}
                   </div>
                   <div className="mt-2 pt-2 border-t" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
-                    <div className="text-[9px] text-muted font-mono">
+                    <div className="text-[9px] text-[#9E9C97] font-mono">
                       {assessedCount} auto-assessed + {vrs.hiddenCount} estimated = {vrs.criteria.length} total criteria
                     </div>
-                    <div className="text-[9px] text-muted font-mono">
+                    <div className="text-[9px] text-[#9E9C97] font-mono">
                       {assessedPct}% of weight directly measured
                     </div>
                     {referenceCount > 0 && (
-                      <div className="text-[9px] font-mono mt-0.5" style={{ color: "var(--color-accent)" }}>
+                      <div className="text-[9px] font-mono mt-0.5" style={{ color: "#60A5FA" }}>
                         {referenceCount} videos/channels in reference pool
                       </div>
                     )}
@@ -98,7 +98,7 @@ export default function VRSScoreCard({ vrs, label = "VRS", referenceCount = 0 }:
           >
             {vrs.estimatedFullScore}%
           </div>
-          <div className="text-[10px] text-muted mt-0.5">
+          <div className="text-[10px] text-[#9E9C97] mt-0.5">
             estimated full score &middot; {estimatedLabel}
           </div>
 
@@ -110,7 +110,7 @@ export default function VRSScoreCard({ vrs, label = "VRS", referenceCount = 0 }:
             >
               {vrs.score}%
             </span>
-            <span className="text-[9px] text-muted">
+            <span className="text-[9px] text-[#9E9C97]">
               assessed ({assessedCount}/{vrs.criteria.length} criteria &middot; {assessedPct}% weight)
             </span>
           </div>
@@ -205,7 +205,7 @@ export default function VRSScoreCard({ vrs, label = "VRS", referenceCount = 0 }:
               >
                 T{tier} {TIER_LABELS[tier]}
               </span>
-              <span className="text-[9px] font-mono text-muted">
+              <span className="text-[9px] font-mono text-[#9E9C97]">
                 {summary.earned.toFixed(1)}/{summary.possible.toFixed(1)}
               </span>
             </div>
@@ -262,7 +262,7 @@ export default function VRSScoreCard({ vrs, label = "VRS", referenceCount = 0 }:
                       className="text-[8px] ml-0.5 transition-transform duration-150 shrink-0"
                       style={{
                         transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-                        color: "var(--color-text-muted)",
+                        color: "var(--color-text-[#9E9C97])",
                       }}
                     >
                       &#9654;
@@ -335,7 +335,7 @@ export default function VRSScoreCard({ vrs, label = "VRS", referenceCount = 0 }:
           <div className="text-[9px] font-mono mb-1" style={{ color: "var(--color-vrs-competitive)" }}>
             &#x1F50D; HIDDEN CRITERIA ({vrs.hiddenCount}) &middot; EST. ~{vrs.estimatedHiddenScore} / {(vrs.totalWeight - vrs.possible).toFixed(0)} pts
           </div>
-          <div className="text-[10px] text-muted leading-relaxed">
+          <div className="text-[10px] text-[#9E9C97] leading-relaxed">
             Thumbnail packaging, mobile readiness, visual promise alignment, and audio quality
             require visual/audio analysis. Hidden scores are estimated from engagement
             velocity, like/comment ratios, and content packaging quality.

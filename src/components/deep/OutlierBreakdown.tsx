@@ -11,7 +11,7 @@ interface OutlierBreakdownProps {
 export default function OutlierBreakdown({ insights }: OutlierBreakdownProps) {
   if (insights.length === 0) {
     return (
-      <div className="text-[11px] text-muted text-center py-4">
+      <div className="text-[11px] text-[#9E9C97] text-center py-4">
         No outliers detected (no video reached 3x the channel median).
       </div>
     );
@@ -74,7 +74,7 @@ export default function OutlierBreakdown({ insights }: OutlierBreakdownProps) {
                   </span>
                 ))}
               </div>
-              <div className="text-[9px] text-muted mt-1">{oi.timingNote}</div>
+              <div className="text-[9px] text-[#9E9C97] mt-1">{oi.timingNote}</div>
             </div>
           </div>
 
@@ -82,7 +82,7 @@ export default function OutlierBreakdown({ insights }: OutlierBreakdownProps) {
           <div className="px-3 py-2.5 space-y-2">
             {oi.reasons.map((reason, i) => (
               <div key={i} className="flex gap-2 text-[11px] leading-relaxed">
-                <span className="text-accent shrink-0 mt-0.5">&#9656;</span>
+                <span className="text-[#60A5FA] shrink-0 mt-0.5">&#9656;</span>
                 <span className="text-subtle">{reason}</span>
               </div>
             ))}

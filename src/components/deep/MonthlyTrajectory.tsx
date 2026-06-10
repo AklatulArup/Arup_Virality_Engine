@@ -26,7 +26,7 @@ export default function MonthlyTrajectory({ buckets }: MonthlyTrajectoryProps) {
                 className="h-full rounded transition-all duration-500"
                 style={{
                   width: `${Math.max(pct, 2)}%`,
-                  background: `linear-gradient(90deg, var(--color-accent), var(--color-accent-blue))`,
+                  background: `linear-gradient(90deg, #60A5FA, var(--color-accent-blue))`,
                   opacity: 0.7 + (pct / 100) * 0.3,
                 }}
               />
@@ -39,7 +39,7 @@ export default function MonthlyTrajectory({ buckets }: MonthlyTrajectoryProps) {
                 </span>
               </div>
             </div>
-            <div className="w-[50px] text-[10px] text-muted font-mono text-right shrink-0">
+            <div className="w-[50px] text-[10px] text-[#9E9C97] font-mono text-right shrink-0">
               {b.avgEngagement.toFixed(1)}%
             </div>
           </div>

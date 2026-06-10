@@ -181,7 +181,7 @@ export default function ReferencePoolBuilder({ bank, onComplete, onBatchSaved }:
 
   const categoryColors: Record<ParamCategory, string> = {
     competitors: "var(--color-mode-e)",
-    keywords: "var(--color-accent)",
+    keywords: "#60A5FA",
     hashtags: "var(--color-accent-blue)",
   };
 
@@ -189,12 +189,12 @@ export default function ReferencePoolBuilder({ bank, onComplete, onBatchSaved }:
     <CollapsibleSection
       title="Reference Pool Builder"
       subtitle={`${queries.length} queries \u00b7 ${selectedLangs.length} languages \u00b7 ${allCompetitors.length} competitors`}
-      accentColor="var(--color-accent)"
+      accentColor="#60A5FA"
     >
       <div className="space-y-3">
         {/* ── Search Parameter Bar ── */}
         <div className="rounded-lg border border-border p-2.5" style={{ background: "rgba(0,229,160,0.02)" }}>
-          <div className="text-[8px] font-mono text-muted tracking-widest mb-1.5">SEARCH PARAMETERS</div>
+          <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-1.5">SEARCH PARAMETERS</div>
 
           {/* Category tabs */}
           <div className="flex gap-1 mb-2">
@@ -205,7 +205,7 @@ export default function ReferencePoolBuilder({ bank, onComplete, onBatchSaved }:
                 className="text-[8px] font-mono px-2 py-0.5 rounded transition-colors"
                 style={{
                   background: activeCategory === cat ? `color-mix(in srgb, ${categoryColors[cat]} 15%, transparent)` : "transparent",
-                  color: activeCategory === cat ? categoryColors[cat] : "var(--color-text-muted)",
+                  color: activeCategory === cat ? categoryColors[cat] : "var(--color-text-[#9E9C97])",
                   border: `1px solid ${activeCategory === cat ? categoryColors[cat] : "var(--color-border)"}`,
                 }}
               >
@@ -246,7 +246,7 @@ export default function ReferencePoolBuilder({ bank, onComplete, onBatchSaved }:
             {/* Competitors */}
             {allCompetitors.length > 0 && (
               <div className="flex flex-wrap gap-1 items-center">
-                <span className="text-[7px] font-mono text-muted w-14 shrink-0">FIRMS</span>
+                <span className="text-[7px] font-mono text-[#9E9C97] w-14 shrink-0">FIRMS</span>
                 {allCompetitors.map((comp) => {
                   const isFromBank = bank.categories.competitors.includes(comp);
                   return (
@@ -278,7 +278,7 @@ export default function ReferencePoolBuilder({ bank, onComplete, onBatchSaved }:
             {/* User-added keywords */}
             {extraKeywords.length > 0 && (
               <div className="flex flex-wrap gap-1 items-center">
-                <span className="text-[7px] font-mono text-muted w-14 shrink-0">KW</span>
+                <span className="text-[7px] font-mono text-[#9E9C97] w-14 shrink-0">KW</span>
                 {extraKeywords.map((kw) => (
                   <span
                     key={kw}
@@ -299,7 +299,7 @@ export default function ReferencePoolBuilder({ bank, onComplete, onBatchSaved }:
             {/* Hashtags */}
             {allHashtags.length > 0 && (
               <div className="flex flex-wrap gap-1 items-center">
-                <span className="text-[7px] font-mono text-muted w-14 shrink-0">TAGS</span>
+                <span className="text-[7px] font-mono text-[#9E9C97] w-14 shrink-0">TAGS</span>
                 {allHashtags.map((ht) => (
                   <span
                     key={ht}
@@ -321,7 +321,7 @@ export default function ReferencePoolBuilder({ bank, onComplete, onBatchSaved }:
 
         {/* Language selector */}
         <div>
-          <div className="text-[8px] font-mono text-muted tracking-widest mb-1">LANGUAGES ({selectedLangs.length} selected)</div>
+          <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-1">LANGUAGES ({selectedLangs.length} selected)</div>
           <div className="flex flex-wrap gap-1">
             {LANGUAGES.map((lang) => (
               <button
@@ -329,9 +329,9 @@ export default function ReferencePoolBuilder({ bank, onComplete, onBatchSaved }:
                 onClick={() => toggleLang(lang.code)}
                 className="text-[8px] font-mono px-1.5 py-0.5 rounded border transition-colors"
                 style={{
-                  borderColor: selectedLangs.includes(lang.code) ? "var(--color-accent)" : "var(--color-border)",
+                  borderColor: selectedLangs.includes(lang.code) ? "#60A5FA" : "var(--color-border)",
                   background: selectedLangs.includes(lang.code) ? "rgba(0,229,160,0.08)" : "transparent",
-                  color: selectedLangs.includes(lang.code) ? "var(--color-accent)" : "var(--color-text-muted)",
+                  color: selectedLangs.includes(lang.code) ? "#60A5FA" : "var(--color-text-[#9E9C97])",
                 }}
               >
                 {lang.label}
@@ -342,7 +342,7 @@ export default function ReferencePoolBuilder({ bank, onComplete, onBatchSaved }:
 
         {/* Generated queries preview */}
         <div>
-          <div className="text-[8px] font-mono text-muted tracking-widest mb-1">
+          <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-1">
             GENERATED QUERIES ({queries.length})
           </div>
           <div className="text-[7px] text-subtle bg-background rounded p-2 max-h-16 overflow-y-auto font-mono leading-relaxed">
@@ -352,7 +352,7 @@ export default function ReferencePoolBuilder({ bank, onComplete, onBatchSaved }:
 
         {/* Quota + Run */}
         <div className="flex items-center justify-between gap-2">
-          <div className="text-[8px] text-muted">
+          <div className="text-[8px] text-[#9E9C97]">
             ~{quotaEstimate.toLocaleString()} API units / 10,000 daily
           </div>
           <button
@@ -360,8 +360,8 @@ export default function ReferencePoolBuilder({ bank, onComplete, onBatchSaved }:
             disabled={loading || selectedLangs.length === 0}
             className="text-[10px] font-mono font-bold px-6 py-2 rounded transition-colors"
             style={{
-              background: loading ? "var(--color-surface)" : "var(--color-accent)",
-              color: loading ? "var(--color-text-muted)" : "black",
+              background: loading ? "var(--color-surface)" : "#60A5FA",
+              color: loading ? "var(--color-text-[#9E9C97])" : "black",
               opacity: loading ? 0.6 : 1,
             }}
           >
@@ -375,8 +375,8 @@ export default function ReferencePoolBuilder({ bank, onComplete, onBatchSaved }:
             <div style={{ color: "var(--color-vrs-excellent)" }}>{"\u2713"} Scraped {result.searched} search queries</div>
             <div style={{ color: "var(--color-vrs-excellent)" }}>{"\u2713"} Found {result.uniqueVideos} unique videos</div>
             <div style={{ color: "var(--color-vrs-excellent)" }}>{"\u2713"} Added {result.added} to reference pool</div>
-            {result.skipped > 0 && <div className="text-muted">{result.skipped} existing entries updated</div>}
-            {status && <div className="text-muted mt-0.5">{status}</div>}
+            {result.skipped > 0 && <div className="text-[#9E9C97]">{result.skipped} existing entries updated</div>}
+            {status && <div className="text-[#9E9C97] mt-0.5">{status}</div>}
           </div>
         )}
       </div>

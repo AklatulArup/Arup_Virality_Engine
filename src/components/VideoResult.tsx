@@ -222,7 +222,7 @@ export default function VideoResult({
             )}
             <div>
               <div className="text-[13px] font-semibold">{channel.name}</div>
-              <div className="text-[10px] text-muted">
+              <div className="text-[10px] text-[#9E9C97]">
                 {formatNumber(channel.subs)} subs &middot;{" "}
                 {channel.videoCount} videos &middot; median{" "}
                 {formatNumber(channelMedian)}
@@ -282,13 +282,13 @@ export default function VideoResult({
       {/* Reference Context */}
       {referenceContext && referenceContext.length > 0 && (
         <div className="bg-surface border border-border rounded-[10px] p-3.5">
-          <div className="text-[9px] font-mono text-muted tracking-widest mb-2">
+          <div className="text-[9px] font-mono text-[#9E9C97] tracking-widest mb-2">
             REFERENCE LIBRARY &middot; {referenceContext.length} RELATED ENTRIES
           </div>
           {referenceContext.map((ref) => (
             <div key={ref.id} className="flex justify-between py-1 border-b" style={{ borderColor: "rgba(139,92,246,0.06)" }}>
               <span className="text-[10px] text-subtle truncate mr-2">{ref.name}</span>
-              <span className="text-[10px] font-mono text-muted shrink-0">
+              <span className="text-[10px] font-mono text-[#9E9C97] shrink-0">
                 {ref.metrics.views ? formatNumber(ref.metrics.views) : ref.metrics.medianViews ? `${formatNumber(ref.metrics.medianViews)} med` : ""}
               </span>
             </div>

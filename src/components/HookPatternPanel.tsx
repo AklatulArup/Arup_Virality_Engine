@@ -17,7 +17,7 @@ export default function HookPatternPanel({ library }: HookPatternPanelProps) {
     <CollapsibleSection
       title="Hook Pattern Library"
       subtitle={`${library.patterns.length} patterns \u00b7 ${library.totalVideosAnalyzed} videos \u00b7 Best: ${library.bestPattern}`}
-      accentColor="var(--color-accent)"
+      accentColor="#60A5FA"
     >
       <div className="space-y-3">
         {library.patterns.map((pattern) => {
@@ -34,7 +34,7 @@ export default function HookPatternPanel({ library }: HookPatternPanelProps) {
                   )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-[8px] font-mono text-muted">{pattern.videoCount} videos</span>
+                  <span className="text-[8px] font-mono text-[#9E9C97]">{pattern.videoCount} videos</span>
                   <span className="text-[9px] font-mono font-bold">{formatNumber(pattern.avgViews)} avg</span>
                   {pattern.outlierRate > 0 && (
                     <span className="text-[8px] font-mono" style={{ color: "var(--color-vrs-excellent)" }}>
@@ -50,7 +50,7 @@ export default function HookPatternPanel({ library }: HookPatternPanelProps) {
                   className="h-full rounded-sm"
                   style={{
                     width: `${(pattern.avgViews / maxViews) * 100}%`,
-                    background: isBest ? "var(--color-vrs-excellent)" : "var(--color-accent)",
+                    background: isBest ? "var(--color-vrs-excellent)" : "#60A5FA",
                     opacity: 0.5,
                   }}
                 />
@@ -60,7 +60,7 @@ export default function HookPatternPanel({ library }: HookPatternPanelProps) {
               {pattern.examples.length > 0 && (
                 <div className="mb-1">
                   {pattern.examples.slice(0, 2).map((ex, i) => (
-                    <div key={i} className="text-[8px] text-muted truncate">&ldquo;{ex}&rdquo;</div>
+                    <div key={i} className="text-[8px] text-[#9E9C97] truncate">&ldquo;{ex}&rdquo;</div>
                   ))}
                 </div>
               )}

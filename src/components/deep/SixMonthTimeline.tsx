@@ -19,7 +19,7 @@ export default function SixMonthTimeline({
 
   return (
     <div className="space-y-3">
-      <div className="text-[9px] text-muted font-mono tracking-widest">
+      <div className="text-[9px] text-[#9E9C97] font-mono tracking-widest">
         6-MONTH VIEW PROJECTION
       </div>
 
@@ -28,7 +28,7 @@ export default function SixMonthTimeline({
         {/* Current baseline */}
         {currentViews !== undefined && currentViews > 0 && (
           <div className="flex items-center gap-2">
-            <div className="w-16 text-[9px] text-muted font-mono text-right shrink-0">
+            <div className="w-16 text-[9px] text-[#9E9C97] font-mono text-right shrink-0">
               Now
             </div>
             <div className="flex-1 relative h-5">
@@ -40,7 +40,7 @@ export default function SixMonthTimeline({
                 }}
               />
               <div className="absolute top-0 left-0 h-full flex items-center pl-1.5">
-                <span className="text-[9px] font-mono text-muted">
+                <span className="text-[9px] font-mono text-[#9E9C97]">
                   {formatNumber(currentViews)}
                 </span>
               </div>
@@ -55,7 +55,7 @@ export default function SixMonthTimeline({
 
           return (
             <div key={p.month} className="flex items-center gap-2">
-              <div className="w-16 text-[9px] text-muted font-mono text-right shrink-0">
+              <div className="w-16 text-[9px] text-[#9E9C97] font-mono text-right shrink-0">
                 {p.label}
               </div>
               <div className="flex-1 relative h-5">
@@ -102,7 +102,7 @@ export default function SixMonthTimeline({
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-[8px] text-muted">
+      <div className="flex items-center gap-4 text-[8px] text-[#9E9C97]">
         <span>
           <span
             className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle"

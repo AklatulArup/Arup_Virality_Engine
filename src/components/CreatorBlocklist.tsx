@@ -95,7 +95,7 @@ export default function CreatorBlocklist({
   if (!blocklist) {
     return (
       <CollapsibleSection title="Creator Blocklist" accentColor="var(--color-vrs-rework)">
-        <div className="text-[10px] text-muted">Loading...</div>
+        <div className="text-[10px] text-[#9E9C97]">Loading...</div>
       </CollapsibleSection>
     );
   }
@@ -111,7 +111,7 @@ export default function CreatorBlocklist({
       <div className="space-y-2.5">
         {/* Add form */}
         <div>
-          <label className="text-[8px] font-mono text-muted tracking-widest block mb-1">
+          <label className="text-[8px] font-mono text-[#9E9C97] tracking-widest block mb-1">
             BLOCK CREATORS OR CHANNEL IDS (COMMA SEPARATED)
           </label>
           <div className="flex items-center gap-1.5">
@@ -135,7 +135,7 @@ export default function CreatorBlocklist({
                 background: !addText.trim()
                   ? "rgba(255,255,255,0.04)"
                   : "var(--color-vrs-rework)",
-                color: !addText.trim() ? "var(--color-text-muted)" : "#fff",
+                color: !addText.trim() ? "var(--color-text-[#9E9C97])" : "#fff",
                 opacity: loading ? 0.5 : 1,
               }}
             >
@@ -149,7 +149,7 @@ export default function CreatorBlocklist({
               onChange={(e) => setPurgeRefs(e.target.checked)}
               disabled={loading}
             />
-            <span className="text-[9px] font-mono text-muted">
+            <span className="text-[9px] font-mono text-[#9E9C97]">
               Also purge existing entries from reference pool
             </span>
           </label>
@@ -158,7 +158,7 @@ export default function CreatorBlocklist({
         {/* Blocked creators list */}
         {blocklist.creators.length > 0 && (
           <div>
-            <div className="text-[8px] font-mono text-muted tracking-widest mb-1">
+            <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-1">
               CREATOR NAMES ({blocklist.creators.length})
             </div>
             <div className="flex flex-wrap gap-1">
@@ -186,7 +186,7 @@ export default function CreatorBlocklist({
         {/* Blocked channel IDs */}
         {blocklist.channels.length > 0 && (
           <div>
-            <div className="text-[8px] font-mono text-muted tracking-widest mb-1">
+            <div className="text-[8px] font-mono text-[#9E9C97] tracking-widest mb-1">
               CHANNEL IDS ({blocklist.channels.length})
             </div>
             <div className="flex flex-wrap gap-1">
@@ -212,7 +212,7 @@ export default function CreatorBlocklist({
         )}
 
         {total === 0 && (
-          <div className="text-[10px] text-muted text-center py-2">
+          <div className="text-[10px] text-[#9E9C97] text-center py-2">
             No creators blocked yet. Block low-quality or off-niche creators to keep your reference pool clean.
           </div>
         )}

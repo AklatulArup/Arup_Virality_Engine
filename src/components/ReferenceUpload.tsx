@@ -52,7 +52,7 @@ export default function ReferenceUpload({ onUploadComplete }: ReferenceUploadPro
 
   return (
     <div className="bg-surface border border-border rounded-[10px] p-3.5">
-      <div className="text-[9px] font-mono text-muted tracking-widest mb-2">
+      <div className="text-[9px] font-mono text-[#9E9C97] tracking-widest mb-2">
         UPLOAD REFERENCE CSV
       </div>
 
@@ -74,12 +74,12 @@ export default function ReferenceUpload({ onUploadComplete }: ReferenceUploadPro
             }
           }}
         />
-        <div className="text-[10px] text-muted">
+        <div className="text-[10px] text-[#9E9C97]">
           {loading ? (
             "Uploading..."
           ) : fileName ? (
             <>
-              <span style={{ color: "var(--color-accent)" }}>{fileName}</span>
+              <span style={{ color: "#60A5FA" }}>{fileName}</span>
             </>
           ) : (
             "Click to upload reference CSV (YouTube video data)"
@@ -96,12 +96,12 @@ export default function ReferenceUpload({ onUploadComplete }: ReferenceUploadPro
             +{result.added} added
           </span>
           {result.skippedDuplicates > 0 && (
-            <span className="text-muted">
+            <span className="text-[#9E9C97]">
               {" "}&middot; {result.skippedDuplicates} duplicates skipped
             </span>
           )}
           {result.warnings.map((w, i) => (
-            <div key={i} className="text-muted mt-0.5">{w}</div>
+            <div key={i} className="text-[#9E9C97] mt-0.5">{w}</div>
           ))}
         </div>
       )}

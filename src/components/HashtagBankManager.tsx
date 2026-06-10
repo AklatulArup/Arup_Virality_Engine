@@ -23,7 +23,7 @@ type CategoryKey = "viral" | "brand" | "niche" | "campaign";
 
 const CATEGORY_LABELS: Record<CategoryKey, { label: string; color: string }> = {
   viral: { label: "Viral", color: "#f59e0b" },
-  brand: { label: "Brand", color: "var(--color-accent)" },
+  brand: { label: "Brand", color: "#60A5FA" },
   niche: { label: "Niche", color: "#6366f1" },
   campaign: { label: "Campaign", color: "var(--color-accent-blue)" },
 };
@@ -152,7 +152,7 @@ export default function HashtagBankManager({
                   background: active
                     ? `color-mix(in srgb, ${color} 12%, transparent)`
                     : "transparent",
-                  color: active ? color : "var(--color-text-muted)",
+                  color: active ? color : "var(--color-text-[#9E9C97])",
                   border: `1px solid ${active ? color : "var(--color-border)"}`,
                 }}
               >
@@ -180,7 +180,7 @@ export default function HashtagBankManager({
             className="text-[8px] font-mono px-2 py-1 rounded"
             style={{
               border: "1px solid var(--color-border)",
-              color: "var(--color-text-muted)",
+              color: "var(--color-text-[#9E9C97])",
               opacity: filtered.length === 0 ? 0.4 : 1,
             }}
           >
@@ -209,7 +209,7 @@ export default function HashtagBankManager({
           style={{ background: "rgba(255,255,255,0.015)" }}
         >
           {filtered.length === 0 ? (
-            <div className="text-[10px] text-muted text-center py-3">
+            <div className="text-[10px] text-[#9E9C97] text-center py-3">
               {items.length === 0
                 ? `No ${CATEGORY_LABELS[activeTab].label.toLowerCase()} hashtags yet`
                 : "No matches"}
@@ -262,7 +262,7 @@ export default function HashtagBankManager({
               background: !addText.trim()
                 ? "rgba(255,255,255,0.04)"
                 : "#f59e0b",
-              color: !addText.trim() ? "var(--color-text-muted)" : "#000",
+              color: !addText.trim() ? "var(--color-text-[#9E9C97])" : "#000",
               opacity: busy ? 0.5 : 1,
             }}
           >

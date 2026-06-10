@@ -29,15 +29,15 @@ export default function LanguageCPAPanel({ data, totalVideos }: LanguageCPAPanel
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-mono font-bold">{lang.label}</span>
-                  <span className="text-[9px] text-muted font-mono">
+                  <span className="text-[9px] text-[#9E9C97] font-mono">
                     {lang.videoCount} video{lang.videoCount !== 1 ? "s" : ""}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-[9px] font-mono text-muted">
+                  <span className="text-[9px] font-mono text-[#9E9C97]">
                     {formatNumber(lang.avgViews)} avg views
                   </span>
-                  <span className="text-[9px] font-mono text-muted">
+                  <span className="text-[9px] font-mono text-[#9E9C97]">
                     {lang.avgEngagement}% eng
                   </span>
                   <span
@@ -59,7 +59,7 @@ export default function LanguageCPAPanel({ data, totalVideos }: LanguageCPAPanel
                 />
               </div>
               {lang.topVideo && (
-                <div className="text-[8px] text-muted mt-0.5 truncate">
+                <div className="text-[8px] text-[#9E9C97] mt-0.5 truncate">
                   Top: &ldquo;{lang.topVideo.title}&rdquo; ({formatNumber(lang.topVideo.views)} views)
                 </div>
               )}
