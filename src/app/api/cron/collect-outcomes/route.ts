@@ -23,6 +23,7 @@ import type { ForecastSnapshot } from "@/lib/forecast-learning";
 import type { Platform } from "@/lib/forecast";
 import { recomputeConformalTable } from "@/lib/conformal";
 import { recomputeDecayTable } from "@/lib/decay-fit";
+import { fetchMarketVolatility } from "@/lib/seasonality";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 min — rescrapes can be slow
@@ -147,6 +148,24 @@ export async function GET(req: NextRequest) {
       } catch (e) {
         result.errors.push({ snapshotId: "decay-recompute", error: e instanceof Error ? e.message : String(e) });
       }
+    }
+
+    // Snapshot today's market-volatility reading. The news feed only reports
+    // NOW, so this daily write is the only way to build the historical series
+    // the virality decomposition's "global" bucket needs ("was it a big market
+    // week when this video broke out?"). One small KV write per day; non-fatal.
+    try {
+      const vol = await fetchMarketVolatility();
+      const day = new Date().toISOString().slice(0, 10);
+      await kvSet(`vol-history:${day}`, {
+        day,
+        level: vol.volatilityLevel,
+        multiplier: vol.multiplier,
+        newsCount: vol.newsCount,
+        topKeywords: vol.topKeywords.slice(0, 5),
+      });
+    } catch (e) {
+      result.errors.push({ snapshotId: "vol-history", error: e instanceof Error ? e.message : String(e) });
     }
 
     result.durationMs = Date.now() - start;

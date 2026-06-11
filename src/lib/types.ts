@@ -332,6 +332,15 @@ export interface ReferenceEntry {
   };
   archetypes?: ArchetypeId[];
   tags?: string[];
+  // When the video went live on the platform (≠ analyzedAt, which is when WE
+  // ingested it). Required for cohort-tide comparisons ("how did other niche
+  // videos posted that week do?") and posting-hour analysis in the virality
+  // decomposition — entries without it can't be placed on the timeline.
+  publishedAt?: string;
+  // TikTok sound — trending audio is a distribution lever the decomposition
+  // needs to separate from the video's own merit.
+  soundName?: string;
+  soundOriginal?: boolean;
   // Video classification fields
   durationSeconds?: number;
   duration?: string; // formatted e.g. "1:23"

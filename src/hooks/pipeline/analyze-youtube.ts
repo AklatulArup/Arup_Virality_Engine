@@ -1,8 +1,9 @@
 // YouTube analyze pipeline (video / short / channel) — transplanted
 // branch-for-branch from legacy Dashboard.tsx analyze(). Behavior parity is
 // the contract: same endpoints, same enrichment order, same pool writes
-// (analysed video + channel summary + every sibling, ≤60s siblings
-// reclassified as Shorts).
+// (analysed video + channel summary + every sibling, siblings within the
+// Shorts duration limit reclassified as Shorts so they never contaminate
+// the long-form creator baseline).
 
 import type {
   AnalysisResult,
@@ -14,6 +15,7 @@ import type {
 } from "@/lib/types";
 import { calculateMedian, detectTrend, GLOBAL_BASELINE } from "@/lib/baseline";
 import { computeDeepAnalysis } from "@/lib/deep-analysis";
+import { isYouTubeShortDuration } from "@/lib/video-classifier";
 import { findRelatedEntries, buildReferenceEntry, buildEntryFromVideo } from "@/lib/reference-store";
 import { enrichVideo, buildChannelContext } from "./enrich";
 import { expandBank, recordHistory, writePoolEntries, type PipelineCtx } from "./persist";
@@ -88,14 +90,16 @@ export async function analyzeYouTubeVideo(parsed: ParsedInput, rawUrl: string, c
 
   expandBank(ctx, videoData.title, videoData.description, videoData.tags);
 
-  // Pool write: analysed video + channel summary + every sibling (≤60s →
-  // youtube_short reclassification).
+  // Pool write: analysed video + channel summary + every sibling. Siblings
+  // within the Shorts duration limit (180s since Oct 2024) are reclassified
+  // as youtube_short; the analysed video itself keeps its URL-detected
+  // platform via buildReferenceEntry.
   const vidEntryOrEntries = buildReferenceEntry(videoResult);
   const primaryEntries = Array.isArray(vidEntryOrEntries) ? vidEntryOrEntries : [vidEntryOrEntries];
   const siblingEntries = enrichedRecent
     .filter((v) => v.id !== enrichedVideo.id)
     .map((v) => {
-      const plat = (v.durationSeconds ?? 0) > 0 && (v.durationSeconds ?? 0) <= 60
+      const plat = isYouTubeShortDuration(v.durationSeconds)
         ? ("youtube_short" as const)
         : ("youtube" as const);
       return buildEntryFromVideo(v, plat);

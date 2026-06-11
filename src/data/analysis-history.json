@@ -1,6 +1,68 @@
 {
   "entries": [
     {
+      "id": "1781156589271",
+      "url": "https://www.youtube.com/watch?v=vPKaFnpyo2o",
+      "platform": "youtube",
+      "title": "Best Way to Trade Smart Money FVG 💰",
+      "channelName": "SMC Hindi Academy",
+      "checkedAt": "2026-06-11T05:43:09.271Z",
+      "metrics": {
+        "views": 5904,
+        "likes": 244,
+        "engagement": 4.32,
+        "velocity": 843,
+        "vrsScore": 38,
+        "subscribers": 95800
+      },
+      "firstCheckedAt": "2026-06-11T05:43:09.271Z"
+    },
+    {
+      "id": "1781156510012",
+      "url": "https://www.youtube.com/watch?v=f5mv1DOMz_Y",
+      "platform": "youtube",
+      "title": "🔴 LIVE DAY TRADING - LONDON SESSION (XAU-USD) JUNE 3, 2026",
+      "channelName": "Richard Bathan",
+      "checkedAt": "2026-06-11T05:41:50.012Z",
+      "metrics": {
+        "views": 155,
+        "likes": 11,
+        "engagement": 7.1,
+        "velocity": 22,
+        "vrsScore": 50,
+        "subscribers": 1070
+      },
+      "firstCheckedAt": "2026-06-11T05:41:50.012Z"
+    },
+    {
+      "id": "1781094216598",
+      "url": "https://www.youtube.com/watch?v=KY2QFuFAMw8",
+      "platform": "youtube",
+      "title": "SpaceX & Open AI Börsengang: Einfluss auf ETFs? Mit Trade Republic teilnehmen?",
+      "channelName": "Finanzfluss",
+      "checkedAt": "2026-06-10T12:23:36.598Z",
+      "metrics": {
+        "views": 367640,
+        "likes": 9991,
+        "engagement": 2.91,
+        "velocity": 122547,
+        "vrsScore": 33,
+        "subscribers": 1630000
+      },
+      "firstCheckedAt": "2026-06-10T11:58:48.577Z",
+      "previousSnapshot": {
+        "checkedAt": "2026-06-10T12:14:09.961Z",
+        "metrics": {
+          "views": 367357,
+          "likes": 9987,
+          "engagement": 2.91,
+          "velocity": 122452,
+          "vrsScore": 33,
+          "subscribers": 1630000
+        }
+      }
+    },
+    {
       "id": "1781087432589",
       "url": "https://www.tiktok.com/@fundednext/video/7566208203139075336",
       "platform": "tiktok",

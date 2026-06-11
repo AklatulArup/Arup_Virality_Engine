@@ -7,7 +7,7 @@ import type {
   VideoData,
 } from "./types";
 import { detectArchetypes } from "./archetypes";
-import { classifyVideoFormat, classifyOrientation, formatDuration, quickSentiment } from "./video-classifier";
+import { classifyVideoFormat, classifyOrientation, formatDuration, quickSentiment, isYouTubeShortDuration } from "./video-classifier";
 
 /**
  * Build a reference entry directly from a raw VideoData (used by bulk imports
@@ -26,6 +26,8 @@ export function buildEntryFromVideo(
   );
   // Engagement = (likes + comments) / views * 100
   const engagement = v.views > 0 ? ((v.likes + v.comments) / v.views) * 100 : 0;
+  // TikTok scrapes carry sound info beyond the base VideoData shape.
+  const snd = v as VideoData & { soundName?: string; soundOriginal?: boolean };
   return {
     id: v.id,
     type: "video",
@@ -34,12 +36,17 @@ export function buildEntryFromVideo(
     channelId: v.channelId,
     channelName: v.channel,
     analyzedAt: now,
+    publishedAt: v.publishedAt || undefined,
     metrics: {
       views: v.views,
       engagement: parseFloat(engagement.toFixed(2)),
+      shares: typeof v.shares === "number" ? v.shares : undefined,
+      saves: typeof v.saves === "number" ? v.saves : undefined,
     },
     archetypes,
     tags: (v.tags || []).slice(0, 10),
+    soundName: snd.soundName,
+    soundOriginal: snd.soundOriginal,
     durationSeconds: v.durationSeconds,
     duration: formatDuration(v.durationSeconds),
     videoFormat,
@@ -64,6 +71,7 @@ export function buildReferenceEntry(
     const { label: sentiment, score: sentimentScore } = quickSentiment(
       [v.title, ...(v.tags || []).slice(0, 10)].join(" ")
     );
+    const snd = v as EnrichedVideo & { soundName?: string; soundOriginal?: boolean };
     return {
       id: v.id,
       type: "video",
@@ -72,14 +80,19 @@ export function buildReferenceEntry(
       channelId: v.channelId,
       channelName: v.channel,
       analyzedAt: now,
+      publishedAt: v.publishedAt || undefined,
       metrics: {
         views: v.views,
         velocity: v.velocity,
         engagement: v.engagement,
         vrsScore: v.vrs.estimatedFullScore,
+        shares: typeof v.shares === "number" ? v.shares : undefined,
+        saves: typeof v.saves === "number" ? v.saves : undefined,
       },
       archetypes,
       tags: v.tags.slice(0, 10),
+      soundName: snd.soundName,
+      soundOriginal: snd.soundOriginal,
       durationSeconds: v.durationSeconds,
       duration: formatDuration(v.durationSeconds),
       videoFormat,
@@ -122,9 +135,10 @@ export function buildReferenceEntry(
     };
 
     // Per-video entries — every video on the channel becomes reference material
-    // Classifies each as Long-form or Shorts based on duration (<= 60s = Shorts)
+    // Classifies each as Long-form or Shorts based on duration (within the
+    // 180s Shorts limit = Shorts)
     const videoEntries: ReferenceEntry[] = h.videos.map((v) => {
-      const platform = (v.durationSeconds ?? 0) > 0 && (v.durationSeconds ?? 0) <= 60
+      const platform = isYouTubeShortDuration(v.durationSeconds)
         ? "youtube_short" as const
         : "youtube" as const;
       return buildEntryFromVideo(v, platform);
@@ -142,6 +156,7 @@ export function buildReferenceEntry(
       const { label: sentiment, score: sentimentScore } = quickSentiment(
         [v.title, ...(v.tags || []).slice(0, 10)].join(" ")
       );
+      const snd = v as EnrichedVideo & { soundName?: string; soundOriginal?: boolean };
       return {
         id: v.id,
         type: "video" as const,
@@ -150,6 +165,7 @@ export function buildReferenceEntry(
         channelId: v.channelId,
         channelName: v.channel,
         analyzedAt: now,
+        publishedAt: v.publishedAt || undefined,
         metrics: {
           views: v.views,
           velocity: v.velocity,
@@ -160,6 +176,8 @@ export function buildReferenceEntry(
         },
         archetypes,
         tags: v.tags.slice(0, 10),
+        soundName: snd.soundName,
+        soundOriginal: snd.soundOriginal,
         durationSeconds: v.durationSeconds,
         duration: formatDuration(v.durationSeconds),
         videoFormat,

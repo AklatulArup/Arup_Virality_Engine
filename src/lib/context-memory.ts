@@ -16,6 +16,7 @@ import type {
   KeywordBank,
 } from "@/lib/types";
 import { formatNumber } from "@/lib/formatters";
+import { YT_SHORTS_MAX_SECONDS } from "@/lib/video-classifier";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -184,7 +185,10 @@ export function updateSessionMemory(
     outlierCount:         (existing?.outlierCount ?? 0) + (video.isOutlier ? 1 : 0),
     totalVideos:          (existing?.totalVideos ?? 0) + 1,
     dominantArchetypes:   [], // populated from reference store
-    bestPerformingFormat: video.durationSeconds <= 60 ? "Short-form" : "Long-form",
+    bestPerformingFormat:
+      video.durationSeconds <= (platform.startsWith("youtube") ? YT_SHORTS_MAX_SECONDS : 60)
+        ? "Short-form"
+        : "Long-form",
     lastAnalysed:         now,
   };
   memory.creators[video.channel] = creatorCtx;

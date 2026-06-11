@@ -12,11 +12,13 @@
 // Bucketing rules:
 //   - TikTok / Instagram / X — use the platform field as-is.
 //   - YouTube — split by `videoFormat` ("short" or "full") or `durationSeconds`
-//     (≤ 60s → short). The ingest pipeline stamps platform="youtube" for
-//     both long-form and shorts; only videoFormat/duration distinguishes.
+//     (within the 180s Shorts limit → short). The ingest pipeline stamps
+//     platform="youtube" for both long-form and shorts; only
+//     videoFormat/duration distinguishes.
 //   - Entries without a platform field are skipped.
 
 import type { Platform } from "./forecast";
+import { YT_SHORTS_MAX_SECONDS } from "./video-classifier";
 
 // Structural subset of the fields we actually read. Lets callers pass loose
 // untyped API payloads without forcing a cast.
@@ -78,7 +80,7 @@ export function bucketOf(e: MinimalEntry): Platform | null {
   if (p === "youtube") {
     const d = typeof e.durationSeconds === "number" ? e.durationSeconds : 0;
     const fmt = typeof e.videoFormat === "string" ? e.videoFormat : "";
-    return (fmt === "short" || (d > 0 && d <= 60)) ? "youtube_short" : "youtube";
+    return (fmt === "short" || (d > 0 && d <= YT_SHORTS_MAX_SECONDS)) ? "youtube_short" : "youtube";
   }
   return null;
 }

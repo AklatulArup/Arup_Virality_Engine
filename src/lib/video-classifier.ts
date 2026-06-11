@@ -2,25 +2,38 @@
  * Video Format Classifier
  *
  * YouTube Shorts classification rules (official):
- * 1. Duration ≤ 60 seconds (primary rule)
- * 2. Vertical aspect ratio (9:16) — not exposed via Data API
+ * 1. Duration ≤ 3 minutes — YouTube raised the Shorts limit from 60s to
+ *    180s in Oct 2024, and the bulk of 61-180s uploads on creator channels
+ *    are vertical Shorts (the upload flow auto-classifies them)
+ * 2. Vertical aspect ratio (9:16) — not exposed via Data API, so duration
+ *    is the only reliable signal we have; 61-180s horizontal long-form is
+ *    the accepted false-positive tradeoff
  * 3. #Shorts hashtag in title/description/tags is a strong signal
- *
- * YouTube recently expanded Shorts to 3 minutes for some creators,
- * but the Data API still treats ≤60s + vertical as the core definition.
  *
  * TikTok: All content is "short" by nature (≤10 min), but we classify:
  * - ≤ 60s = "short"
  * - > 60s = "full" (TikTok long-form)
  *
  * Our heuristic (without aspect ratio data):
- * - ≤ 60s = Short
- * - ≤ 180s + has #Shorts signal = Short (expanded Shorts)
- * - > 60s without Shorts signal = Full-length
+ * - YouTube: ≤ 180s = Short, > 180s = Full-length
+ * - Other platforms: ≤ 60s = Short, ≤ 180s + #Shorts signal = Short
  * - No duration data → check tags/title for #Shorts signal
  */
 
 import type { VideoFormat, VideoOrientation, SentimentLabel } from "./types";
+
+// YouTube Shorts duration ceiling (seconds). 180s since Oct 2024 (was 60s).
+// Single source of truth for every Shorts-vs-long-form duration split:
+// sibling reclassification in the analyze pipeline, channel pool writes,
+// and pool-stats bucketing all import this.
+export const YT_SHORTS_MAX_SECONDS = 180;
+
+// True when a duration is known (> 0) and within the YouTube Shorts limit.
+// Unknown durations (0 / undefined) return false — they stay long-form.
+export function isYouTubeShortDuration(durationSeconds?: number): boolean {
+  const d = durationSeconds ?? 0;
+  return d > 0 && d <= YT_SHORTS_MAX_SECONDS;
+}
 
 const SHORTS_PATTERNS = [
   /\b#?shorts?\b/i,
@@ -44,14 +57,16 @@ export function classifyVideoFormat(
 
   // If we have duration data
   if (durationSeconds !== undefined && durationSeconds > 0) {
-    // Classic Shorts: ≤ 60 seconds
+    // YouTube (and unspecified platform, which defaults YouTube-like):
+    // anything within the 3-minute Shorts limit is a Short
+    const isYouTube = platform === undefined || platform === "youtube" || platform === "youtube_short";
+    if (isYouTube && durationSeconds <= YT_SHORTS_MAX_SECONDS) return "short";
+
+    // Other platforms (TikTok / IG / X): ≤ 60s is "short", longer is "full"
     if (durationSeconds <= 60) return "short";
 
-    // Expanded Shorts: ≤ 180 seconds with #Shorts signal
-    if (durationSeconds <= 180 && shortsSignal) return "short";
-
-    // TikTok: anything ≤ 60s is "short", longer is "full"
-    if (platform === "tiktok" && durationSeconds <= 60) return "short";
+    // Shorts-tagged crossposts on other platforms within the expanded limit
+    if (durationSeconds <= YT_SHORTS_MAX_SECONDS && shortsSignal) return "short";
 
     return "full";
   }
