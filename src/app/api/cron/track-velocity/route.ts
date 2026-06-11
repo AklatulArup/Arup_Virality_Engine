@@ -15,7 +15,7 @@
 // that's a Redis list of samples: { t: ISO, ageHours, views, velocity }.
 
 import { NextRequest, NextResponse } from "next/server";
-import { kvGet, kvSet, kvSetMembers, kvListPush, kvListRange, isKvAvailable } from "@/lib/kv";
+import { kvGet, kvSetMembers, kvListPush, kvListRange, isKvAvailable } from "@/lib/kv";
 import type { ForecastSnapshot } from "@/lib/forecast-learning";
 import type { Platform } from "@/lib/forecast";
 
@@ -86,11 +86,22 @@ export async function GET(req: NextRequest) {
     const toProcess: Array<{ snap: ForecastSnapshot; targetAgeHours: number }> = [];
 
     for (const videoId of videoIds) {
-      // Find most recent snapshot for this video (has the canonical publishedAt + platform)
-      const snapIds = await kvListRange(`snapshots:by-video:${videoId}`, -1, -1);
+      // Find most recent snapshot for this video (has the canonical publishedAt
+      // + platform). snapshots:by-video is a Redis SET (written via kvSetAdd in
+      // /api/forecast/snapshot) — reading it with LRANGE threw WRONGTYPE, which
+      // kvListRange swallowed into [], silently skipping EVERY video on EVERY
+      // run. Sets are unordered, so load the members and pick the newest by
+      // forecastedAt (typically 1–3 per video).
+      const snapIds = await kvSetMembers(`snapshots:by-video:${videoId}`);
       if (snapIds.length === 0) continue;
-      const snap = await kvGet<ForecastSnapshot>(`snapshot:${snapIds[0]}`);
-      if (!snap || !snap.publishedAt) continue;
+      const snapsForVideo = (
+        await Promise.all(snapIds.map((sid) => kvGet<ForecastSnapshot>(`snapshot:${sid}`)))
+      ).filter((s): s is ForecastSnapshot => !!s);
+      if (snapsForVideo.length === 0) continue;
+      const snap = snapsForVideo.sort(
+        (a, b) => new Date(b.forecastedAt).getTime() - new Date(a.forecastedAt).getTime(),
+      )[0];
+      if (!snap.publishedAt) continue;
 
       const ageHours = (now - new Date(snap.publishedAt).getTime()) / 3_600_000;
 
