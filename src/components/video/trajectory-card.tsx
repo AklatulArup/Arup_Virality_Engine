@@ -6,8 +6,9 @@
 
 import { useMemo } from "react";
 import type { Forecast, Platform, DateProjection } from "@/lib/forecast";
-import { PLATFORM_CONFIG } from "@/lib/forecast";
-import { fittedCumulativeShare, type DecayTable } from "@/lib/decay-fit";
+import { composeShareAt } from "@/lib/forecast";
+import type { DecayTable } from "@/lib/decay-fit";
+import type { EarlyShareSignal } from "@/lib/early-share";
 import type { EnrichedVideo } from "@/lib/types";
 import type { VelocitySample } from "@/hooks/use-forecast-bundle";
 import { ForecastBandChart, type BandPoint } from "@/components/charts/forecast-band-chart";
@@ -27,6 +28,7 @@ export function TrajectoryCard({
   video,
   velocitySamples,
   decayTable,
+  earlyShareSignal,
   targetDate,
   setTargetDate,
   dateProjection,
@@ -36,6 +38,7 @@ export function TrajectoryCard({
   video: EnrichedVideo;
   velocitySamples: VelocitySample[];
   decayTable: DecayTable | null;
+  earlyShareSignal: EarlyShareSignal | null;
   targetDate: string;
   setTargetDate: (d: string) => void;
   dateProjection: DateProjection | null;
@@ -43,10 +46,11 @@ export function TrajectoryCard({
   const accent = PLATFORM_META[platform].color;
   const horizon = f.horizonDays;
   const fittedUsed = !!decayTable?.byPlatform?.[platform];
+  const earlyShareUsed =
+    !fittedUsed && !!earlyShareSignal && earlyShareSignal.platform === platform && earlyShareSignal.frontLoadWeight > 0;
 
   const data = useMemo<BandPoint[]>(() => {
-    const shareAt = (d: number) =>
-      fittedCumulativeShare(decayTable, platform, d) ?? PLATFORM_CONFIG[platform].cumulativeShare(d);
+    const shareAt = composeShareAt(platform, decayTable, earlyShareSignal);
     const points: BandPoint[] = [];
     const N = 48;
     for (let i = 0; i <= N; i++) {
@@ -70,7 +74,7 @@ export function TrajectoryCard({
       points.push({ day: Math.round(ageDays * 100) / 100, band: null, median: null, actual: video.views });
     }
     return points.sort((a, b) => a.day - b.day);
-  }, [f.lifetime, horizon, platform, decayTable, velocitySamples, video.days, video.publishedAt, video.views]);
+  }, [f.lifetime, horizon, platform, decayTable, earlyShareSignal, velocitySamples, video.days, video.publishedAt, video.views]);
 
   const todayDay = video.days > 0 ? Math.min(video.days, horizon) : null;
 
@@ -84,7 +88,9 @@ export function TrajectoryCard({
         <div className="mt-1 font-mono text-[10.5px] text-muted-foreground">
           {fittedUsed
             ? `Build-up curve measured from ${decayTable?.byPlatform?.[platform]?.videoCount ?? "—"} matured ${PLATFORM_META[platform].label} videos`
-            : "Build-up curve from platform defaults — not enough matured videos yet"}
+            : earlyShareUsed
+              ? "Build-up curve adjusted from this channel's recent uploads — views here arrive front-loaded"
+              : "Build-up curve from platform defaults — not enough matured videos yet"}
           {" · solid line = actual views"}
         </div>
 

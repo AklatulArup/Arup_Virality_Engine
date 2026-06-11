@@ -35,6 +35,7 @@
 import type { EnrichedVideo, VideoData, VRSResult } from "./types";
 import { applyConformalBounds, type ConformalTable } from "./conformal";
 import { fittedCumulativeShare, type DecayTable } from "./decay-fit";
+import { frontLoadedCumulativeShare, type EarlyShareSignal } from "./early-share";
 import { classifyLifecycleTier, applyTierCeiling, type TierClassification } from "./lifecycle-tier";
 
 export type Platform = "youtube" | "youtube_short" | "tiktok" | "instagram" | "x";
@@ -92,6 +93,14 @@ export interface ForecastInput {
   // replaces the hand-tuned knots in PLATFORM_CONFIG. Falls back to the
   // hand-tuned curve when absent or thin — zero regression.
   decayTable?: DecayTable | null;
+  // Optional: per-creator early-share signal estimated from the sibling
+  // cross-section (see src/lib/early-share.ts). Interim stand-in for the
+  // fitted decay curve on YouTube / Shorts: when a channel's recent uploads
+  // already match its older videos' view counts, the build-up curve
+  // front-loads and early-day projections rise to match. Ignored for
+  // TikTok/IG/X; a fitted decay table takes precedence when present. Falls
+  // back to the hand-tuned curve when absent — zero regression.
+  earlyShareSignal?: EarlyShareSignal | null;
   // Optional: keys within `manualInputs` whose values came from AI estimation
   // (e.g. thumbnail CTR predicted from the thumbnail image) rather than from
   // the RM / a Creator Studio screenshot. The value still flows into the
@@ -288,6 +297,37 @@ export const PLATFORM_CONFIG: Record<Platform, {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// CUMULATIVE-SHARE COMPOSITION — one curve, three consumers
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Priority: fitted decay curve (real matured data) > early-share-adjusted
+// curve (sibling cross-section heuristic, YouTube/Shorts only) > hand-tuned
+// platform default. Exported so forecast(), projectAtDate() and the
+// trajectory chart all agree on the same curve.
+
+export function composeShareAt(
+  platform: Platform,
+  decayTable: DecayTable | null,
+  earlyShareSignal: EarlyShareSignal | null,
+): (day: number) => number {
+  const defaultShare = PLATFORM_CONFIG[platform].cumulativeShare;
+  const early =
+    earlyShareSignal && earlyShareSignal.platform === platform && earlyShareSignal.frontLoadWeight > 0
+      ? earlyShareSignal
+      : null;
+  return (day: number) => {
+    const fitted = fittedCumulativeShare(decayTable, platform, day);
+    if (fitted != null) return fitted;
+    const base = defaultShare(day);
+    if (early) {
+      const front = frontLoadedCumulativeShare(platform, day);
+      if (front != null) return base + early.frontLoadWeight * (front - base);
+    }
+    return base;
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // PROJECT AT ARBITRARY DATE
 // ═══════════════════════════════════════════════════════════════════════════
 //
@@ -312,6 +352,7 @@ export function projectAtDate(
   publishedAt?: string,
   currentViews: number = 0,
   decayTable?:  DecayTable | null,
+  earlyShareSignal?: EarlyShareSignal | null,
 ): DateProjection {
   const cfg = PLATFORM_CONFIG[platform];
 
@@ -330,7 +371,7 @@ export function projectAtDate(
   }
 
   const beyondHorizon = daysFromPublish > cfg.horizonDays;
-  const share = fittedCumulativeShare(decayTable ?? null, platform, daysFromPublish) ?? cfg.cumulativeShare(daysFromPublish);
+  const share = composeShareAt(platform, decayTable ?? null, earlyShareSignal ?? null)(daysFromPublish);
 
   // Scale lifetime forecast by share at target date
   let low    = Math.round(result.lifetime.low    * share);
@@ -786,11 +827,11 @@ export function forecast(input: ForecastInput): Forecast {
     minBaselinePosts:   override.minBaselinePosts   ?? baseCfg.minBaselinePosts,
   };
 
-  // Cumulative-share curve: fitted-from-data when a platform has enough matured
-  // videos (input.decayTable), else the hand-tuned knots. Shared by the
-  // trajectory blend and milestone projection so both agree on one curve.
-  const shareAt = (d: number) =>
-    fittedCumulativeShare(input.decayTable ?? null, platform, d) ?? cfg.cumulativeShare(d);
+  // Cumulative-share curve: fitted-from-data when a platform has enough
+  // matured videos (input.decayTable), else the sibling early-share blend
+  // (YouTube/Shorts), else the hand-tuned knots. Shared by the trajectory
+  // blend and milestone projection so both agree on one curve.
+  const shareAt = composeShareAt(platform, input.decayTable ?? null, input.earlyShareSignal ?? null);
 
   const dataUsed:      DataSource[] = [];
   const dataEstimated: DataSource[] = [];
@@ -1015,6 +1056,12 @@ export function forecast(input: ForecastInput): Forecast {
   const fittedCurve = input.decayTable?.byPlatform?.[platform];
   if (fittedCurve) {
     notes.push(`Decay curve fitted from ${fittedCurve.videoCount} matured ${platform === "x" ? "posts" : "videos"} — replaces the hand-tuned curve.`);
+  } else if (
+    input.earlyShareSignal &&
+    input.earlyShareSignal.platform === platform &&
+    input.earlyShareSignal.frontLoadWeight > 0
+  ) {
+    notes.push(`Build-up curve: ${input.earlyShareSignal.rationale}`);
   }
   if (lifecycleTier.tier !== "not-applicable" && lifecycleTier.tier !== "tier-1-hook") {
     notes.push(`Distribution tier: ${lifecycleTier.tier} (${lifecycleTier.confidence} confidence). ${lifecycleTier.rationale}`);

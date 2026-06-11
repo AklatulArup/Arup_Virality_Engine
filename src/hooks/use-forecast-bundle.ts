@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   forecast,
   projectAtDate,
+  PLATFORM_CONFIG,
   type Forecast,
   type ForecastInput,
   type ManualInputs,
@@ -30,6 +31,7 @@ import {
 } from "@/lib/forecast";
 import type { ConformalTable } from "@/lib/conformal";
 import type { DecayTable } from "@/lib/decay-fit";
+import { estimateEarlyShare, type EarlyShareSignal } from "@/lib/early-share";
 import {
   computeDayOfWeekProfile,
   fetchMarketVolatility,
@@ -99,6 +101,7 @@ interface AssembledForecastInput {
   configOverrides: NonNullable<ForecastInput["configOverrides"]>;
   conformalTable: ForecastInput["conformalTable"];
   decayTable: ForecastInput["decayTable"];
+  earlyShareSignal: ForecastInput["earlyShareSignal"];
   aiEstimatedKeys: NonNullable<ForecastInput["aiEstimatedKeys"]>;
 }
 
@@ -259,6 +262,13 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
   const crossPlatformRep = useMemo(
     () => assessCrossPlatformReputation({ platform, channelName: video.channel ?? "", poolEntries }),
     [platform, video.channel, poolEntries],
+  );
+  // Sibling cross-section → per-creator build-up signal (YouTube/Shorts only;
+  // null elsewhere or when either age bucket is thin, which keeps the default
+  // curve untouched). Date.now() anchors sibling ages to render time.
+  const earlyShareSignal = useMemo<EarlyShareSignal | null>(
+    () => estimateEarlyShare(creatorHistory, platform, Date.now(), PLATFORM_CONFIG[platform].cumulativeShare),
+    [creatorHistory, platform],
   );
 
   // ── Tuning overrides (+ visible failure flag) ──
@@ -511,10 +521,11 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
           configOverrides,
           conformalTable,
           decayTable,
+          earlyShareSignal,
           aiEstimatedKeys: Array.from(aiEstimatedKeys),
         }),
       ),
-    [video, creatorHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj, reputation, crossPlatformRep, configOverrides, conformalTable, decayTable, aiEstimatedKeys],
+    [video, creatorHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj, reputation, crossPlatformRep, configOverrides, conformalTable, decayTable, earlyShareSignal, aiEstimatedKeys],
   );
 
   // ── Calibration snapshot — once per video + inputs combo ──
@@ -561,8 +572,8 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
     if (!targetDate) return null;
     const d = new Date(targetDate + "T12:00:00");
     if (isNaN(d.getTime())) return null;
-    return projectAtDate(result, platform, d, video.publishedAt, video.views, decayTable);
-  }, [result, platform, targetDate, video.publishedAt, video.views, decayTable]);
+    return projectAtDate(result, platform, d, video.publishedAt, video.views, decayTable, earlyShareSignal);
+  }, [result, platform, targetDate, video.publishedAt, video.views, decayTable, earlyShareSignal]);
 
   // RM typed a field — it's real data now, not an AI estimate.
   const updateInput = useCallback(
@@ -599,6 +610,7 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
     configOverridesFailed,
     conformalTable,
     decayTable,
+    earlyShareSignal,
     ocrStatus,
     csvStatus,
     ingestImage,

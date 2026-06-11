@@ -188,6 +188,7 @@ function FullReport({
           video={video}
           velocitySamples={bundle.velocitySamples}
           decayTable={bundle.decayTable}
+          earlyShareSignal={bundle.earlyShareSignal}
           targetDate={bundle.targetDate}
           setTargetDate={bundle.setTargetDate}
           dateProjection={bundle.dateProjection}
