@@ -18,6 +18,7 @@ import { AlgorithmReadCard } from "./algorithm-read-card";
 import { IdentityBar } from "./identity-bar";
 import { VerdictHero } from "./verdict-hero";
 import { KpiRow } from "./kpi-row";
+import { ViralPotentialCard } from "./viral-potential-card";
 import { TrajectoryCard } from "./trajectory-card";
 import { YourDataCard } from "./your-data-card";
 import { SignalsCard } from "./signals-card";
@@ -189,6 +190,16 @@ function FullReport({
       <IdentityBar video={video} platform={platform} sourceUrl={sourceUrl} onReanalyze={onReanalyze} />
       <VerdictHero forecast={f} platform={platform} />
       <KpiRow forecast={f} />
+      {f.confidence.level !== "insufficient" ? (
+        <ViralPotentialCard
+          forecast={f}
+          video={video}
+          platform={platform}
+          velocitySamples={bundle.velocitySamples}
+          creatorHistory={history}
+          poolEntries={poolEntries}
+        />
+      ) : null}
       {f.confidence.level !== "insufficient" ? (
         <TrajectoryCard
           forecast={f}
