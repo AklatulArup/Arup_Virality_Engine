@@ -19,6 +19,7 @@ import { IdentityBar } from "./identity-bar";
 import { VerdictHero } from "./verdict-hero";
 import { KpiRow } from "./kpi-row";
 import { ViralPotentialCard } from "./viral-potential-card";
+import { BreakoutAutopsyCard } from "./breakout-autopsy-card";
 import { TrajectoryCard } from "./trajectory-card";
 import { YourDataCard } from "./your-data-card";
 import { SignalsCard } from "./signals-card";
@@ -212,6 +213,9 @@ function FullReport({
           setTargetDate={bundle.setTargetDate}
           dateProjection={bundle.dateProjection}
         />
+      ) : null}
+      {f.confidence.level !== "insufficient" ? (
+        <BreakoutAutopsyCard forecast={f} video={video} platform={platform} />
       ) : (
         <Alert className="mt-4 border-[#F0B35A]/30">
           <TriangleAlert className="size-4 text-[#F0B35A]" />
