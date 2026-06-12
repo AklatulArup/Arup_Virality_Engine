@@ -574,7 +574,11 @@ function applyManualAdjustments(
     tightenFactor *= 0.75;
   }
 
-  if ((platform === "youtube" || platform === "youtube_short") && manual.ytCTRpct != null) {
+  // Long-form only: the CTR curve below encodes Browse/Suggested click logic
+  // ("below 2% = sunset"), which doesn't exist in the auto-playing Shorts
+  // feed — applying it to a Short would hard-cut the forecast on a metric
+  // that doesn't gate its distribution.
+  if (platform === "youtube" && manual.ytCTRpct != null) {
     const c = manual.ytCTRpct;
     if (c >= 4)      adj *= 1 + (c - 4) * 0.08;
     else if (c >= 2) adj *= 0.7 + (c - 2) * 0.15;
@@ -1187,8 +1191,12 @@ function recordDataSources(
   if (platform === "youtube" || platform === "youtube_short") {
     manualOrMissingWithAI("ytAVDpct", "AVD %", "Average view duration %",
       "YouTube Studio → Analytics. ~50% of YouTube Long-Form ranking formula.", "high", "%");
-    manualOrMissingWithAI("ytCTRpct", "CTR %", "Click-through rate %",
-      "YouTube Studio. Below 2% = Browse/Suggested sunset.", "high", "%");
+    if (platform === "youtube") {
+      // CTR is a long-form lever only — the Shorts feed auto-plays, so a
+      // missing CTR must not count against Shorts data completeness.
+      manualOrMissingWithAI("ytCTRpct", "CTR %", "Click-through rate %",
+        "YouTube Studio. Below 2% = Browse/Suggested sunset.", "high", "%");
+    }
     manualOrMissingWithAI("ytImpressions", "Impressions", "Impressions",
       "YouTube Studio. Drives Suggested/Browse distribution.", "medium");
   }

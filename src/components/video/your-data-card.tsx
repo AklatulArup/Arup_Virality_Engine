@@ -22,7 +22,9 @@ const FIELDS_BY_PLATFORM: Record<Platform, Array<keyof ManualInputs>> = {
   tiktok: ["ttCompletionPct", "ttRewatchPct", "ttFypViewPct", "baselineMedianOverride"],
   instagram: ["igSaves", "igSends", "igReach", "igHold3s", "baselineMedianOverride"],
   youtube: ["ytAVDpct", "ytCTRpct", "ytImpressions", "baselineMedianOverride"],
-  youtube_short: ["ytAVDpct", "ytCTRpct", "ytImpressions", "baselineMedianOverride"],
+  // No ytCTRpct: thumbnails don't gate the auto-playing Shorts feed, and the
+  // engine ignores CTR for Shorts — offering the field would orphan the input.
+  youtube_short: ["ytAVDpct", "ytImpressions", "baselineMedianOverride"],
   x: ["xTweepCred", "xReplyByAuthor", "baselineMedianOverride"],
 };
 

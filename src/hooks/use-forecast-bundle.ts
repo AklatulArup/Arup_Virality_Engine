@@ -136,10 +136,13 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
     return () => ctrl.abort();
   }, [video.id]);
 
-  // ── Thumbnail-CTR predictor (YouTube / Shorts only) ──
+  // ── Thumbnail-CTR predictor (YouTube long-form only) ──
+  // Shorts are excluded deliberately: the Shorts feed auto-plays, so a
+  // thumbnail never gates distribution there — scoring it burned a Gemini
+  // call per Shorts analysis to produce a noise signal.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (platform !== "youtube" && platform !== "youtube_short") return;
+    if (platform !== "youtube") return;
     if (!video.thumbnail) return;
     // Real CTR (typed or OCR'd) always beats an AI estimate — don't refetch.
     if (manualInputs.ytCTRpct != null && !aiEstimatedKeys.has("ytCTRpct")) return;

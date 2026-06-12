@@ -67,8 +67,17 @@ export async function analyzeYouTubeVideo(parsed: ParsedInput, rawUrl: string, c
     ? buildChannelContext(recentVideos, channelData)
     : undefined;
 
+  // The analysed video's platform: trust the URL (/shorts/) first, then the
+  // Shorts duration test — watch?v= links to Shorts are common. Without this
+  // the main video silently defaulted to long-form: 365d evergreen curve
+  // instead of the 14d Shorts curve, long-form score routing, and CTR logic
+  // applied to a swipe feed.
+  const mainPlatform =
+    parsed.type === "youtube-short" || isYouTubeShortDuration(videoData.durationSeconds)
+      ? ("youtube_short" as const)
+      : ("youtube" as const);
   const videoWithCtx = { ...videoData, channelContext: channelCtx };
-  const enrichedVideo = enrichVideo(videoWithCtx, channelMedian);
+  const enrichedVideo = enrichVideo(videoWithCtx, channelMedian, mainPlatform);
 
   const enrichedRecent = recentVideos
     .map((v) => enrichVideo({ ...v, channelContext: channelCtx }, channelMedian))
@@ -93,7 +102,7 @@ export async function analyzeYouTubeVideo(parsed: ParsedInput, rawUrl: string, c
 
   recordHistory(ctx, {
     url: parsed.url || rawUrl,
-    platform: "youtube",
+    platform: mainPlatform,
     video: enrichedVideo,
     channelName: channelData?.name || videoData.channel,
     subscribers: channelData?.subs || 0,
