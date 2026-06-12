@@ -377,6 +377,11 @@ export interface VideoAnalysis {
   channel: ChannelData | null;
   channelMedian: number;
   recentVideos: EnrichedVideo[];
+  // Wider sibling list (up to 50 newest uploads, raw) for the early-share
+  // estimator ONLY — never the baseline median, display, or pool writes,
+  // which all stay on the 12 in recentVideos. Set by the YouTube analyze
+  // flow; other producers leave it unset.
+  estimatorHistory?: VideoData[];
   deepAnalysis: DeepAnalysis | null;
   referenceContext: ReferenceEntry[];
 }

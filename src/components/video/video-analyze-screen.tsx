@@ -34,6 +34,11 @@ import { cn } from "@/lib/utils";
 interface Subject {
   video: EnrichedVideo;
   history: VideoData[];
+  // Estimator-only sibling list for estimateEarlyShare — wider than history
+  // on YouTube (up to 50 uploads) so daily-upload channels reach the 21d+
+  // age bucket. The baseline median stays on history. Mandatory key, same
+  // discipline as AssembledForecastInput: a branch can't silently drop it.
+  estimatorHistory: VideoData[];
   channel: ChannelData | null;
   recentVideos: EnrichedVideo[];
   platform: Platform;
@@ -46,6 +51,7 @@ function resolveSubject(result: AnalysisResult, selectedId: string | null): Subj
     return {
       video: result.video,
       history: result.recentVideos.filter((v) => v.id !== result.video.id),
+      estimatorHistory: (result.estimatorHistory ?? result.recentVideos).filter((v) => v.id !== result.video.id),
       channel: result.channel,
       recentVideos: result.recentVideos,
       platform,
@@ -59,6 +65,7 @@ function resolveSubject(result: AnalysisResult, selectedId: string | null): Subj
     return {
       video: pick,
       history: result.videos.filter((v) => v.id !== pick.id),
+      estimatorHistory: result.videos.filter((v) => v.id !== pick.id),
       channel: null,
       recentVideos: result.videos,
       platform,
@@ -73,6 +80,7 @@ function resolveSubject(result: AnalysisResult, selectedId: string | null): Subj
     return {
       video: pick,
       history: enriched.filter((v) => v.id !== pick.id),
+      estimatorHistory: enriched.filter((v) => v.id !== pick.id),
       channel: null,
       recentVideos: enriched,
       platform: "x",
@@ -157,8 +165,8 @@ function FullReport({
   onReanalyze: () => void;
   onPick: (id: string) => void;
 }) {
-  const { video, history, platform, batch } = subject;
-  const bundle = useForecastBundle(video, history, platform);
+  const { video, history, estimatorHistory, platform, batch } = subject;
+  const bundle = useForecastBundle(video, history, platform, estimatorHistory);
   const { entries: poolEntries } = usePool();
   const intel = useVideoIntel({
     video,

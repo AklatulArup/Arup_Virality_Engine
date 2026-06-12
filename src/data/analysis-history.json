@@ -18,21 +18,32 @@
       "firstCheckedAt": "2026-06-11T05:43:09.271Z"
     },
     {
-      "id": "1781156510012",
+      "id": "1781234065903",
       "url": "https://www.youtube.com/watch?v=f5mv1DOMz_Y",
       "platform": "youtube",
       "title": "🔴 LIVE DAY TRADING - LONDON SESSION (XAU-USD) JUNE 3, 2026",
       "channelName": "Richard Bathan",
-      "checkedAt": "2026-06-11T05:41:50.012Z",
+      "checkedAt": "2026-06-12T03:14:25.903Z",
       "metrics": {
         "views": 155,
         "likes": 11,
         "engagement": 7.1,
-        "velocity": 22,
+        "velocity": 19,
         "vrsScore": 50,
-        "subscribers": 1070
+        "subscribers": 1080
       },
-      "firstCheckedAt": "2026-06-11T05:41:50.012Z"
+      "firstCheckedAt": "2026-06-11T05:41:50.012Z",
+      "previousSnapshot": {
+        "checkedAt": "2026-06-11T05:41:50.012Z",
+        "metrics": {
+          "views": 155,
+          "likes": 11,
+          "engagement": 7.1,
+          "velocity": 22,
+          "vrsScore": 50,
+          "subscribers": 1070
+        }
+      }
     },
     {
       "id": "1781094216598",

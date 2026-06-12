@@ -38,11 +38,21 @@ export async function analyzeYouTubeVideo(parsed: ParsedInput, rawUrl: string, c
   }
 
   ctx.setStatus("Fetching channel baseline...");
+  // One playlist page at max=50 costs the same 2 API units as max=12 (one
+  // playlistItems page + one batched videos call). The full list feeds the
+  // early-share estimator ONLY — it needs siblings aged 21d+, which a
+  // 12-video window never reaches on daily-upload channels. Everything else
+  // (baseline median, display, pool writes) stays on the first 12, so the
+  // forecast baseline cannot move.
+  let estimatorHistory: VideoData[] = [];
   let recentVideos: VideoData[] = [];
   if (channelData?.uploads) {
     try {
-      const pRes = await fetch(`/api/youtube/playlist?id=${encodeURIComponent(channelData.uploads)}&max=12`);
-      if (pRes.ok) recentVideos = await pRes.json();
+      const pRes = await fetch(`/api/youtube/playlist?id=${encodeURIComponent(channelData.uploads)}&max=50`);
+      if (pRes.ok) {
+        estimatorHistory = await pRes.json();
+        recentVideos = estimatorHistory.slice(0, 12);
+      }
     } catch {
       // Playlist fetch is non-critical
     }
@@ -76,6 +86,7 @@ export async function analyzeYouTubeVideo(parsed: ParsedInput, rawUrl: string, c
     channel: channelData,
     channelMedian,
     recentVideos: enrichedRecent,
+    estimatorHistory,
     deepAnalysis,
     referenceContext: relatedEntries,
   };

@@ -109,7 +109,12 @@ function assembleForecastInput(input: AssembledForecastInput): ForecastInput {
   return input;
 }
 
-export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoData[], platform: Platform) {
+// `estimatorHistory` is the estimator-only sibling list (wider than
+// creatorHistory on YouTube — up to 50 uploads — so estimateEarlyShare can
+// fill its 21d+ age bucket on daily-upload channels). It feeds NOTHING but
+// estimateEarlyShare; the baseline median and every other compute stay on
+// creatorHistory. Mandatory param so a call site can't silently drop it.
+export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoData[], platform: Platform, estimatorHistory: VideoData[]) {
   const { entries: poolEntries } = usePool();
 
   const [manualInputs, setManualInputs] = useState<ManualInputs>({});
@@ -265,10 +270,12 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
   );
   // Sibling cross-section → per-creator build-up signal (YouTube/Shorts only;
   // null elsewhere or when either age bucket is thin, which keeps the default
-  // curve untouched). Date.now() anchors sibling ages to render time.
+  // curve untouched). Reads the wider estimatorHistory, not creatorHistory —
+  // the 12-video baseline window never reaches the 21d+ bucket on
+  // daily-upload channels. Date.now() anchors sibling ages to render time.
   const earlyShareSignal = useMemo<EarlyShareSignal | null>(
-    () => estimateEarlyShare(creatorHistory, platform, Date.now(), PLATFORM_CONFIG[platform].cumulativeShare),
-    [creatorHistory, platform],
+    () => estimateEarlyShare(estimatorHistory, platform, Date.now(), PLATFORM_CONFIG[platform].cumulativeShare),
+    [estimatorHistory, platform],
   );
 
   // ── Tuning overrides (+ visible failure flag) ──

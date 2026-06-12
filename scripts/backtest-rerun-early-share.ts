@@ -3,9 +3,15 @@
 //
 // Method mirrors the original: for each graded row, rebuild the analyze-flow
 // inputs live from the YouTube API (video + channel + uploads playlist),
-// keep only PRE-target siblings (12 most recent), zero the target's
-// views/likes/comments, run forecast(), grade predicted views at the row's
-// recorded age via cumulativeShare against the row's recorded actual.
+// keep only PRE-target siblings, zero the target's views/likes/comments,
+// run forecast(), grade predicted views at the row's recorded age via
+// cumulativeShare against the row's recorded actual.
+//
+// Sibling split mirrors the production analyze flow: the baseline median +
+// creatorHistory use the 12 most recent pre-target siblings (unchanged —
+// the forecast baseline must not move); estimateEarlyShare alone reads ALL
+// pre-target siblings in the 50-upload window, so daily-upload channels can
+// fill the 21d+ age bucket.
 //
 // CONTROL  = engine with earlyShareSignal: null  (must reproduce the old
 //            predictions — fidelity check + zero-regression proof)
@@ -56,7 +62,7 @@ interface BacktestRow {
 }
 
 const BACKTEST_PATH = path.resolve(process.cwd(), "..", "backtest-retro-2026-06-10.json");
-const OUT_PATH = path.resolve(process.cwd(), "..", "backtest-rerun-early-share-2026-06-11.json");
+const OUT_PATH = path.resolve(process.cwd(), "..", "backtest-rerun-early-share-2026-06-12.json");
 
 interface TuningState { overrides: Array<{ platform: string; parameter: string; newValue: number }> }
 
@@ -66,6 +72,7 @@ interface RerunRow {
   platform: Platform;
   ageNow: number;
   historyN: number;
+  estimatorN: number;       // pre-target siblings the estimator saw (≤ ~50)
   signal: null | { ratio: number; frontLoadWeight: number; youngCount: number; oldCount: number };
   baselineMedianNow: number;
   lifetimePrior: number;
@@ -115,10 +122,13 @@ for (const row of backtest.rows) {
     const recent = await fetchPlaylistVideos(channelData.uploads, 50);
 
     const targetPubMs = new Date(target.publishedAt).getTime();
-    const siblings = recent
+    // All pre-target siblings, newest first. The estimator reads the full
+    // list (mirrors the analyze flow's estimator-only wide fetch); the
+    // baseline 12 slice off the head — identical to the original run.
+    const estimatorSiblings = recent
       .filter(v => v.id !== target.id && new Date(v.publishedAt).getTime() < targetPubMs)
-      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-      .slice(0, 12);
+      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+    const siblings = estimatorSiblings.slice(0, 12);
 
     const channelMedian = calculateMedian(siblings.map(v => v.views));
     const channelCtx = buildChannelContext(siblings, channelData);
@@ -151,7 +161,7 @@ for (const row of backtest.rows) {
       decayTable: null,
     };
 
-    const signal = estimateEarlyShare(siblings, row.platform, estimatorNowMs, PLATFORM_CONFIG[row.platform].cumulativeShare);
+    const signal = estimateEarlyShare(estimatorSiblings, row.platform, estimatorNowMs, PLATFORM_CONFIG[row.platform].cumulativeShare);
 
     const fcControl = forecast({ ...base, earlyShareSignal: null });
     const fcNew = forecast({ ...base, earlyShareSignal: signal });
@@ -173,6 +183,7 @@ for (const row of backtest.rows) {
       platform: row.platform,
       ageNow: row.ageNow,
       historyN: siblings.length,
+      estimatorN: estimatorSiblings.length,
       signal: signal
         ? { ratio: +signal.ratio.toFixed(2), frontLoadWeight: +signal.frontLoadWeight.toFixed(2), youngCount: signal.youngCount, oldCount: signal.oldCount }
         : null,
@@ -189,7 +200,7 @@ for (const row of backtest.rows) {
   } catch (e) {
     out.push({
       channel: row.channel, id: row.id, platform: row.platform, ageNow: row.ageNow,
-      historyN: 0, signal: null, baselineMedianNow: 0, lifetimePrior: 0,
+      historyN: 0, estimatorN: 0, signal: null, baselineMedianNow: 0, lifetimePrior: 0,
       predMedOld: row.predMed, predMedControl: 0, predMedNew: 0, actual: row.actual,
       missFactorOld: +(row.actual / Math.max(1, row.predMed)).toFixed(2),
       missFactorControl: 0, missFactorNew: 0,
@@ -234,7 +245,7 @@ console.log(`median miss — original JSON: ${med(ok.map(r => r.missFactorOld)).
 const fidelity = ok.map(r => r.predMedControl / Math.max(1, r.predMedOld));
 console.log(`control fidelity (predCtl/predOld): median ${med(fidelity).toFixed(2)} (1.00 = exact reproduction)`);
 
-writeFileSync(OUT_PATH, JSON.stringify({ createdAt: new Date().toISOString(), method: "re-run of backtest-retro-2026-06-10 with sibling early-share signal; control = signal off", estimatorAgeAnchor: backtest.createdAt, rows: out }, null, 2));
+writeFileSync(OUT_PATH, JSON.stringify({ createdAt: new Date().toISOString(), method: "re-run of backtest-retro-2026-06-10 with sibling early-share signal; control = signal off; estimator reads ALL pre-target siblings in the 50-upload window (baseline stays on the 12 most recent)", estimatorAgeAnchor: backtest.createdAt, rows: out }, null, 2));
 console.log(`\nwrote ${OUT_PATH}`);
 }
 

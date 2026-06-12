@@ -4,7 +4,9 @@
 //
 // Interim stand-in for the fitted decay curve (src/lib/decay-fit.ts) on
 // YouTube / Shorts, usable from day one because it needs no matured velocity
-// data — only the 12 sibling videos every analyze flow already fetches.
+// data — only the sibling videos the analyze flow already fetches (the
+// estimator-only list of up to 50 uploads; the forecast baseline stays on
+// the 12 most recent).
 //
 // WHY
 // ---
@@ -46,10 +48,10 @@ import type { Platform } from "./forecast";
 import type { VideoData } from "./types";
 
 // Sibling age buckets (days). Young = mid-build, old = mostly done. The old
-// bucket starts at 21d (not later) because the analyze flow fetches only the
-// 12 most recent siblings — on active channels that window rarely reaches a
-// month back. At 21d the default YT curve sits at ~0.40 of lifetime vs ~0.92
-// for the front-loaded curve, so the separation survives.
+// bucket starts at 21d (not later) so the signal stays readable on active
+// channels — even with the estimator's 50-upload window, a daily uploader
+// only reaches ~50 days back. At 21d the default YT curve sits at ~0.40 of
+// lifetime vs ~0.92 for the front-loaded curve, so the separation survives.
 export const YOUNG_BUCKET_MIN_DAYS = 4;
 export const OLD_BUCKET_MIN_DAYS = 21;
 
