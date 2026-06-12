@@ -967,13 +967,23 @@ export function forecast(input: ForecastInput): Forecast {
   // The median is never touched — this only recalibrates uncertainty. When
   // no matching stratum has >= 20 samples, applyConformalBounds returns null
   // and we keep the hand-tuned bands (zero-regression fallback).
-  const conformalApplied = applyConformalBounds({
-    table:           input.conformalTable ?? null,
-    platform,
-    score,
-    predictedMedian: lifetime.median,
-    coverage:        0.80,
-  });
+  // Bootstrap tables were fit on BLIND day-0 forecasts (pool leave-one-out),
+  // so their quantiles describe prior-dominated uncertainty. Once observed
+  // views dominate the blend, those wide bands would overstate uncertainty —
+  // skip and keep the evidence-driven bands. Tables fit on real graded
+  // outcomes apply unconditionally.
+  const conformalEligible = !(
+    input.conformalTable?.source === "pool-bootstrap" && (trajectory?.blendWeight ?? 0) > 0.5
+  );
+  const conformalApplied = conformalEligible
+    ? applyConformalBounds({
+        table:           input.conformalTable ?? null,
+        platform,
+        score,
+        predictedMedian: lifetime.median,
+        coverage:        0.80,
+      })
+    : null;
   if (conformalApplied) {
     // Apply, then re-enforce invariants: low <= median <= high and low >= current views.
     const floor = Math.max(video.views, 0);

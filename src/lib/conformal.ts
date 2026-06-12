@@ -80,6 +80,15 @@ export interface ConformalTable {
   computedAt:   string;                             // ISO
   sampleCount:  number;                             // total snapshots used
   minStratumN:  number;                             // threshold applied (= 20)
+  // "outcomes" (default) = fit on real graded forecasts; applies everywhere.
+  // "pool-bootstrap" = fit on blind day-0 leave-one-out forecasts over the
+  // evidence pool (scripts/bootstrap-conformal.ts) — interim calibration
+  // until outcomes mature. forecast.ts only applies a bootstrap table to
+  // prior-dominated forecasts (observed views haven't taken over the blend),
+  // because blind-residual quantiles overstate uncertainty once real
+  // trajectory evidence exists. The nightly recompute overwrites this with
+  // an "outcomes" table as soon as grades land — automatic retirement.
+  source?:      "outcomes" | "pool-bootstrap";
   byPlatform:   Partial<Record<Platform, ConformalPlatformTable>>;
 }
 
@@ -146,6 +155,7 @@ export function computeConformalTable(snapshots: ForecastSnapshot[]): ConformalT
     computedAt:  now,
     sampleCount: withOutcomes.length,
     minStratumN: MIN_STRATUM_N,
+    source:      "outcomes",
     byPlatform,
   };
 }
