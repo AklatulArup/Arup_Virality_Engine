@@ -1,6 +1,34 @@
 {
   "entries": [
     {
+      "id": "1781244516958",
+      "url": "https://www.youtube.com/shorts/nFJpIb2AIV8",
+      "platform": "youtube_short",
+      "title": "👨‍🏫 Kanntest du die Geschichte der Telekom-Aktie schon?",
+      "channelName": "Finanzfluss",
+      "checkedAt": "2026-06-12T06:08:36.958Z",
+      "metrics": {
+        "views": 27976,
+        "likes": 507,
+        "engagement": 1.91,
+        "velocity": 13988,
+        "vrsScore": 21,
+        "subscribers": 1630000
+      },
+      "firstCheckedAt": "2026-06-12T05:46:09.927Z",
+      "previousSnapshot": {
+        "checkedAt": "2026-06-12T05:49:57.571Z",
+        "metrics": {
+          "views": 27956,
+          "likes": 506,
+          "engagement": 1.9,
+          "velocity": 13978,
+          "vrsScore": 21,
+          "subscribers": 1630000
+        }
+      }
+    },
+    {
       "id": "1781156589271",
       "url": "https://www.youtube.com/watch?v=vPKaFnpyo2o",
       "platform": "youtube",
@@ -46,28 +74,28 @@
       }
     },
     {
-      "id": "1781094216598",
+      "id": "1781244593276",
       "url": "https://www.youtube.com/watch?v=KY2QFuFAMw8",
       "platform": "youtube",
       "title": "SpaceX & Open AI Börsengang: Einfluss auf ETFs? Mit Trade Republic teilnehmen?",
       "channelName": "Finanzfluss",
-      "checkedAt": "2026-06-10T12:23:36.598Z",
+      "checkedAt": "2026-06-12T06:09:53.276Z",
       "metrics": {
-        "views": 367640,
-        "likes": 9991,
-        "engagement": 2.91,
-        "velocity": 122547,
+        "views": 409284,
+        "likes": 10692,
+        "engagement": 2.79,
+        "velocity": 102321,
         "vrsScore": 33,
         "subscribers": 1630000
       },
       "firstCheckedAt": "2026-06-10T11:58:48.577Z",
       "previousSnapshot": {
-        "checkedAt": "2026-06-10T12:14:09.961Z",
+        "checkedAt": "2026-06-12T05:50:52.256Z",
         "metrics": {
-          "views": 367357,
-          "likes": 9987,
-          "engagement": 2.91,
-          "velocity": 122452,
+          "views": 409193,
+          "likes": 10687,
+          "engagement": 2.79,
+          "velocity": 102298,
           "vrsScore": 33,
           "subscribers": 1630000
         }
