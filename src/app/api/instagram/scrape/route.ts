@@ -29,7 +29,10 @@ function buildInput(urls: string[], handle: string | null, limit: number) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapItem(item: any): VideoData | null {
-  const views = item.videoViewCount || item.videoPlayCount || item.playCount || 0;
+  // Prefer cumulative plays (counts every rewatch/loop — same semantics as the
+  // TikTok play_count we already use) over videoViewCount, which Instagram
+  // reports as a roughly once-per-user number that undercounts loops.
+  const views = item.videoPlayCount || item.playCount || item.videoViewCount || 0;
   // Skip non-video posts if no views at all
   const likes = item.likesCount || item.likeCount || 0;
   const comments = item.commentsCount || item.commentCount || 0;
