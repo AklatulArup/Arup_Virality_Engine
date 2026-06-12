@@ -40,6 +40,7 @@ import {
   type MarketVolatilityProfile,
 } from "@/lib/seasonality";
 import { classifyCreatorNiche, nicheAdjustment } from "@/lib/niche-classifier";
+import { MIN_FORMAT_SIBLINGS, selectBaselineSiblings } from "@/lib/video-classifier";
 import { assessCreatorReputation } from "@/lib/reputation";
 import { assessCrossPlatformReputation } from "@/lib/cross-platform-reputation";
 import { recordForecast } from "@/lib/forecast-learning";
@@ -109,11 +110,13 @@ function assembleForecastInput(input: AssembledForecastInput): ForecastInput {
   return input;
 }
 
-// `estimatorHistory` is the estimator-only sibling list (wider than
-// creatorHistory on YouTube — up to 50 uploads — so estimateEarlyShare can
-// fill its 21d+ age bucket on daily-upload channels). It feeds NOTHING but
-// estimateEarlyShare; the baseline median and every other compute stay on
-// creatorHistory. Mandatory param so a call site can't silently drop it.
+// `estimatorHistory` is the wider sibling list (up to 50 uploads on YouTube
+// vs creatorHistory's 12) and feeds exactly two consumers: estimateEarlyShare
+// (needs siblings aged 21d+, unreachable in a 12-video window on daily-upload
+// channels) and the format-matched baseline widening (recovers same-format
+// siblings when the recent 12 are dominated by the other format). Everything
+// else stays on creatorHistory. Mandatory param so a call site can't silently
+// drop it.
 export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoData[], platform: Platform, estimatorHistory: VideoData[]) {
   const { entries: poolEntries } = usePool();
 
@@ -264,6 +267,14 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
   }, [video.id, video.channel, video.channelId, platform]);
 
   // ── Local multiplier computes ──
+  // Niche and reputation deliberately stay on the FULL mixed-format history:
+  // both read creator-level signals (title keywords; engagement trend +
+  // posting recency = audience trust direction), not format performance, and
+  // format-filtering would thin the sample below reputation's 10-post
+  // confidence bar on most mixed channels. The baseline CV that feeds
+  // forecast confidence DOES become format-matched via baselineHistory below
+  // — a mixed Shorts/long-form list is bimodal and read as "highly variable
+  // output" even when each format is individually consistent.
   const niche = useMemo(() => classifyCreatorNiche(creatorHistory), [creatorHistory]);
   const nicheAdj = useMemo(() => nicheAdjustment(niche.niche), [niche.niche]);
   const reputation = useMemo(() => assessCreatorReputation({ creatorHistory }), [creatorHistory]);
@@ -275,7 +286,8 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
   // null elsewhere or when either age bucket is thin, which keeps the default
   // curve untouched). Reads the wider estimatorHistory, not creatorHistory —
   // the 12-video baseline window never reaches the 21d+ bucket on
-  // daily-upload channels. Date.now() anchors sibling ages to render time.
+  // daily-upload channels. The lib filters to same-format siblings itself.
+  // Date.now() anchors sibling ages to render time.
   const earlyShareSignal = useMemo<EarlyShareSignal | null>(
     () => estimateEarlyShare(estimatorHistory, platform, Date.now(), PLATFORM_CONFIG[platform].cumulativeShare),
     [estimatorHistory, platform],
@@ -308,6 +320,26 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
         setConfigOverridesFailed(true);
       });
   }, []);
+
+  // ── Format-matched baseline history (YouTube / Shorts only) ──
+  // The forecast's "creator normal" anchor compares a Short against Shorts
+  // siblings and long-form against long-form — mixed-format medians average
+  // two view-count scales that routinely sit 5–20× apart on one channel.
+  // The bar is the platform's effective minBaselinePosts (override-aware),
+  // never below MIN_FORMAT_SIBLINGS: swapping to a format bucket smaller than
+  // minBaselinePosts would short-circuit forecast() into "insufficient" where
+  // the mixed list previously produced a forecast. Below the bar this returns
+  // creatorHistory untouched — zero regression.
+  const baselineHistory = useMemo(() => {
+    if (platform !== "youtube" && platform !== "youtube_short") return creatorHistory;
+    const minPosts = configOverrides[platform]?.minBaselinePosts ?? PLATFORM_CONFIG[platform].minBaselinePosts;
+    return selectBaselineSiblings(
+      platform,
+      creatorHistory,
+      estimatorHistory,
+      Math.max(MIN_FORMAT_SIBLINGS, minPosts),
+    ).siblings;
+  }, [platform, creatorHistory, estimatorHistory, configOverrides]);
 
   // ── Conformal + decay tables (learned ranges / build-up curves) ──
   const [conformalTable, setConformalTable] = useState<ConformalTable | null>(null);
@@ -513,7 +545,10 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
       forecast(
         assembleForecastInput({
           video,
-          creatorHistory,
+          // Format-matched on YouTube/Shorts (falls back to the full mixed
+          // list when the format bucket is thin) — inside forecast() this
+          // feeds ONLY the baseline median/CV.
+          creatorHistory: baselineHistory,
           platform,
           manualInputs,
           velocitySamples,
@@ -535,7 +570,7 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
           aiEstimatedKeys: Array.from(aiEstimatedKeys),
         }),
       ),
-    [video, creatorHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj, reputation, crossPlatformRep, configOverrides, conformalTable, decayTable, earlyShareSignal, aiEstimatedKeys],
+    [video, baselineHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj, reputation, crossPlatformRep, configOverrides, conformalTable, decayTable, earlyShareSignal, aiEstimatedKeys],
   );
 
   // ── Calibration snapshot — once per video + inputs combo ──

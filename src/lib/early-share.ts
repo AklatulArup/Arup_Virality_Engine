@@ -38,7 +38,9 @@
 // --------
 // Null (caller keeps the platform-default curve — zero regression, same
 // discipline as decay-fit) when: the platform isn't YouTube/Shorts; either
-// age bucket has < MIN_BUCKET_SAMPLES siblings; the old-bucket median is 0;
+// age bucket has < MIN_BUCKET_SAMPLES siblings of the analyzed video's
+// format (only same-format siblings are counted — see the filter note in
+// estimateEarlyShare); the old-bucket median is 0;
 // or the two hypothesis curves predict nearly the same ratio for this
 // sibling geometry (the data couldn't tell them apart). A fitted decay
 // table, once it has matured videos, takes precedence over this heuristic
@@ -46,6 +48,7 @@
 
 import type { Platform } from "./forecast";
 import type { VideoData } from "./types";
+import { isYouTubeShortDuration } from "./video-classifier";
 
 // Sibling age buckets (days). Young = mid-build, old = mostly done. The old
 // bucket starts at 21d (not later) so the signal stays readable on active
@@ -109,7 +112,17 @@ export function estimateEarlyShare(
 ): EarlyShareSignal | null {
   if (platform !== "youtube" && platform !== "youtube_short") return null;
 
+  // Same-format siblings only. Shorts and long-form view counts live on
+  // different scales on the same channel (routinely 5–20× apart), so a mixed
+  // cross-section corrupts the young/old ratio with format mix instead of
+  // curve shape — e.g. a channel ramping up Shorts puts Shorts-scale numbers
+  // in the young bucket and long-form-scale numbers in the old one. No mixed
+  // fallback on purpose: when the same-format buckets are thin, the
+  // MIN_BUCKET_SAMPLES guard below returns null and the caller keeps the
+  // default curve — a missing signal beats a corrupted one.
+  const wantShort = platform === "youtube_short";
   const aged = creatorHistory
+    .filter(v => isYouTubeShortDuration(v.durationSeconds) === wantShort)
     .filter(v => v.publishedAt && typeof v.views === "number" && v.views >= 0)
     .map(v => ({ ageDays: (nowMs - new Date(v.publishedAt).getTime()) / 86_400_000, views: v.views }))
     .filter(x => Number.isFinite(x.ageDays) && x.ageDays > 0);

@@ -15,7 +15,7 @@ import type {
 } from "@/lib/types";
 import { calculateMedian, detectTrend, GLOBAL_BASELINE } from "@/lib/baseline";
 import { computeDeepAnalysis } from "@/lib/deep-analysis";
-import { isYouTubeShortDuration } from "@/lib/video-classifier";
+import { isYouTubeShortDuration, selectBaselineSiblings } from "@/lib/video-classifier";
 import { findRelatedEntries, buildReferenceEntry, buildEntryFromVideo } from "@/lib/reference-store";
 import { enrichVideo, buildChannelContext } from "./enrich";
 import { expandBank, recordHistory, writePoolEntries, type PipelineCtx } from "./persist";
@@ -40,10 +40,10 @@ export async function analyzeYouTubeVideo(parsed: ParsedInput, rawUrl: string, c
   ctx.setStatus("Fetching channel baseline...");
   // One playlist page at max=50 costs the same 2 API units as max=12 (one
   // playlistItems page + one batched videos call). The full list feeds the
-  // early-share estimator ONLY — it needs siblings aged 21d+, which a
-  // 12-video window never reaches on daily-upload channels. Everything else
-  // (baseline median, display, pool writes) stays on the first 12, so the
-  // forecast baseline cannot move.
+  // early-share estimator plus the format-matched baseline widening below —
+  // the estimator needs siblings aged 21d+, which a 12-video window never
+  // reaches on daily-upload channels. Display and pool writes stay on the
+  // first 12.
   let estimatorHistory: VideoData[] = [];
   let recentVideos: VideoData[] = [];
   if (channelData?.uploads) {
@@ -58,15 +58,6 @@ export async function analyzeYouTubeVideo(parsed: ParsedInput, rawUrl: string, c
     }
   }
 
-  const channelMedian =
-    recentVideos.length > 0
-      ? calculateMedian(recentVideos.map((v) => v.views))
-      : GLOBAL_BASELINE.medianViews;
-
-  const channelCtx = channelData
-    ? buildChannelContext(recentVideos, channelData)
-    : undefined;
-
   // The analysed video's platform: trust the URL (/shorts/) first, then the
   // Shorts duration test — watch?v= links to Shorts are common. Without this
   // the main video silently defaulted to long-form: 365d evergreen curve
@@ -76,11 +67,40 @@ export async function analyzeYouTubeVideo(parsed: ParsedInput, rawUrl: string, c
     parsed.type === "youtube-short" || isYouTubeShortDuration(videoData.durationSeconds)
       ? ("youtube_short" as const)
       : ("youtube" as const);
+
+  // Mixed-format median over the 12 most recent uploads — the pre-format
+  // behavior. Still anchors everything channel-scoped: sibling enrichment
+  // and the channel-summary pool entry, which must not swing with whichever
+  // format happened to be analyzed.
+  const mixedRecentMedian =
+    recentVideos.length > 0
+      ? calculateMedian(recentVideos.map((v) => v.views))
+      : GLOBAL_BASELINE.medianViews;
+
+  // The analysed video's "creator normal" anchors on FORMAT-MATCHED siblings:
+  // a Short on a mostly-long-form channel compares against Shorts (and vice
+  // versa) — the formats' view counts routinely sit 5–20× apart on the same
+  // channel. Widens into the 50-upload estimator list when the first 12 hold
+  // fewer than MIN_FORMAT_SIBLINGS same-format siblings; falls back to the
+  // mixed median (exact pre-format behavior) when even that is too thin.
+  const { siblings: baselineSiblings, formatMatched } = selectBaselineSiblings(
+    mainPlatform,
+    recentVideos,
+    estimatorHistory,
+  );
+  const channelMedian = formatMatched
+    ? calculateMedian(baselineSiblings.map((v) => v.views))
+    : mixedRecentMedian;
+
+  const channelCtx = channelData
+    ? buildChannelContext(recentVideos, channelData)
+    : undefined;
+
   const videoWithCtx = { ...videoData, channelContext: channelCtx };
   const enrichedVideo = enrichVideo(videoWithCtx, channelMedian, mainPlatform);
 
   const enrichedRecent = recentVideos
-    .map((v) => enrichVideo({ ...v, channelContext: channelCtx }, channelMedian))
+    .map((v) => enrichVideo({ ...v, channelContext: channelCtx }, mixedRecentMedian))
     .sort((a, b) => b.views - a.views);
 
   ctx.setStatus("Computing deep analysis...");
@@ -137,7 +157,10 @@ export async function analyzeYouTubeVideo(parsed: ParsedInput, rawUrl: string, c
       analyzedAt: new Date().toISOString(),
       metrics: {
         subs: channelData.subs,
-        medianViews: channelMedian,
+        // Channel-level stat — stays on the mixed median so the pool entry
+        // doesn't flip depending on whether a Short or a long-form video
+        // triggered the analysis.
+        medianViews: mixedRecentMedian,
         videoCount: enrichedRecent.length,
       },
       archetypes: [],

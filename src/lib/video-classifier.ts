@@ -35,6 +35,48 @@ export function isYouTubeShortDuration(durationSeconds?: number): boolean {
   return d > 0 && d <= YT_SHORTS_MAX_SECONDS;
 }
 
+// ── Format-matched creator baseline ─────────────────────────────────────────
+// A Short on a mostly-long-form channel must anchor on Shorts siblings, and
+// vice versa: the two formats are different distribution systems (swipe feed
+// vs browse/search) whose view counts routinely sit 5–20× apart on the same
+// channel, so a mixed-format median is "creator normal" for neither.
+//
+// Minimum format-matched siblings before the format bucket replaces the mixed
+// list. Below this, one or two videos would swing the median too hard —
+// callers fall back to the mixed list (exactly the pre-format behavior).
+export const MIN_FORMAT_SIBLINGS = 5;
+
+// Cap on the widened selection — mirrors the 12-video recent window the mixed
+// baseline has always used, so widening into the 50-upload estimator list
+// recovers format-matched siblings without quietly extending the lookback to
+// months-old uploads where the channel's scale may have been different.
+export const MAX_FORMAT_SIBLINGS = 12;
+
+/**
+ * Pick the sibling list a creator baseline should be computed from, given the
+ * analyzed video's format. Selection order:
+ *   1. format-matched siblings within the recent window, if ≥ minSiblings
+ *   2. the newest MAX_FORMAT_SIBLINGS format-matched siblings from the wider
+ *      fetched history (the estimator's 50-upload list), if ≥ minSiblings
+ *   3. the untouched mixed recent window (`formatMatched: false`) — zero
+ *      regression when the channel doesn't post enough of this format
+ * Both lists are expected newest-first; `fullHistory` a superset of `recent`.
+ */
+export function selectBaselineSiblings<T extends { durationSeconds?: number }>(
+  platform: "youtube" | "youtube_short",
+  recent: T[],
+  fullHistory: T[] = [],
+  minSiblings: number = MIN_FORMAT_SIBLINGS,
+): { siblings: T[]; formatMatched: boolean } {
+  const wantShort = platform === "youtube_short";
+  const matchesFormat = (v: T) => isYouTubeShortDuration(v.durationSeconds) === wantShort;
+  const recentMatched = recent.filter(matchesFormat);
+  if (recentMatched.length >= minSiblings) return { siblings: recentMatched, formatMatched: true };
+  const widened = fullHistory.filter(matchesFormat).slice(0, MAX_FORMAT_SIBLINGS);
+  if (widened.length >= minSiblings) return { siblings: widened, formatMatched: true };
+  return { siblings: recent, formatMatched: false };
+}
+
 const SHORTS_PATTERNS = [
   /\b#?shorts?\b/i,
   /\byt\s?shorts?\b/i,

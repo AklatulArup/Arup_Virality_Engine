@@ -36,10 +36,11 @@ import { cn } from "@/lib/utils";
 interface Subject {
   video: EnrichedVideo;
   history: VideoData[];
-  // Estimator-only sibling list for estimateEarlyShare — wider than history
-  // on YouTube (up to 50 uploads) so daily-upload channels reach the 21d+
-  // age bucket. The baseline median stays on history. Mandatory key, same
-  // discipline as AssembledForecastInput: a branch can't silently drop it.
+  // Wider sibling list (up to 50 uploads on YouTube) for estimateEarlyShare
+  // (daily-upload channels need it to reach the 21d+ age bucket) and for the
+  // format-matched baseline widening when the recent 12 are dominated by the
+  // other format. Mandatory key, same discipline as AssembledForecastInput:
+  // a branch can't silently drop it.
   estimatorHistory: VideoData[];
   channel: ChannelData | null;
   recentVideos: EnrichedVideo[];
