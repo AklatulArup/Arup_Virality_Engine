@@ -74,28 +74,28 @@
       }
     },
     {
-      "id": "1781244593276",
+      "id": "1781247534969",
       "url": "https://www.youtube.com/watch?v=KY2QFuFAMw8",
       "platform": "youtube",
       "title": "SpaceX & Open AI Börsengang: Einfluss auf ETFs? Mit Trade Republic teilnehmen?",
       "channelName": "Finanzfluss",
-      "checkedAt": "2026-06-12T06:09:53.276Z",
+      "checkedAt": "2026-06-12T06:58:54.969Z",
       "metrics": {
-        "views": 409284,
-        "likes": 10692,
+        "views": 409512,
+        "likes": 10702,
         "engagement": 2.79,
-        "velocity": 102321,
+        "velocity": 102378,
         "vrsScore": 33,
         "subscribers": 1630000
       },
       "firstCheckedAt": "2026-06-10T11:58:48.577Z",
       "previousSnapshot": {
-        "checkedAt": "2026-06-12T05:50:52.256Z",
+        "checkedAt": "2026-06-12T06:09:53.276Z",
         "metrics": {
-          "views": 409193,
-          "likes": 10687,
+          "views": 409284,
+          "likes": 10692,
           "engagement": 2.79,
-          "velocity": 102298,
+          "velocity": 102321,
           "vrsScore": 33,
           "subscribers": 1630000
         }
