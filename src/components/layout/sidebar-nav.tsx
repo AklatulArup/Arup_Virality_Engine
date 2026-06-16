@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, Clapperboard, Users, LibraryBig, ShieldCheck, Search, BookOpen, Sparkles } from "lucide-react";
+import { House, Clapperboard, Users, LibraryBig, ShieldCheck, Search, BookOpen, Sparkles, Target } from "lucide-react";
 import { usePool } from "@/hooks/use-pool";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ const NAV = [
 
 const NAV_SECONDARY = [
   { href: "/playbooks", label: "Playbooks", icon: Sparkles, match: "/playbooks" },
+  { href: "/accuracy", label: "Accuracy", icon: Target, match: "/accuracy" },
   { href: "/library/pool", label: "Library", icon: LibraryBig, match: "/library" },
   { href: "/trust", label: "Trust Center", icon: ShieldCheck, match: "/trust" },
   { href: "/guide", label: "How to use", icon: BookOpen, match: "/guide" },

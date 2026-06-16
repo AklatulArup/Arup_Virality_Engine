@@ -23,6 +23,7 @@ import { assessCreatorReputation } from "../src/lib/reputation";
 import { calculateMedian } from "../src/lib/baseline";
 import { selectBaselineSiblings } from "../src/lib/video-classifier";
 import { kvSet } from "../src/lib/kv";
+import { mergeAccuracyReport, type PlatformAccuracy } from "../src/lib/accuracy-report";
 import type { VideoData, ReferenceEntry } from "../src/lib/types";
 
 export const PRIOR_CORRECTION_KV_KEY = "config:prior-correction";
@@ -114,11 +115,13 @@ async function main() {
 
   const channelHash = (id: string) => [...id].reduce((a, c) => a + c.charCodeAt(0), 0) % 2;
   const correction: Record<string, number> = {};
+  const accuracy: Partial<Record<string, PlatformAccuracy>> = {};
 
   for (const p of platforms) {
     const ss = samples.filter((s) => s.platform === p);
     if (ss.length < MIN_PLATFORM_SAMPLES) {
       console.log(`${p}: n=${ss.length} < ${MIN_PLATFORM_SAMPLES} — SKIP (too thin)`);
+      accuracy[p] = { sampleSize: ss.length, correctionShipped: false };
       continue;
     }
     const fit = ss.filter((s) => channelHash(s.channelId) === 0);
@@ -137,10 +140,17 @@ async function main() {
       `full-factor ×${fullFactor.toFixed(2)}`,
     );
     if (improved) correction[p] = Math.round(fullFactor * 100) / 100;
+    accuracy[p] = {
+      sampleSize: ss.length,
+      typicalMissBefore: Math.round(before * 100) / 100,
+      typicalMissAfter: Math.round(after * 100) / 100,
+      correctionShipped: improved,
+    };
   }
 
+  const nowIso = new Date().toISOString();
   const table = {
-    computedAt: new Date(0).toISOString().replace("1970", "2026"), // stamped after, see note
+    computedAt: nowIso,
     source: "pool-bootstrap" as const,
     minStratumN: MIN_PLATFORM_SAMPLES,
     factorByPlatform: correction,
@@ -149,9 +159,11 @@ async function main() {
 
   if (apply && Object.keys(correction).length > 0) {
     await kvSet(PRIOR_CORRECTION_KV_KEY, table);
-    console.log(`APPLIED → ${PRIOR_CORRECTION_KV_KEY}`);
+    await mergeAccuracyReport(accuracy, nowIso);
+    console.log(`APPLIED → ${PRIOR_CORRECTION_KV_KEY} + accuracy report`);
   } else if (apply) {
-    console.log("nothing validated — not writing");
+    await mergeAccuracyReport(accuracy, nowIso); // still publish the typical-miss numbers
+    console.log("no correction validated — wrote accuracy report only");
   } else {
     console.log("validation only — rerun with --apply once the numbers look right");
   }

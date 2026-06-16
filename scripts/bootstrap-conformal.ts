@@ -31,6 +31,7 @@ import { calculateMedian } from "../src/lib/baseline";
 import { selectBaselineSiblings } from "../src/lib/video-classifier";
 import { computeConformalTable, applyConformalBounds, CONFORMAL_KV_KEY, type ConformalTable } from "../src/lib/conformal";
 import { loadPriorCorrection } from "../src/lib/prior-correction";
+import { mergeAccuracyReport, type PlatformAccuracy } from "../src/lib/accuracy-report";
 import { kvSet } from "../src/lib/kv";
 import type { VideoData, ReferenceEntry } from "../src/lib/types";
 import type { ForecastSnapshot } from "../src/lib/forecast-learning";
@@ -224,6 +225,7 @@ async function main() {
   // would let a weak platform under-cover or a strong one stay needlessly wide.
   console.log(`\nper-platform quantile calibration — fit n=${fit.length}, holdout n=${hold.length} (target ≥${TARGET_COVERAGE * 100}%):`);
   const chosenByPlat = new Map<Platform, [number, number]>();
+  const accuracy: Partial<Record<Platform, PlatformAccuracy>> = {};
   for (const p of [...new Set(samples.map((s) => s.platform))]) {
     const holdP = hold.filter((s) => s.platform === p);
     const trials = QUANTILE_TRIALS.map((pair) => {
@@ -234,8 +236,11 @@ async function main() {
     const line = trials.map((t) => `q${t.pair[0]}/${t.pair[1]} ${Math.round(t.pct * 100)}%`).join(" · ");
     if (win) {
       chosenByPlat.set(p, win.pair);
+      accuracy[p] = { rangeHitRate: Math.round(win.pct * 100) / 100, rangeTarget: TARGET_COVERAGE, rangeShipped: true };
       console.log(`  ${p} (holdout ${trials[0].n}): ${line} → chose q${win.pair[0]}/${win.pair[1]}`);
     } else {
+      const best = trials.reduce((a, b) => (b.pct > a.pct ? b : a));
+      accuracy[p] = { rangeHitRate: Math.round(best.pct * 100) / 100, rangeTarget: TARGET_COVERAGE, rangeShipped: false };
       console.log(`  ${p} (holdout ${trials[0].n}): ${line} → DROP (no pair clears target → hand-tuned fallback)`);
     }
   }
@@ -256,7 +261,8 @@ async function main() {
 
   if (apply) {
     await kvSet(CONFORMAL_KV_KEY, table);
-    console.log(`\nAPPLIED → ${CONFORMAL_KV_KEY} (source: pool-bootstrap, ${table.sampleCount} samples)`);
+    await mergeAccuracyReport(accuracy, new Date().toISOString());
+    console.log(`\nAPPLIED → ${CONFORMAL_KV_KEY} (source: pool-bootstrap, ${table.sampleCount} samples) + accuracy report`);
   } else {
     console.log("\nvalidation only — rerun with --apply to write the table to KV");
   }
