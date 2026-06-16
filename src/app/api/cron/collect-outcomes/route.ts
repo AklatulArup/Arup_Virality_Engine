@@ -23,6 +23,7 @@ import type { ForecastSnapshot } from "@/lib/forecast-learning";
 import type { Platform } from "@/lib/forecast";
 import { recomputeConformalTable } from "@/lib/conformal";
 import { recomputeDecayTable } from "@/lib/decay-fit";
+import { recomputePriorCorrection } from "@/lib/prior-correction";
 import { fetchMarketVolatility } from "@/lib/seasonality";
 
 export const runtime = "nodejs";
@@ -51,6 +52,7 @@ interface CollectorResult {
   conformalRecomputed?: boolean;
   conformalSampleCount?: number;
   decayRecomputed?: boolean;
+  priorCorrectionRecomputed?: boolean;
 }
 
 export async function GET(req: NextRequest) {
@@ -147,6 +149,15 @@ export async function GET(req: NextRequest) {
         result.decayRecomputed = true;
       } catch (e) {
         result.errors.push({ snapshotId: "decay-recompute", error: e instanceof Error ? e.message : String(e) });
+      }
+      // Refit the day-0 prior correction from real grades. Only overwrites the
+      // pool-bootstrap once a platform has enough graded outcomes — supersedes
+      // the interim calibration with the real thing. Non-fatal.
+      try {
+        await recomputePriorCorrection();
+        result.priorCorrectionRecomputed = true;
+      } catch (e) {
+        result.errors.push({ snapshotId: "prior-correction-recompute", error: e instanceof Error ? e.message : String(e) });
       }
     }
 

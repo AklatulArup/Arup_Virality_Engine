@@ -31,6 +31,7 @@ import {
 } from "@/lib/forecast";
 import type { ConformalTable } from "@/lib/conformal";
 import type { DecayTable } from "@/lib/decay-fit";
+import type { PriorCorrectionTable } from "@/lib/prior-correction";
 import { estimateEarlyShare, type EarlyShareSignal } from "@/lib/early-share";
 import {
   computeDayOfWeekProfile,
@@ -103,6 +104,7 @@ interface AssembledForecastInput {
   conformalTable: ForecastInput["conformalTable"];
   decayTable: ForecastInput["decayTable"];
   earlyShareSignal: ForecastInput["earlyShareSignal"];
+  priorCorrection: ForecastInput["priorCorrection"];
   aiEstimatedKeys: NonNullable<ForecastInput["aiEstimatedKeys"]>;
 }
 
@@ -368,6 +370,19 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
       .catch(() => {});
   }, []);
 
+  const [priorCorrection, setPriorCorrection] = useState<PriorCorrectionTable | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    fetchOnce("forecast-prior-correction", async () => {
+      const r = await fetch("/api/forecast/prior-correction");
+      return r.ok ? r.json() : null;
+    })
+      .then((d) => {
+        if (d?.ok && d.table) setPriorCorrection(d.table as PriorCorrectionTable);
+      })
+      .catch(() => {});
+  }, []);
+
   // ── OCR + CSV ingestion ──
   const [ocrStatus, setOcrStatus] = useState<IngestStatus | null>(null);
   const [csvStatus, setCsvStatus] = useState<IngestStatus | null>(null);
@@ -567,10 +582,11 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
           conformalTable,
           decayTable,
           earlyShareSignal,
+          priorCorrection,
           aiEstimatedKeys: Array.from(aiEstimatedKeys),
         }),
       ),
-    [video, baselineHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj, reputation, crossPlatformRep, configOverrides, conformalTable, decayTable, earlyShareSignal, aiEstimatedKeys],
+    [video, baselineHistory, platform, manualInputs, velocitySamples, seasonality, sentimentScore, sentimentRationale, niche, nicheAdj, reputation, crossPlatformRep, configOverrides, conformalTable, decayTable, earlyShareSignal, priorCorrection, aiEstimatedKeys],
   );
 
   // ── Calibration snapshot — once per video + inputs combo ──
@@ -656,6 +672,7 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
     conformalTable,
     decayTable,
     earlyShareSignal,
+    priorCorrection,
     ocrStatus,
     csvStatus,
     ingestImage,

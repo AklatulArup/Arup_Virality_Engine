@@ -37,6 +37,7 @@ import { applyConformalBounds, type ConformalTable } from "./conformal";
 import { fittedCumulativeShare, type DecayTable } from "./decay-fit";
 import { frontLoadedCumulativeShare, type EarlyShareSignal } from "./early-share";
 import { classifyLifecycleTier, applyTierCeiling, type TierClassification } from "./lifecycle-tier";
+import { priorFactorFor, type PriorCorrectionTable } from "./prior-correction";
 
 export type Platform = "youtube" | "youtube_short" | "tiktok" | "instagram" | "x";
 
@@ -101,6 +102,11 @@ export interface ForecastInput {
   // TikTok/IG/X; a fitted decay table takes precedence when present. Falls
   // back to the hand-tuned curve when absent — zero regression.
   earlyShareSignal?: EarlyShareSignal | null;
+  // Optional: per-platform day-0 prior correction (see src/lib/prior-correction.ts).
+  // Multiplies the pre-blend prior to undo the cold-start under-prediction.
+  // Self-gating: the trajectory blend washes it out once observed views
+  // dominate. Absent or 1.0 → no change, zero regression.
+  priorCorrection?: PriorCorrectionTable | null;
   // Optional: keys within `manualInputs` whose values came from AI estimation
   // (e.g. thumbnail CTR predicted from the thumbnail image) rather than from
   // the RM / a Creator Studio screenshot. The value still flows into the
@@ -935,7 +941,17 @@ export function forecast(input: ForecastInput): Forecast {
   // Clamped tighter [0.85, 1.15]; defensive here in case a caller passes an
   // out-of-range value (the module also clamps).
   const crossPlatformMult = Math.max(0.85, Math.min(1.15, input.crossPlatformMultiplier ?? 1.0));
-  const adjustedBaseline = baseline.median * seasonality * nicheMult * reputationMult * crossPlatformMult;
+  // Day-0 prior correction: undo the cold-start under-prediction (see
+  // prior-correction.ts). Applied to the prior anchor, so the trajectory blend
+  // naturally fades it as real views arrive — full effect pre-publish, gone
+  // once observed data dominates.
+  const priorFactor = priorFactorFor(input.priorCorrection, platform);
+  const adjustedBaseline = baseline.median * seasonality * nicheMult * reputationMult * crossPlatformMult * priorFactor;
+  if (priorFactor > 1.01) {
+    notes.push(
+      `Day-0 prior correction ×${priorFactor.toFixed(2)} applied (${input.priorCorrection?.source === "outcomes" ? "from graded outcomes" : "pool-calibrated"}) — undoes cold-start under-prediction; fades as live views arrive.`,
+    );
+  }
 
   // Comment sentiment adjusts the UPSIDE specifically — positive sentiment
   // widens the high band (algorithm promotes), negative sentiment compresses it.

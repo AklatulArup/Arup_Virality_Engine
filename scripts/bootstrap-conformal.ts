@@ -30,6 +30,7 @@ import { assessCreatorReputation } from "../src/lib/reputation";
 import { calculateMedian } from "../src/lib/baseline";
 import { selectBaselineSiblings } from "../src/lib/video-classifier";
 import { computeConformalTable, applyConformalBounds, CONFORMAL_KV_KEY, type ConformalTable } from "../src/lib/conformal";
+import { loadPriorCorrection } from "../src/lib/prior-correction";
 import { kvSet } from "../src/lib/kv";
 import type { VideoData, ReferenceEntry } from "../src/lib/types";
 import type { ForecastSnapshot } from "../src/lib/forecast-learning";
@@ -93,6 +94,12 @@ async function main() {
   const store = await (await fetch(`${BASE}/api/reference-store`)).json();
   const entries: ReferenceEntry[] = store.entries;
   const now = Date.now();
+  // Measure residuals around the SAME prediction production serves — i.e. with
+  // the day-0 prior correction applied. Otherwise the bands would be centered
+  // on the uncorrected (lower) median and under-cover badly once the
+  // correction shifts the median up.
+  const priorCorrection = await loadPriorCorrection();
+  if (priorCorrection) console.log(`prior-correction loaded: ${JSON.stringify(priorCorrection.factorByPlatform)} (${priorCorrection.source})`);
 
   const byChannel = new Map<string, ReferenceEntry[]>();
   for (const e of entries) {
@@ -142,6 +149,7 @@ async function main() {
         video, creatorHistory: history, platform,
         nicheMultiplier: adj.multiplier, nicheLabel: niche.niche, nicheRationale: adj.rationale,
         reputationMultiplier: rep.multiplier, reputationRationale: rep.rationale,
+        priorCorrection,
       });
       const predictedMedian = f.lifetime.median;
       const actual = target.metrics.views!;
@@ -209,22 +217,39 @@ async function main() {
   const hold = samples.filter((s) => channelHash(s.channelId) === 1);
   const fitBase = computeConformalTable(fit.map(toSnapshot));
 
-  let chosen: [number, number] = QUANTILE_TRIALS[QUANTILE_TRIALS.length - 1];
-  console.log(`\nquantile calibration — fit n=${fit.length}, holdout n=${hold.length} (target ≥${TARGET_COVERAGE * 100}%):`);
-  for (const [pLow, pHigh] of QUANTILE_TRIALS) {
-    const cov = coverage(retabulate(fitBase, fit, pLow, pHigh), hold);
-    const per = [...cov.byPlat.entries()].map(([p, c]) => `${p} ${Math.round((c.inside / c.total) * 100)}%`).join(" · ");
-    console.log(`  q${pLow}/${pHigh}: overall ${Math.round(cov.overall * 100)}% (${cov.total}) — ${per}`);
-    if (cov.overall >= TARGET_COVERAGE) { chosen = [pLow, pHigh]; break; }
+  // Per-platform calibration: each platform picks the TIGHTEST quantile pair
+  // whose own holdout coverage clears the target. A platform that never clears
+  // (e.g. thin/heavy-tailed IG) is DROPPED — applyConformalBounds then falls
+  // back to the hand-tuned bands for it (zero regression). One global pair
+  // would let a weak platform under-cover or a strong one stay needlessly wide.
+  console.log(`\nper-platform quantile calibration — fit n=${fit.length}, holdout n=${hold.length} (target ≥${TARGET_COVERAGE * 100}%):`);
+  const chosenByPlat = new Map<Platform, [number, number]>();
+  for (const p of [...new Set(samples.map((s) => s.platform))]) {
+    const holdP = hold.filter((s) => s.platform === p);
+    const trials = QUANTILE_TRIALS.map((pair) => {
+      const cov = coverage(retabulate(fitBase, fit, pair[0], pair[1]), holdP);
+      return { pair, pct: cov.overall, n: cov.total };
+    });
+    const win = trials.find((t) => t.pct >= TARGET_COVERAGE);
+    const line = trials.map((t) => `q${t.pair[0]}/${t.pair[1]} ${Math.round(t.pct * 100)}%`).join(" · ");
+    if (win) {
+      chosenByPlat.set(p, win.pair);
+      console.log(`  ${p} (holdout ${trials[0].n}): ${line} → chose q${win.pair[0]}/${win.pair[1]}`);
+    } else {
+      console.log(`  ${p} (holdout ${trials[0].n}): ${line} → DROP (no pair clears target → hand-tuned fallback)`);
+    }
   }
-  console.log(`  chosen pair: q${chosen[0]}/${chosen[1]}`);
 
-  // ── Final table on ALL samples with the calibrated pair ──
-  const table: ConformalTable = {
-    ...retabulate(computeConformalTable(samples.map(toSnapshot)), samples, chosen[0], chosen[1]),
-    source: "pool-bootstrap",
-  };
-  console.log("\nfinal table strata (pooled per platform):");
+  // ── Final table on ALL samples, each kept platform with its own pair ──
+  const full = computeConformalTable(samples.map(toSnapshot));
+  const table: ConformalTable = { ...JSON.parse(JSON.stringify(full)), source: "pool-bootstrap" as const };
+  for (const p of Object.keys(table.byPlatform) as Platform[]) {
+    const pair = chosenByPlat.get(p);
+    if (!pair) { delete table.byPlatform[p]; continue; }
+    const re = retabulate(full, samples, pair[0], pair[1]);
+    table.byPlatform[p] = re.byPlatform[p];
+  }
+  console.log("\nfinal table strata (kept platforms, pooled):");
   for (const [p, t] of Object.entries(table.byPlatform)) {
     console.log(`  ${p}: n=${t.pooled.n} band ×${Math.exp(t.pooled.qLow80).toFixed(2)}–×${Math.exp(t.pooled.qHigh80).toFixed(2)} medianResidual=${t.pooled.medianResidual.toFixed(2)}`);
   }
