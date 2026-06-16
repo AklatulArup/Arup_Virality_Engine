@@ -140,11 +140,22 @@ async function main() {
       `full-factor ×${fullFactor.toFixed(2)}`,
     );
     if (improved) correction[p] = Math.round(fullFactor * 100) / 100;
+    // Expected-hit rates on holdout, using whatever factor actually ships
+    // (the corrected guess if it improved, else the raw guess). "Close" =
+    // within ±25% of reality; "ballpark" = within 2× (half to double).
+    const shipFactor = improved ? factor : 1;
+    const closeN = hold.filter((s) => Math.abs(s.actual - s.predicted * shipFactor) / s.actual <= 0.25).length;
+    const ballparkN = hold.filter((s) => {
+      const ratio = (s.predicted * shipFactor) / s.actual;
+      return ratio >= 0.5 && ratio <= 2;
+    }).length;
     accuracy[p] = {
       sampleSize: ss.length,
       typicalMissBefore: Math.round(before * 100) / 100,
       typicalMissAfter: Math.round(after * 100) / 100,
       correctionShipped: improved,
+      expectedHitClose: Math.round((closeN / hold.length) * 100) / 100,
+      expectedHitBallpark: Math.round((ballparkN / hold.length) * 100) / 100,
     };
   }
 

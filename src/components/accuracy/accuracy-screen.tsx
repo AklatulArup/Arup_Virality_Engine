@@ -103,6 +103,35 @@ function PlatformCard({ platform, a }: { platform: Platform; a: PlatformAccuracy
               </p>
             </div>
 
+            {/* Expected hit rate — how often the single guess itself is close */}
+            {a?.expectedHitClose != null || a?.expectedHitBallpark != null ? (
+              <div>
+                <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                  Expected number hit rate
+                </div>
+                <div className="flex gap-6">
+                  <div className="flex-1">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-[11.5px] text-foreground">Spot-on</span>
+                      <span className="font-mono text-[13px] font-medium" style={{ color: meta.color }}>{pct(a?.expectedHitClose)}</span>
+                    </div>
+                    <span className="text-[10.5px] text-muted-foreground">within ±25% of real</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-[11.5px] text-foreground">Right ballpark</span>
+                      <span className="font-mono text-[13px] font-medium" style={{ color: meta.color }}>{pct(a?.expectedHitBallpark)}</span>
+                    </div>
+                    <span className="text-[10.5px] text-muted-foreground">within 2× (half to double)</span>
+                  </div>
+                </div>
+                <p className="mt-2 text-[11.5px] leading-snug text-muted-foreground">
+                  How often the single &ldquo;expected&rdquo; number itself lands close — day one, blind. The range below
+                  is the safer read; the single number is a centre of gravity.
+                </p>
+              </div>
+            ) : null}
+
             {/* Range hit rate */}
             <div>
               <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
@@ -171,6 +200,32 @@ export function AccuracyScreen() {
           <p>
             Live scoring of the engine&apos;s own predictions is separate and starts as forecasts age — see the{" "}
             <Link href="/trust" className="text-primary underline-offset-2 hover:underline">Trust Center</Link>.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* The luck ceiling — why 100% is impossible */}
+      <Card className="mt-4">
+        <CardHeader className="pb-0">
+          <CardTitle className="text-[14px] font-semibold">The luck ceiling — why no tool hits 100%</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mt-1 flex h-7 w-full overflow-hidden rounded-[6px]">
+            <div className="flex items-center justify-center" style={{ width: "85%", background: "rgba(46,204,138,0.22)", color: GREEN }}>
+              <span className="font-mono text-[11px]">~85% explainable</span>
+            </div>
+            <div className="flex items-center justify-center" style={{ width: "15%", background: "rgba(240,179,90,0.22)", color: AMBER }}>
+              <span className="font-mono text-[11px]">~15% luck</span>
+            </div>
+          </div>
+          <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
+            Roughly <span className="text-foreground">10–15% of whether something goes viral is pure luck</span> — which
+            of two near-identical videos the algorithm decides to push that day, a stranger resharing at the right
+            moment. No tool can predict that part; it&apos;s the same coin-flip for everyone. So the realistic ceiling
+            for any forecaster is about <span className="text-foreground">85%</span>, and on day-one short-form it&apos;s
+            lower still. We measure that luck per video on each breakout&apos;s{" "}
+            <span className="text-foreground">autopsy</span> (the &ldquo;unexplained&rdquo; share) — it&apos;s why we
+            give a range, not a promise, and why the numbers below should never read 100%.
           </p>
         </CardContent>
       </Card>

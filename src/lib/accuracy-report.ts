@@ -26,6 +26,11 @@ export interface PlatformAccuracy {
   typicalMissBefore?: number;   // 0-1, before the day-0 prior correction
   typicalMissAfter?:  number;   // 0-1, after
   correctionShipped?: boolean;  // did the day-0 correction ship for this platform
+  // "Expected hit rate" = how often the single middle guess itself lands near
+  // the real number (held-out channels, with whatever correction shipped).
+  // Two tolerances a layman gets: spot-on and right-ballpark.
+  expectedHitClose?:    number; // 0-1, within ±25% of the real number
+  expectedHitBallpark?: number; // 0-1, within 2× (between half and double)
   // "Range hit rate" = how often the real number lands inside the low–high
   // bracket, again on held-out channels. Target 0.80.
   rangeHitRate?:      number;   // 0-1, null/absent when bands are hand-tuned
