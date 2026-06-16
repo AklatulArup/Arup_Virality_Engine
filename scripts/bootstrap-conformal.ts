@@ -257,6 +257,13 @@ async function main() {
   console.log("\nfinal table strata (kept platforms, pooled):");
   for (const [p, t] of Object.entries(table.byPlatform)) {
     console.log(`  ${p}: n=${t.pooled.n} band ×${Math.exp(t.pooled.qLow80).toFixed(2)}–×${Math.exp(t.pooled.qHigh80).toFixed(2)} medianResidual=${t.pooled.medianResidual.toFixed(2)}`);
+    // Record the actual range width (multiple of the expected number) for the
+    // accuracy page's "how wide is the range" footnote.
+    const acc = accuracy[p as Platform];
+    if (acc) {
+      acc.rangeLowMult = Math.round(Math.exp(t.pooled.qLow80) * 100) / 100;
+      acc.rangeHighMult = Math.round(Math.exp(t.pooled.qHigh80) * 100) / 100;
+    }
   }
 
   if (apply) {

@@ -24,6 +24,12 @@ function pct(n: number | undefined): string {
   return n == null ? "—" : `${Math.round(n * 100)}%`;
 }
 
+function fmtViews(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`;
+  return String(Math.round(n));
+}
+
 // "Typical miss" → an accuracy share the layman reads as "how close on average".
 // 100% miss ≈ "off by the whole number"; we render closeness = 1 - miss, floored
 // at 0 so the bar never goes negative on a wild platform.
@@ -153,6 +159,16 @@ function PlatformCard({ platform, a }: { platform: Platform; a: PlatformAccuracy
                   "Not enough data to measure the range yet."
                 )}
               </p>
+              {a?.rangeLowMult != null && a?.rangeHighMult != null ? (
+                <p className="mt-1.5 text-[11px] leading-snug" style={{ color: MUTED }}>
+                  <span style={{ color: AMBER }}>*</span> How wide: the range spans about{" "}
+                  <span className="font-mono text-foreground">×{a.rangeLowMult}</span> to{" "}
+                  <span className="font-mono text-foreground">×{a.rangeHighMult}</span> of the expected number — e.g. a{" "}
+                  forecast of <span className="font-mono">10K</span> means roughly{" "}
+                  <span className="font-mono text-foreground">{fmtViews(10000 * a.rangeLowMult)}–{fmtViews(10000 * a.rangeHighMult)}</span>.
+                  Narrowing this is the goal as the pool grows.
+                </p>
+              ) : null}
             </div>
           </div>
         )}

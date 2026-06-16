@@ -36,6 +36,12 @@ export interface PlatformAccuracy {
   rangeHitRate?:      number;   // 0-1, null/absent when bands are hand-tuned
   rangeTarget?:       number;
   rangeShipped?:      boolean;  // empirical bands active (vs hand-tuned fallback)
+  // How wide the low–high range is, as a multiple of the expected number
+  // (bands are multiplicative, so this holds at any view count). e.g. low 0.12
+  // / high 3.62 → a 10K forecast spans ~1.2K–36K. The number to watch shrink
+  // as calibration tightens. Only set for platforms with a measured band.
+  rangeLowMult?:      number;
+  rangeHighMult?:     number;
 }
 
 export interface AccuracyReport {
