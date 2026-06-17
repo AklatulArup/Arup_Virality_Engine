@@ -34,7 +34,13 @@ function baseInput(platform: AdapterInput["platform"], overrides: Partial<Adapte
     comments: 40,
     shares: 60,
     saves: 25,
-    publishedAt: new Date(NOW - 30 * 3600_000).toISOString(),
+    // Age must track the SAME clock the adapter uses (real Date.now(), not the
+    // fixed NOW used for knowledge-freshness), or the adapter's appended
+    // "current age" reach snapshot drifts later as wall-clock advances and
+    // bolts a spurious flat 4th wave onto trajectory fixtures. Keeping it ~30h
+    // off real now means that appended snapshot stays within 12h of the last
+    // velocity sample (26h) and never forms a bogus bucket. Time-independent.
+    publishedAt: new Date(Date.now() - 30 * 3600_000).toISOString(),
     creatorFollowers: 40_000,
     manualInputs: {},
     aiEstimatedKeys: [],
