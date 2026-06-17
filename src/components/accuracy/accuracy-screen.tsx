@@ -169,6 +169,15 @@ function PlatformCard({ platform, a }: { platform: Platform; a: PlatformAccuracy
                   Narrowing this is the goal as the pool grows.
                 </p>
               ) : null}
+              {a?.creatorBandLowMult != null && a?.creatorBandHighMult != null ? (
+                <p className="mt-1.5 text-[11px] leading-snug" style={{ color: MUTED }}>
+                  <span style={{ color: GREEN }}>✓</span> For an established creator (8+ of their own videos), the engine
+                  narrows this to their own track record — typically{" "}
+                  <span className="font-mono" style={{ color: meta.color }}>×{a.creatorBandLowMult}–×{a.creatorBandHighMult}</span>{" "}
+                  (a 10K forecast → <span className="font-mono text-foreground">{fmtViews(10000 * a.creatorBandLowMult)}–{fmtViews(10000 * a.creatorBandHighMult)}</span>).
+                  {a.creatorBandCreators ? ` ${a.creatorBandCreators} creators qualify so far.` : ""}
+                </p>
+              ) : null}
             </div>
           </div>
         )}

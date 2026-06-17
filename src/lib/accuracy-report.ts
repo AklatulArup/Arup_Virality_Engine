@@ -42,6 +42,14 @@ export interface PlatformAccuracy {
   // as calibration tightens. Only set for platforms with a measured band.
   rangeLowMult?:      number;
   rangeHighMult?:     number;
+  // The TIGHTER per-creator band (TikTok/Instagram): the typical (median across
+  // creators) low/high a creator with 8+ of their own videos actually gets,
+  // since the engine narrows the range to their own track record. Shows the
+  // improvement the pooled width above hides. Absent where per-creator bands
+  // don't apply (YouTube/Shorts/X).
+  creatorBandLowMult?:  number;
+  creatorBandHighMult?: number;
+  creatorBandCreators?: number; // how many creators currently qualify (8+ videos)
 }
 
 export interface AccuracyReport {
