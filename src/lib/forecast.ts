@@ -38,6 +38,7 @@ import { fittedCumulativeShare, type DecayTable } from "./decay-fit";
 import { frontLoadedCumulativeShare, type EarlyShareSignal } from "./early-share";
 import { classifyLifecycleTier, applyTierCeiling, type TierClassification } from "./lifecycle-tier";
 import { priorFactorFor, type PriorCorrectionTable } from "./prior-correction";
+import { computeCreatorBand } from "./creator-band";
 
 export type Platform = "youtube" | "youtube_short" | "tiktok" | "instagram" | "x";
 
@@ -1005,6 +1006,23 @@ export function forecast(input: ForecastInput): Forecast {
     const floor = Math.max(video.views, 0);
     lifetime.low  = Math.min(lifetime.median, Math.max(floor, conformalApplied.low));
     lifetime.high = Math.max(lifetime.median, conformalApplied.high);
+  }
+
+  // ── Step 6b-2: Per-creator band (TikTok / Instagram, tighten-only) ────
+  // A steady creator's own videos cluster far tighter than the platform-pooled
+  // band. When this creator has enough of their own videos, narrow the range to
+  // their observed spread — but ONLY if it's tighter than the band already in
+  // hand, so it can never widen a range or cut coverage. See src/lib/creator-band.ts.
+  const creatorBand = computeCreatorBand(input.creatorHistory, platform);
+  if (creatorBand) {
+    const floor = Math.max(video.views, 0);
+    const cbLow  = Math.min(lifetime.median, Math.max(floor, Math.round(lifetime.median * creatorBand.lowMult)));
+    const cbHigh = Math.max(lifetime.median, Math.round(lifetime.median * creatorBand.highMult));
+    if (cbHigh - cbLow < lifetime.high - lifetime.low) {
+      lifetime.low  = cbLow;
+      lifetime.high = cbHigh;
+      notes.push(`Range narrowed to this creator's own spread (${creatorBand.n} of their videos) — tighter than the platform-wide band.`);
+    }
   }
 
   // ── Step 6c: Lifecycle-tier ceiling clamp ─────────────────────────────
