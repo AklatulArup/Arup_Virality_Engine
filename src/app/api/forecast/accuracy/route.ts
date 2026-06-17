@@ -10,6 +10,9 @@ import { isKvAvailable } from "@/lib/kv";
 import { loadAccuracyReport } from "@/lib/accuracy-report";
 
 export const runtime = "nodejs";
+// KV-backed report that changes on every recalibration/backfill — never serve
+// a statically cached copy.
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (!isKvAvailable()) {

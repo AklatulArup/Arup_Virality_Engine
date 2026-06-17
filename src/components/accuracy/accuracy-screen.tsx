@@ -183,7 +183,9 @@ export function AccuracyScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/forecast/accuracy")
+    // no-store: the report changes whenever calibration reruns or the pool is
+    // backfilled, so always pull fresh rather than show a cached copy.
+    fetch("/api/forecast/accuracy", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!cancelled) {
