@@ -52,7 +52,7 @@ async function timed(url: string, init?: RequestInit): Promise<{ status: number;
 }
 
 const ok      = (service: string, keyVar: string, verdict: string, detail?: string): KeyHealthResult => ({ service, keyVar, present: true, httpStatus: 200, severity: "ok", verdict, detail });
-const warn    = (service: string, keyVar: string, s: number | null, verdict: string): KeyHealthResult => ({ service, keyVar, present: true, httpStatus: s, severity: "warn", verdict });
+const warn    = (service: string, keyVar: string, s: number | null, verdict: string, detail?: string): KeyHealthResult => ({ service, keyVar, present: true, httpStatus: s, severity: "warn", verdict, detail });
 const err     = (service: string, keyVar: string, s: number | null, verdict: string): KeyHealthResult => ({ service, keyVar, present: true, httpStatus: s, severity: "error", verdict });
 const missing = (service: string, keyVar: string): KeyHealthResult => ({ service, keyVar, present: false, httpStatus: null, severity: "missing", verdict: "not set" });
 
@@ -80,7 +80,13 @@ async function checkGemini(keyVar: string): Promise<KeyHealthResult | null> {
   if (!r) return err("Gemini", keyVar, null, "no response");
   const lc = r.text.toLowerCase();
   if (r.status === 200) return ok("Gemini", keyVar, "working");
-  if (r.status === 429 || lc.includes("resource_exhausted") || lc.includes("quota")) return warn("Gemini", keyVar, r.status, "daily quota / rate cap (resets daily)");
+  if (r.status === 429 || lc.includes("resource_exhausted") || lc.includes("quota")) {
+    // Surface the raw Google message — it distinguishes "limit: 0" (project
+    // has no free quota / API not enabled) from a genuine daily-cap hit.
+    let detail = "";
+    try { detail = (JSON.parse(r.text)?.error?.message ?? "").replace(/\s+/g, " ").slice(0, 200); } catch { /* ignore */ }
+    return warn("Gemini", keyVar, r.status, "daily quota / rate cap (resets daily)", detail || undefined);
+  }
   if (/api_key_invalid|not valid|expired|permission_denied|service_disabled/.test(lc)) return err("Gemini", keyVar, r.status, "invalid / expired / API disabled");
   return warn("Gemini", keyVar, r.status, `HTTP ${r.status}`);
 }
