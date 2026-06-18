@@ -19,24 +19,11 @@
 // The caller never sees which key was used. The helper returns the raw
 // Response object so the caller can stream / json-parse / inspect as usual.
 //
-// Environment variables consulted (in order):
-//   GEMINI_API_KEY, GEMINI_API_KEY_2 … GEMINI_API_KEY_10
-//
-// Add more by following the naming convention — the module reads env at call
-// time so dynamic addition works without redeploy.
-
-const KEY_ENV_VARS = [
-  "GEMINI_API_KEY",
-  "GEMINI_API_KEY_2",
-  "GEMINI_API_KEY_3",
-  "GEMINI_API_KEY_4",
-  "GEMINI_API_KEY_5",
-  "GEMINI_API_KEY_6",
-  "GEMINI_API_KEY_7",
-  "GEMINI_API_KEY_8",
-  "GEMINI_API_KEY_9",
-  "GEMINI_API_KEY_10",
-] as const;
+// Environment variables consulted: ANY env var whose name is a Gemini API key,
+// regardless of casing or separators — GEMINI_API_KEY, GEMINI_API_KEY_2,
+// GeminiAPIKey3, geminiApiKey10, etc. The free quota is per-key, so every key
+// the user configured is collected and rotated. No fixed list to maintain, and
+// no number ceiling — add 5 or 50, they're all picked up at call time.
 
 // Round-robin pointer across keys within a single process. Each key fetched
 // via getGeminiKeys() is tried in order starting from `cursor`, so the load
@@ -44,12 +31,25 @@ const KEY_ENV_VARS = [
 // one key exhausts its 15 RPM while others sit idle.
 let cursor = 0;
 
+// Matches gemini-api-key style names with optional separators and an optional
+// trailing index: gemini[_-]?api[_-]?key (_?N)?
+const GEMINI_KEY_NAME = /^gemini[_-]?api[_-]?key(?:[_-]?\d+)?$/i;
+
+/** Trailing number in a key name (GEMINI_API_KEY → 1, GeminiAPIKey3 → 3). */
+function keyIndex(name: string): number {
+  const m = name.match(/(\d+)$/);
+  return m ? parseInt(m[1], 10) : 1;
+}
+
 export function getGeminiKeys(): string[] {
   const keys: string[] = [];
   const seen = new Set<string>();
-  for (const name of KEY_ENV_VARS) {
-    const v = process.env[name];
-    if (typeof v === "string" && v.length > 0 && !seen.has(v)) {
+  const names = Object.keys(process.env)
+    .filter((n) => GEMINI_KEY_NAME.test(n))
+    .sort((a, b) => keyIndex(a) - keyIndex(b));
+  for (const name of names) {
+    const v = process.env[name]?.trim();
+    if (v && v.length > 0 && !seen.has(v)) {
       keys.push(v);
       seen.add(v);
     }
