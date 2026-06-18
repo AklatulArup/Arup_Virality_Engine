@@ -13,6 +13,7 @@
 
 import { getApifyToken, describeApifyTokenSource, type ApifyPlatform } from "./apify-token";
 import { probeTikwm } from "./tikwm";
+import { getGeminiKeyVars } from "./gemini-keys";
 
 const TIMEOUT_MS = 8000;
 
@@ -186,8 +187,11 @@ export async function checkAllKeys(): Promise<KeyHealthReport> {
   const settled = await Promise.all([
     checkYouTube("YOUTUBE_API_KEY"), checkYouTube("YOUTUBE_API_KEY_2"), checkYouTube("YOUTUBE_API_KEY_3"), checkYouTube("YOUTUBE_API_KEY_4"), checkYouTube("YOUTUBE_API_KEY_5"),
     checkYouTube("YOUTUBE_API_KEY_6"), checkYouTube("YOUTUBE_API_KEY_7"), checkYouTube("YOUTUBE_API_KEY_8"), checkYouTube("YOUTUBE_API_KEY_9"), checkYouTube("YOUTUBE_API_KEY_10"),
-    checkGemini("GEMINI_API_KEY"), checkGemini("GEMINI_API_KEY_2"), checkGemini("GEMINI_API_KEY_3"), checkGemini("GEMINI_API_KEY_4"), checkGemini("GEMINI_API_KEY_5"),
-    checkGemini("GEMINI_API_KEY_6"), checkGemini("GEMINI_API_KEY_7"), checkGemini("GEMINI_API_KEY_8"), checkGemini("GEMINI_API_KEY_9"), checkGemini("GEMINI_API_KEY_10"),
+    // Enumerate the ACTUAL Gemini key var names present in env (any naming:
+    // GEMINI_API_KEY_N, GeminiAPIKeyN, …) so every configured key is pinged,
+    // not a stale hardcoded list. Falls back to the canonical name for a
+    // "missing" row when none are set.
+    ...(getGeminiKeyVars().length > 0 ? getGeminiKeyVars() : ["GEMINI_API_KEY"]).map(checkGemini),
     checkApifyPlatform("tiktok"), checkApifyPlatform("instagram"), checkApifyPlatform("x"),
     checkTikwm(),
     checkAnthropic("Claude_AI_Summary_API_KEY"), checkAnthropic("ANTHROPIC_API_KEY"),

@@ -41,13 +41,17 @@ function keyIndex(name: string): number {
   return m ? parseInt(m[1], 10) : 1;
 }
 
+/** Env var NAMES that hold a Gemini key, sorted by index. (Values via getGeminiKeys.) */
+export function getGeminiKeyVars(): string[] {
+  return Object.keys(process.env)
+    .filter((n) => GEMINI_KEY_NAME.test(n) && (process.env[n]?.trim().length ?? 0) > 0)
+    .sort((a, b) => keyIndex(a) - keyIndex(b));
+}
+
 export function getGeminiKeys(): string[] {
   const keys: string[] = [];
   const seen = new Set<string>();
-  const names = Object.keys(process.env)
-    .filter((n) => GEMINI_KEY_NAME.test(n))
-    .sort((a, b) => keyIndex(a) - keyIndex(b));
-  for (const name of names) {
+  for (const name of getGeminiKeyVars()) {
     const v = process.env[name]?.trim();
     if (v && v.length > 0 && !seen.has(v)) {
       keys.push(v);
