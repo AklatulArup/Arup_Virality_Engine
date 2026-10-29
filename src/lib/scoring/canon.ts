@@ -13,6 +13,7 @@ import tiktok from "./knowledge/tiktok.json";
 import instagram from "./knowledge/instagram.json";
 import youtube from "./knowledge/youtube.json";
 import youtubeShort from "./knowledge/youtube_short.json";
+import facebook from "./knowledge/facebook.json";
 import x from "./knowledge/x.json";
 
 // ── rates ───────────────────────────────────────────────────────────────────
@@ -112,6 +113,7 @@ const KNOWLEDGE: Record<Platform, PlatformKnowledge> = {
   instagram: instagram as PlatformKnowledge,
   youtube: youtube as PlatformKnowledge,
   youtube_short: youtubeShort as PlatformKnowledge,
+  facebook: facebook as PlatformKnowledge,
   x: x as PlatformKnowledge,
 };
 

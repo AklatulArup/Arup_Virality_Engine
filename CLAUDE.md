@@ -6,7 +6,9 @@ This repo is an internal tool used by FundedNext's Relationship Management (RM) 
 
 Primary users: FundedNext RM team. Terminology convention: use "RM" / "RM team", never "BD". Plain English throughout, no algorithmic jargon.
 
-**Supported platforms: YouTube Long-Form, YouTube Shorts, TikTok, Instagram Reels, X.** LinkedIn was scoped out and removed from all code paths — do not re-add LinkedIn as a platform option, URL parser case, algorithm-intel entry, competitor handle, or anywhere else. LinkedIn URLs inside scraped video `description` text are legitimate creator data and preserved as-is.
+**Supported platforms: YouTube Long-Form, YouTube Shorts, TikTok, Instagram Reels, Facebook, X.** LinkedIn was scoped out and removed from all code paths — do not re-add LinkedIn as a platform option, URL parser case, algorithm-intel entry, competitor handle, or anywhere else. LinkedIn URLs inside scraped video `description` text are legitimate creator data and preserved as-is.
+
+**Facebook (added 2026-07, skill v5.2):** wired end-to-end through the scoring layer (`facebookFeed` composite ported from the skill's `facebook.md`, knowledge JSON, adapter, gates, score, VRS→IG criteria, algorithm-intel, PLATFORM_CONFIG cloned from Instagram as a provisional prior). It is a **manual-entry platform** — RMs enter metrics via "Your data" (`fbHold3s`/`fbReach`/`fbSends`/`fbSaves`); there is **no Facebook scraper** (free-tier budget), so the URL-analyze and the two cron rescrape switches intentionally no-op for Facebook (graceful fall-through to `return null`). Re-baseline the Instagram-cloned forecast config once real FN Facebook outcomes mature in the pool.
 
 Live deployment: https://virality-engin.vercel.app
 GitHub: https://github.com/AklatulArup/Arup_Virality_Engine

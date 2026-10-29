@@ -7,17 +7,20 @@ import type { VideoData, VRSCriterion } from "./types";
 //   • github.com/twitter/the-algorithm-ml (Heavy Ranker weights, April 5 2023 — still canonical reference)
 //   • github.com/xai-org/x-algorithm (January 2026 Grok/Phoenix release)
 //
-// CONFIRMED HEAVY RANKER WEIGHTS (from scored_tweets_model_weight_* config):
-//     favourite (like)           :  +0.5
-//     retweet                    :  +1.0
-//     reply                      : +13.5  (27x a like)
-//     reply_engaged_by_author    : +75.0  (150x a like)  ← highest positive weight
-//     good_profile_click         : +12.0  (click profile then like or reply)
-//     good_click (into convo)    : +11.0
-//     good_click_v2 (stay 2+ min):  +10.0
-//     video_playback50           :  +0.005
-//     negative_feedback_v2       : -74.0  (show less often, mute, block the author)
-//     report                     : -369.0
+// PUBLISHED SCORING WEIGHTS (xai-org/x-algorithm home-mixer/params/param.rs, Aug 13 2026;
+// multipliers on predicted probabilities — the 2023 +75/-369 table is retired):
+//     share via copy link        : +20.0  (~30x a like)  ← highest positive weight
+//     reply                      :  +5.0  (+15 more when the replier is a mutual follow)
+//     quote                      :  +5.0
+//     share via DM               :  +5.0
+//     follow author              :  +4.0
+//     share (generic)            :  +2.0
+//     repost                     :  +1.0
+//     like                       :  +0.66
+//     open link                  :  +0.2  (no link penalty)
+//     profile click              :   0.0
+//     block / not interested / mute : -31.2 / -52.3 / -58.8
+//     report                     : -234.0
 //
 // 2026 CHANGES (xai-org/x-algorithm Jan 2026 release):
 //  • Grok-based Phoenix transformer replaces legacy Heavy Ranker MaskNet.
@@ -67,21 +70,21 @@ export const X_CRITERIA: VRSCriterion[] = [
       const { replies, views } = getX(d);
       const rate = views > 0 ? ((replies / views) * 100).toFixed(3) : "0";
       if (score === 1)
-        return `Reply rate ${rate}%, strong. Replies score +13.5 in X's open-source Heavy Ranker — 27x a like. A reply that the author engages with back scores +75 (150x a like) — the single highest positive weight in the entire ranker.`;
+        return `Reply rate ${rate}%, strong. Replies score +5 in X's published weights — about 7.6x a like — and replies from mutual follows get +15 more.`;
       if (score === 0.5)
-        return `Reply rate ${rate}%, moderate. Ask a specific, unanswerable-in-one-word question or post a contrarian claim that invites "well actually" responses. Reply to every reply in the first hour to unlock the +75 reply_engaged_by_author signal.`;
-      return `Reply rate ${rate}%, weak. Replies carry 27x the ranking weight of a like. Content that states a position (not just shares information) generates replies. Add a debatable claim or a direct question to the post.`;
+        return `Reply rate ${rate}%, moderate. Ask a specific, unanswerable-in-one-word question or post a contrarian claim that invites "well actually" responses. Reply to every reply in the first hour — the conversation has to happen inside the ~6-hour visibility window.`;
+      return `Reply rate ${rate}%, weak. Replies carry ~7.6x the ranking weight of a like. Content that states a position (not just shares information) generates replies. Add a debatable claim or a direct question to the post.`;
     },
   },
   {
     id: "x-reply-engagement-signal",
-    label: "Author reply engagement  (150x a like — weight +75)",
+    label: "Mutual-follow replies & copy-link shares  (weights +15 / +20)",
     weight: 10,
     tier: 1,
     autoAssessable: false,
     check: (_d: VideoData) => null,
     rationale: (_d: VideoData, _score: number | null) =>
-      "Cannot directly measure from post metadata. A reply that the author engages with back scores +75 in X's Heavy Ranker — 150x a like and the single highest positive weight in the entire algorithm. Reply to EVERY reply in the first 30 minutes. One back-and-forth chain is worth more algorithmically than 150 likes. This is the most underused lever on X.",
+      "Cannot directly measure from post metadata. In X's published weights (Aug 2026) the top positive signal is a copy-link share (+20, ~30x a like), and a reply from a mutual follow gets +15 on top of the +5 reply weight. Build mutual-follow density with trading peers, reply to every reply in the first 30 minutes, and post things people paste elsewhere — data, charts, payout proof. The old \"+75 author reply-back\" weight is retired.",
   },
   {
     id: "x-bookmark-rate",
@@ -107,23 +110,24 @@ export const X_CRITERIA: VRSCriterion[] = [
   },
   {
     id: "x-no-link-in-body",
-    label: "No external link in post body  (external link = low weight)",
-    weight: 8,
+    label: "Link posts carry a native hook  (no link penalty since Jul 2026)",
+    weight: 4,
     tier: 1,
     autoAssessable: true,
     check: (d: VideoData) => {
       const { hasLink } = getX(d);
       if (!hasLink) return 1;
+      // Links are no longer penalized; a link post only loses if the hook fails to earn on-platform engagement.
       const likeRate = d.likes / Math.max(1, d.views) * 100;
-      return likeRate >= 2 ? 0.5 : 0;
+      return likeRate >= 1 ? 1 : 0.5;
     },
     rationale: (d: VideoData, score: number | null) => {
       const { hasLink } = getX(d);
       if (!hasLink || score === 1)
-        return `No external link in post body. Optimal. External link clicks carry low weight in X's ranking (good_click v2 is +10 for staying in the CONVERSATION, not for external clicks). X deliberately deprioritises content that pushes users off-platform. Always put links in the first reply, not the post.`;
-      if (score === 0.5)
-        return `External link detected but engagement is still strong — may be native X media or a very compelling post. If this is an external URL, move it to the first reply. The post itself should be self-contained and keep users on-platform.`;
-      return `External link in post body. X's ranking system favours content that keeps users in the feed. Delete, repost without the link, then add the link as the first reply. This typically recovers significant reach.`;
+        return hasLink
+          ? `Link in post body with healthy on-platform engagement. Fine — X dropped the link penalty in Jul 2026 (link opens score +0.2 in the published weights).`
+          : `No external link in post body. Self-contained posts earn replies and shares on-platform, which is what X's published weights reward.`;
+      return `Link in post body with weak on-platform engagement. Links are no longer penalized (Jul 2026), but a bare link earns only +0.2 per open — lead with a native hook, chart or claim so the post earns replies and shares before the click.`;
     },
   },
   {
@@ -339,12 +343,12 @@ export const X_CRITERIA: VRSCriterion[] = [
   },
   {
     id: "x-negative-feedback",
-    label: "Negative feedback avoidance  (weight -74 / -369)",
+    label: "Negative feedback avoidance  (weight -59 / -234)",
     weight: 2,
     tier: 4,
     autoAssessable: false,
     check: (_d: VideoData) => null,
     rationale: (_d: VideoData, _score: number | null) =>
-      "Negative feedback weights are massive: -74 for \"show less often\"/mute/block, -369 for report. A single block wipes out 148 likes worth of score. X optimises for long-term retention, not short-term engagement — rage-bait that gets clicks but makes users block you is a net negative. Avoid inflammatory framing that goes beyond contrarian into attacking.",
+      "Negative feedback weights are massive: -31.2 block, -52.3 \"not interested\", -58.8 mute, -234 report. A single report wipes out ~355 likes worth of score. X optimises for long-term retention, not short-term engagement — rage-bait that gets clicks but makes users block you is a net negative. Avoid inflammatory framing that goes beyond contrarian into attacking.",
   },
 ];

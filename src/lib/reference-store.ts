@@ -15,7 +15,7 @@ import { classifyVideoFormat, classifyOrientation, formatDuration, quickSentimen
  */
 export function buildEntryFromVideo(
   v: VideoData,
-  platform: "youtube" | "youtube_short" | "tiktok" | "instagram" | "x" = "youtube"
+  platform: "youtube" | "youtube_short" | "tiktok" | "instagram" | "facebook" | "x" = "youtube"
 ): ReferenceEntry {
   const now = new Date().toISOString();
   const archetypes = detectArchetypes(v.title, v.tags);

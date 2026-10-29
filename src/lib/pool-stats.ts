@@ -66,15 +66,16 @@ const TARGETS: Record<Platform, { min: number; std: number; mat: number }> = {
   youtube_short: { min: 150, std: 400,  mat: 800  },
   instagram:     { min: 150, std: 400,  mat: 800  },
   tiktok:        { min: 200, std: 400,  mat: 800  },
+  facebook:      { min: 150, std: 400,  mat: 800  },
   x:             { min: 400, std: 800,  mat: 1600 },
 };
 
-const ORDER: Platform[] = ["youtube", "youtube_short", "tiktok", "instagram", "x"];
+const ORDER: Platform[] = ["youtube", "youtube_short", "tiktok", "instagram", "facebook", "x"];
 
 // Bucket one entry. Returns null for unclassifiable rows.
 export function bucketOf(e: MinimalEntry): Platform | null {
   const p = typeof e?.platform === "string" ? e.platform : null;
-  if (p === "tiktok" || p === "instagram" || p === "x" || p === "youtube_short") {
+  if (p === "tiktok" || p === "instagram" || p === "facebook" || p === "x" || p === "youtube_short") {
     return p;
   }
   if (p === "youtube") {
@@ -92,6 +93,7 @@ export function computePoolStats(entries: MinimalEntry[]): PoolStats {
     youtube_short: { count: 0, creators: new Set() },
     instagram:     { count: 0, creators: new Set() },
     tiktok:        { count: 0, creators: new Set() },
+    facebook:      { count: 0, creators: new Set() },
     x:             { count: 0, creators: new Set() },
   };
 

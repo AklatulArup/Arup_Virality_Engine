@@ -10,15 +10,15 @@
  * Apify free tier: $5 credit/month (~1,000-2,000 post scrapes).
  * Actor: apidojo/tweet-scraper (most reliable X scraper on Apify)
  *
- * X signal weights from open-source algorithm (github.com/twitter/the-algorithm):
- *   Reply that gets author reply back: +75 (150× a like)
- *   Quote tweet:                       +25 (50× a like)
- *   Reply:                             +13.5 (27× a like)
- *   Profile click → follow:            +12
- *   Bookmark:                          +10 (20× a like)
- *   Retweet:                           +1 (2× a like)
- *   Like:                              +0.5 (baseline)
- *   External link click:               −75 (NEGATIVE — put links in replies)
+ * X signal weights — published param.rs (xai-org/x-algorithm, Aug 13 2026):
+ *   Share via copy link:  +20 (~30× a like)
+ *   Reply:                +5  (+15 more from mutual follows)
+ *   Quote / DM share:     +5
+ *   Follow author:        +4
+ *   Repost:               +1
+ *   Like:                 +0.66 (baseline)
+ *   Open link:            +0.2 (no link penalty)
+ *   Report:               −234
  */
 
 import { NextRequest } from "next/server";

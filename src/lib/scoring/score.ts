@@ -12,7 +12,7 @@ import { toCanonical } from "./adapters";
 import type { CanonicalMetrics, PredictionContract, PlatformKnowledge } from "./canon";
 import { knowledgeFor, knowledgeMeta, knowledgeAgeDays, knowledgeIsStale } from "./canon";
 import { evaluateGates, weakestGate } from "./gates";
-import { tiktokFyp, instagramReels, youtubeLongForm, youtubeShorts } from "./composites";
+import { tiktokFyp, instagramReels, youtubeLongForm, youtubeShorts, facebookFeed } from "./composites";
 import { xScore, xTotalExposure, sigmoid } from "./math";
 import { analyzeWaves, projectViews } from "./waves";
 
@@ -90,17 +90,33 @@ function compositeFor(m: CanonicalMetrics, k: PlatformKnowledge): number | null 
         share_cross: m.s?.value ?? 0,
       });
     }
+    case "facebook": {
+      if (m.H_3s == null) return null; // hook hold is the spine; without it the composite is fiction
+      return facebookFeed({
+        h_3s: m.H_3s.value,
+        w_time: 0.5, // FB watch-time isn't exposed publicly; skill-neutral default (noted by adapter)
+        has_watermark: m.hasWatermark ?? false,
+        is_repost_heavy: m.isRepostHeavy ?? false,
+        share_priv: m.SPR?.value ?? 0, // private Messenger/WhatsApp sends per reach
+        save: m.save_rate?.value ?? 0,
+        share_pub: m.s?.value ?? 0,
+        likes_per_reach: m.likes_per_reach?.value ?? 0,
+      });
+    }
     case "x": {
       if (!m.xCounts) return null;
       const sHat = xScore(m.xCounts.impressions, {
         likes: m.xCounts.likes,
         reposts: m.xCounts.reposts,
-        replies: m.xCounts.replies + m.xCounts.quotes, // quotes carry reply-class weight floor
-        bookmarks: m.xCounts.bookmarks,
+        replies: m.xCounts.replies,
+        quotes: m.xCounts.quotes,
+        // Bookmarks have no weight in the published param.rs table; not scored.
       }, k.weights as never);
       // Ŝ is per-impression score; squash around a modest midpoint so typical
-      // posts land mid-range (Ŝ ~ 0.02–0.1 for healthy posts).
-      return sigmoid(sHat, 0.05, 30);
+      // posts land mid-range. Under the Aug-2026 published weights healthy posts
+      // sit at Ŝ ~ 0.01–0.05 (≈0.43× the retired 2023 scale), so the midpoint and
+      // steepness are rescaled by that factor to keep the same curve shape.
+      return sigmoid(sHat, 0.02, 75);
     }
   }
 }

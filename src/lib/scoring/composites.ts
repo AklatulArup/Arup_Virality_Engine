@@ -195,3 +195,56 @@ export function youtubeShorts(
   const raw = gate * content * neg_penalty;
   return sigmoid(raw);
 }
+
+export function facebookFeed(
+  inputs: {
+    h_3s: number;
+    w_time: number;
+    has_watermark?: boolean;
+    is_repost_heavy?: boolean;
+    share_priv?: number;
+    save?: number;
+    share_pub?: number;
+    likes_per_reach?: number;
+    utis?: number;
+    neg?: number;
+  },
+  k = knowledgeFor("facebook"),
+): number {
+  const { w_wt, w_priv, w_save, w_pub, w_likes, w_neg } = k.weights;
+  const { h3s_weak, h3s_strong } = k.params;
+  const has_watermark = inputs.has_watermark ?? false;
+  const is_repost_heavy = inputs.is_repost_heavy ?? false;
+  const share_priv = inputs.share_priv ?? 0.0;
+  const save = inputs.save ?? 0.0;
+  const share_pub = inputs.share_pub ?? 0.0;
+  const likes_per_reach = inputs.likes_per_reach ?? 0.0;
+  const utis = inputs.utis ?? 0.6; // neutral 3/5 when the survey signal is unavailable
+  const neg = inputs.neg ?? 0.0;
+
+  // --- ORIGINALITY GATE (pre-Phase 1) — fingerprinted as recycled = excluded ---
+  if (has_watermark || is_repost_heavy) {
+    return sigmoid(0.02);
+  }
+
+  // --- PHASE 1 GATE: H_3s (hook strength) ---
+  let gate: number;
+  if (inputs.h_3s < h3s_weak) {
+    gate = (inputs.h_3s / h3s_weak) ** 2;
+  } else if (inputs.h_3s >= h3s_strong) {
+    gate = 1.0 + 0.5 * ((inputs.h_3s - h3s_strong) / (1.0 - h3s_strong));
+  } else {
+    gate = 0.5 + 0.5 * ((inputs.h_3s - h3s_weak) / (h3s_strong - h3s_weak));
+  }
+
+  // --- PHASE 2 CORE: watch time + private shares + saves ---
+  const intent = w_wt * inputs.w_time + w_priv * share_priv + w_save * save + w_pub * share_pub + w_likes * likes_per_reach;
+
+  // --- UTIS satisfaction multiplier (2026): 0.7x at zero interest → 1.3x at max ---
+  const utis_mult = 0.7 + 0.6 * utis;
+
+  const neg_penalty = 1.0 - w_neg * neg;
+
+  const raw = gate * intent * utis_mult * neg_penalty;
+  return sigmoid(raw);
+}

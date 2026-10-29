@@ -25,6 +25,7 @@ const FIELDS_BY_PLATFORM: Record<Platform, Array<keyof ManualInputs>> = {
   // No ytCTRpct: thumbnails don't gate the auto-playing Shorts feed, and the
   // engine ignores CTR for Shorts — offering the field would orphan the input.
   youtube_short: ["ytAVDpct", "ytImpressions", "baselineMedianOverride"],
+  facebook: ["fbHold3s", "fbReach", "fbSends", "fbSaves", "baselineMedianOverride"],
   x: ["xTweepCred", "xReplyByAuthor", "baselineMedianOverride"],
 };
 

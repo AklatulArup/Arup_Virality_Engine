@@ -47,6 +47,7 @@ const SAMPLE_SCHEDULE: Record<Platform, number[]> = {
   x:             [1, 3, 6, 12, 24, 48, 72],           // X dies in 3 days
   tiktok:        [1, 3, 6, 12, 24, 48, 72, 168],      // 7d tail
   instagram:     [1, 3, 6, 12, 24, 48, 72, 168],
+  facebook:      [1, 3, 6, 12, 24, 48, 72, 168],      // Meta discovery — IG-shaped
   youtube_short: [2, 6, 12, 24, 48, 168, 336],        // 14d — Shorts stay active longer
   youtube:       [6, 24, 72, 168, 336, 720],          // 30d — LF is evergreen
 };

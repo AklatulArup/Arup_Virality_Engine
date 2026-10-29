@@ -28,6 +28,7 @@ export function getCriteriaForPlatform(platform?: string): VRSCriterion[] {
   switch (platform) {
     case "tiktok":       return TT_CRITERIA;
     case "instagram":    return IG_CRITERIA;
+    case "facebook":     return IG_CRITERIA; // FB Reels shares IG's signal set (Meta discovery feed)
     case "youtube_short": return YT_SHORTS_CRITERIA;
     case "x":
     case "twitter":      return X_CRITERIA;
@@ -40,6 +41,7 @@ export function getPlatformLabel(platform?: string): string {
   switch (platform) {
     case "tiktok":        return "TikTok";
     case "instagram":     return "Instagram Reels";
+    case "facebook":      return "Facebook";
     case "youtube_short": return "YouTube Shorts";
     case "x":
     case "twitter":       return "X (Twitter)";

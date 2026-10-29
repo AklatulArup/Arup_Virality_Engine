@@ -83,10 +83,10 @@ function windowToHours(raw: string): [number, number | null] {
 
 /** Phase time-windows per platform from the SKILL.md lifecycle tables. */
 function parsePhaseWindows(skillMd: string): Record<string, Array<{ phase: number; startH: number; endH: number | null }>> {
-  // Column order in the tables: YT Long-Form | YT Shorts | IG Reels | TikTok FYP
-  const cols = ["youtube", "youtube_short", "instagram", "tiktok"] as const;
+  // Column order in the tables: YT Long-Form | YT Shorts | IG Reels | TikTok FYP | Facebook
+  const cols = ["youtube", "youtube_short", "instagram", "tiktok", "facebook"] as const;
   const out: Record<string, Array<{ phase: number; startH: number; endH: number | null }>> = {
-    youtube: [], youtube_short: [], instagram: [], tiktok: [],
+    youtube: [], youtube_short: [], instagram: [], tiktok: [], facebook: [],
   };
   const rows = skillMd.match(/^\|\s*Time window\s*\|.*$/gm) ?? [];
   if (rows.length < 3) fail(`SKILL.md: expected ≥3 'Time window' table rows, found ${rows.length}`);
@@ -120,32 +120,38 @@ const premium = mathMd.match(/M_premium ≈ (\d+) \(in-network\) \/ (\d+) \(out-
 const halfLife = Number(xMd.match(/half its visibility score every (\d+) hours/)?.[1] ?? fail("x file: half-life"));
 const tweepFloor = Number(xMd.match(/Below (\d+) = only 3 of your posts/)?.[1] ?? fail("x file: TweepCred floor"));
 
-// X engagement weight table (the 2023 legacy table, directionally valid for Phoenix)
-function xWeight(label: RegExp, name: string): number {
-  const row = xMd.split("\n").find((l) => label.test(l)) ?? fail(`x weight row not found: ${name}`);
-  const m = row.match(/\|\s*[+−~]*\s*\+?(−?[\d.]+)/g);
-  const num = row.match(/\|\s*(?:~)?\s*([+−])?([\d.]+)\s*(?:\(estimated\))?\s*\|/);
-  if (!num) fail(`x weight value not parsed for ${name} in: ${row}`);
-  const sign = num![1] === "−" ? -1 : 1;
-  void m;
-  return sign * Number(num![2]);
+// X engagement weight table — the published `param.rs` defaults (Aug 13 2026).
+// Value cell is the second table cell, e.g. "| **Reply** | 5.0 (+15 for posts from mutual follows, …) |".
+// "−" (U+2212) is the skill's minus sign.
+function xRow(label: RegExp, name: string): string {
+  return xMd.split("\n").find((l) => label.test(l)) ?? fail(`x weight row not found: ${name}`);
+}
+function xWeight(label: RegExp, name: string, which: "first" | "second" = "first"): number {
+  const cell = xRow(label, name).split("|")[2] ?? fail(`x weight cell missing for ${name}`);
+  const nums = [...cell.matchAll(/([+−-])?([\d.]+)/g)];
+  const m = which === "first" ? nums[0] : nums[1];
+  if (!m) fail(`x weight value not parsed for ${name} in: ${cell}`);
+  return (m![1] === "−" || m![1] === "-" ? -1 : 1) * Number(m![2]);
 }
 const xWeights = {
-  authorRepliedReply: xWeight(/Reply that gets author reply back/, "authorRepliedReply"),
-  quote: xWeight(/\*\*Quote tweet\*\*/, "quote"),
+  copyLinkShare: xWeight(/^\| \*\*Share via copy link\*\*/, "copyLinkShare"),
   reply: xWeight(/^\| \*\*Reply\*\* /, "reply"),
-  profileClickEng: xWeight(/Profile click →/, "profileClickEng"),
-  convoClickEng: xWeight(/Conversation click →/, "convoClickEng"),
-  dwell2min: xWeight(/Dwell time \(2\+ min/, "dwell2min"),
-  repost: xWeight(/\*\*Retweet\*\*/, "repost"),
-  bookmark: xWeight(/\*\*Bookmark\*\*/, "bookmark"),
-  like: xWeight(/\*\*Like \(favorite\)\*\*/, "like"),
-  video50: xWeight(/Video watch \(50%\+\)/, "video50"),
-  muteBlock: xWeight(/Mute \/ block/, "muteBlock"),
+  mutualReplyBoost: xWeight(/^\| \*\*Reply\*\* /, "mutualReplyBoost", "second"),
+  quote: xWeight(/^\| \*\*Quote\*\* /, "quote"),
+  dmShare: xWeight(/^\| \*\*Share via DM\*\*/, "dmShare"),
+  follow: xWeight(/^\| \*\*Follow author\*\*/, "follow"),
+  share: xWeight(/^\| \*\*Share \(generic\)\*\*/, "share"),
+  repost: xWeight(/^\| \*\*Repost\*\* /, "repost"),
+  like: xWeight(/^\| \*\*Like\*\* /, "like"),
+  linkOpen: xWeight(/^\| \*\*Click \/ open link\*\*/, "linkOpen", "second"),
+  profileClick: xWeight(/^\| \*\*Profile click\*\*/, "profileClick"),
+  block: xWeight(/^\| \*\*Block author\*\*/, "block"),
+  notInterested: xWeight(/^\| \*\*Not interested\*\*/, "notInterested"),
+  mute: xWeight(/^\| \*\*Mute author\*\*/, "mute"),
   report: xWeight(/^\| \*\*Report\*\* /, "report"),
 };
 // Sanity anchors from the table itself
-if (xWeights.authorRepliedReply !== 75 || xWeights.report !== -369 || xWeights.like !== 0.5) {
+if (xWeights.copyLinkShare !== 20 || xWeights.report !== -234 || xWeights.like !== 0.66 || xWeights.mutualReplyBoost !== 15) {
   fail(`x weights failed sanity anchors: got ${JSON.stringify(xWeights)}`);
 }
 
@@ -158,6 +164,7 @@ function parseCoaching(md: string): Record<string, { phase1: string; phase2: str
     youtube_short: /^\|\s*YT Shorts\s*\|/,
     instagram: /^\|\s*IG Reels\s*\|/,
     tiktok: /^\|\s*TikTok\s*\|/,
+    facebook: /^\|\s*Facebook\s*\|/,
     x: /^\|\s*X\s*\|/,
   };
   const out: Record<string, { phase1: string; phase2: string; phase34: string }> = {};
@@ -183,6 +190,9 @@ require(yt, ["w_sat", "w_avd", "w_ctr", "w_session", "ctr_floor", "r30s_floor"],
 
 const yts = pythonDefaults(read("references/youtube-shorts.md"));
 require(yts, ["w_comp", "w_loop", "w_share", "w_neg", "vvs_threshold", "vvs_k", "comp_floor", "loop_strong"], "youtube-shorts.md");
+
+const fb = pythonDefaults(read("references/facebook.md"));
+require(fb, ["w_wt", "w_priv", "w_save", "w_pub", "w_likes", "w_neg", "h3s_weak", "h3s_strong", "utis"], "facebook.md");
 
 // ── emit ────────────────────────────────────────────────────────────────────
 
@@ -253,6 +263,18 @@ emit("youtube_short", {
   ],
   phaseWindows: phaseWindows.youtube_short,
   coaching: coaching.youtube_short,
+});
+
+emit("facebook", {
+  platform: "facebook", calibrationStamp: stamp, syncedAt,
+  weights: { w_wt: fb.w_wt, w_priv: fb.w_priv, w_save: fb.w_save, w_pub: fb.w_pub, w_likes: fb.w_likes, w_neg: fb.w_neg },
+  params: { h3s_weak: fb.h3s_weak, h3s_strong: fb.h3s_strong, utis_default: fb.utis },
+  gates: [
+    { name: "H_3s", threshold: fb.h3s_strong, weakFloor: fb.h3s_weak, phase: 1, kind: "rate" },
+    { name: "originality", threshold: 1, phase: 0, kind: "binary" },
+  ],
+  phaseWindows: phaseWindows.facebook,
+  coaching: coaching.facebook,
 });
 
 emit("x", {

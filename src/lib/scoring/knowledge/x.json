@@ -1,20 +1,23 @@
 {
   "platform": "x",
-  "calibrationStamp": "June 2026",
-  "syncedAt": "2026-06-10T10:14:48.016Z",
+  "calibrationStamp": "October 2026",
+  "syncedAt": "2026-10-29T11:20:22.026Z",
   "weights": {
-    "authorRepliedReply": 75,
-    "quote": 25,
-    "reply": 13.5,
-    "profileClickEng": 12,
-    "convoClickEng": 11,
-    "dwell2min": 10,
+    "copyLinkShare": 20,
+    "reply": 5,
+    "mutualReplyBoost": 15,
+    "quote": 5,
+    "dmShare": 5,
+    "follow": 4,
+    "share": 2,
     "repost": 1,
-    "bookmark": 10,
-    "like": 0.5,
-    "video50": 0.005,
-    "muteBlock": -74,
-    "report": -369
+    "like": 0.66,
+    "linkOpen": 0.2,
+    "profileClick": 0,
+    "block": -31.2,
+    "notInterested": -52.3,
+    "mute": -58.8,
+    "report": -234
   },
   "params": {
     "halfLifeHours": 6,
@@ -33,8 +36,8 @@
   "phaseWindows": [],
   "coaching": {
     "phase1": "Reply bait > like bait. Ask a question that can't be ignored. Post when your audience is active — first 6 hours are your entire window.",
-    "phase2": "Reply to every comment in the first hour. One reply chain where you engage back = 150x a like algorithmically.",
-    "phase34": "Links kill reach — put them in replies. Build bookmark-worthy content. Conversation depth is everything on X."
+    "phase2": "Reply to every comment in the first hour. A reply from a mutual follow ≈ 30 likes in X's published weights; a copy-link share ≈ 30 likes.",
+    "phase34": "Links are fine in the main post since Jul 2026 — lead with a native hook. Build content people copy-link and DM. Conversation depth is everything on X."
   },
   "decayModel": true
 }

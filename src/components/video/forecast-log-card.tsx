@@ -18,6 +18,7 @@ const MATURITY_DAYS: Record<Platform, number> = {
   x: 3,
   tiktok: 30,
   instagram: 35,
+  facebook: 35,
   youtube_short: 90,
   youtube: 90,
 };

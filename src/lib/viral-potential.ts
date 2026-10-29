@@ -76,7 +76,8 @@ function decisionWindowDays(platform: Platform): number {
   switch (platform) {
     case "x":             return 1;
     case "tiktok":
-    case "instagram":     return 3;
+    case "instagram":
+    case "facebook":      return 3;
     case "youtube_short": return 7;
     case "youtube":       return 10;
   }

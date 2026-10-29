@@ -690,6 +690,7 @@ const VIEW_CURVES: Record<Platform, number[]> = {
   youtube_short: [0.70, 0.14, 0.08, 0.04, 0.02, 0.02],   // Shorts feed spike
   tiktok:        [0.75, 0.12, 0.06, 0.03, 0.02, 0.02],   // FYP spike then decay
   instagram:     [0.72, 0.13, 0.07, 0.04, 0.02, 0.02],   // Reels feed spike
+  facebook:      [0.72, 0.13, 0.07, 0.04, 0.02, 0.02],   // Reels/Feed spike (IG-shaped prior)
   x:             [0.92, 0.05, 0.02, 0.01, 0.00, 0.00],   // viral-day then dead
 };
 

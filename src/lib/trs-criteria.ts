@@ -8,7 +8,7 @@ import type { VideoData, VRSCriterion } from "./types";
 //
 // Key 2026 changes folded in:
 //  • Completion threshold raised to ~70% (was 50%).
-//  • "Qualified View" = watched ≥5 seconds — explicit ranking metric.
+//  • "Qualified View" = watched ≥5 seconds — Creator Rewards payout metric (not confirmed FYP ranking math).
 //  • Rewatch rate now outranks follower count.
 //  • TikTok SEO is a direct ranking signal — spoken words, captions, on-screen text are indexed.
 //  • Original audio now preferred over trending audio for long-term distribution.
@@ -287,9 +287,9 @@ export const TT_CRITERIA: VRSCriterion[] = [
     rationale: (d: VideoData, score: number | null) => {
       const { tags } = getTikTok(d);
       if (score === 1)
-        return `${tags.length} tags including niche-specific keywords. Good for 2026's follower-first testing. The algorithm classifies accounts by niche consistency and tests new videos on audiences who engaged with your previous niche content first.`;
+        return `${tags.length} tags including niche-specific keywords. Good for TikTok's seed-audience testing. The algorithm classifies accounts by niche consistency and tests new videos on audiences who engaged with your previous niche content first.`;
       if (score === 0.5)
-        return `Partial niche signal. Post consistently within one niche so TikTok's classifier identifies your account cleanly. Faceless channels and niche-consistent accounts benefit most from follower-first testing.`;
+        return `Partial niche signal. Post consistently within one niche so TikTok's classifier identifies your account cleanly. Faceless channels and niche-consistent accounts benefit most from seed-audience testing.`;
       return `Weak niche signal. Niche inconsistency confuses the classifier and delays wider testing. Pick one primary content pillar and 3-5 related tags that appear on every video.`;
     },
   },

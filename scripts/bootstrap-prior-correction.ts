@@ -28,7 +28,7 @@ import type { VideoData, ReferenceEntry } from "../src/lib/types";
 
 export const PRIOR_CORRECTION_KV_KEY = "config:prior-correction";
 const BASE = process.env.ENGINE_URL ?? "http://localhost:3000";
-const MATURITY_DAYS: Record<Platform, number> = { x: 3, tiktok: 30, instagram: 35, youtube_short: 30, youtube: 90 };
+const MATURITY_DAYS: Record<Platform, number> = { x: 3, tiktok: 30, instagram: 35, facebook: 35, youtube_short: 30, youtube: 90 };
 const MIN_CHANNEL_VIDEOS = 5;
 const MIN_PLATFORM_SAMPLES = 25;
 // Don't correct beyond this — a runaway factor on thin/odd data shouldn't 10×

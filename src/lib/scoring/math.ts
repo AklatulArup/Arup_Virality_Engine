@@ -41,18 +41,24 @@ export function reachAfterWaves(seed: number, m: number, k: number): number {
   return (seed * (1 - Math.pow(m, k + 1))) / (1 - m);
 }
 
-/** §2.1 X creator-side weighted-sum estimator Ŝ (per impression). */
+/** §2.1 X creator-side weighted-sum estimator Ŝ (per impression).
+ *  Weights are X's published `param.rs` defaults (Aug 2026). Production multiplies
+ *  them by *predicted probabilities*; realized counts / impressions is the creator-side proxy. */
 export function xScore(
   impr: number,
   counts: {
     likes?: number;
     reposts?: number;
     replies?: number;
-    authorReplied?: number;
-    bookmarks?: number;
-    profileEng?: number;
-    dwells?: number;
-    video50?: number;
+    mutualReplies?: number;
+    quotes?: number;
+    dmShares?: number;
+    copyLinkShares?: number;
+    shares?: number;
+    follows?: number;
+    linkOpens?: number;
+    blocks?: number;
+    notInterested?: number;
     mutes?: number;
     reports?: number;
   },
@@ -60,12 +66,16 @@ export function xScore(
     like: number;
     repost: number;
     reply: number;
-    authorRepliedReply: number;
-    bookmark: number;
-    profileClickEng: number;
-    dwell2min: number;
-    video50: number;
-    muteBlock: number;
+    mutualReplyBoost: number;
+    quote: number;
+    dmShare: number;
+    copyLinkShare: number;
+    share: number;
+    follow: number;
+    linkOpen: number;
+    block: number;
+    notInterested: number;
+    mute: number;
     report: number;
   },
 ): number {
@@ -73,12 +83,16 @@ export function xScore(
     w.like * (counts.likes ?? 0) +
     w.repost * (counts.reposts ?? 0) +
     w.reply * (counts.replies ?? 0) +
-    w.authorRepliedReply * (counts.authorReplied ?? 0) +
-    w.bookmark * (counts.bookmarks ?? 0) +
-    w.profileClickEng * (counts.profileEng ?? 0) +
-    w.dwell2min * (counts.dwells ?? 0) +
-    w.video50 * (counts.video50 ?? 0) +
-    w.muteBlock * (counts.mutes ?? 0) +
+    w.mutualReplyBoost * (counts.mutualReplies ?? 0) +
+    w.quote * (counts.quotes ?? 0) +
+    w.dmShare * (counts.dmShares ?? 0) +
+    w.copyLinkShare * (counts.copyLinkShares ?? 0) +
+    w.share * (counts.shares ?? 0) +
+    w.follow * (counts.follows ?? 0) +
+    w.linkOpen * (counts.linkOpens ?? 0) +
+    w.block * (counts.blocks ?? 0) +
+    w.notInterested * (counts.notInterested ?? 0) +
+    w.mute * (counts.mutes ?? 0) +
     w.report * (counts.reports ?? 0);
   return s / Math.max(impr, 1);
 }

@@ -40,7 +40,7 @@ import { classifyLifecycleTier, applyTierCeiling, type TierClassification } from
 import { priorFactorFor, type PriorCorrectionTable } from "./prior-correction";
 import { computeCreatorBand } from "./creator-band";
 
-export type Platform = "youtube" | "youtube_short" | "tiktok" | "instagram" | "x";
+export type Platform = "youtube" | "youtube_short" | "tiktok" | "instagram" | "facebook" | "x";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // INPUTS + OUTPUTS
@@ -140,6 +140,11 @@ export interface ManualInputs {
   // X
   xTweepCred?:     number;
   xReplyByAuthor?: number;
+  // Facebook (Reels + Feed) — from Meta Business Suite / creator insights
+  fbHold3s?:       number;  // % retained at 3 seconds
+  fbReach?:        number;  // accounts reached
+  fbSends?:        number;  // private sends (Messenger/WhatsApp) — top FB signal
+  fbSaves?:        number;
   // Override
   baselineMedianOverride?: number;
 }
@@ -281,6 +286,20 @@ export const PLATFORM_CONFIG: Record<Platform, {
     label: "Instagram Reels",
     horizonDays: 35,
     // Audition phase then save-extended tail
+    cumulativeShare: (d) => lerpShare(d, [
+      [0, 0.001], [1, 0.33], [3, 0.57], [7, 0.77], [14, 0.92], [35, 1.00],
+    ]),
+    minBaselinePosts: 8,
+    upsideMultiplier: 12,
+    downsideMultiplier: 0.10,
+    scoreExponent: 2.2,
+  },
+  facebook: {
+    label: "Facebook",
+    horizonDays: 35,
+    // Provisional prior: cloned from Instagram Reels (both Meta discovery feeds
+    // with the same audition→save-extended shape). Re-baseline once FN Facebook
+    // outcomes mature in the pool (calibration loop / decay-fit will replace this).
     cumulativeShare: (d) => lerpShare(d, [
       [0, 0.001], [1, 0.33], [3, 0.57], [7, 0.77], [14, 0.92], [35, 1.00],
     ]),
@@ -1250,7 +1269,7 @@ function recordDataSources(
     manualOrMissingWithAI("xTweepCred", "TweepCred", "TweepCred score",
       "Premium dashboard. Below 0.65 hard-throttles distribution.", "high");
     manualOrMissingWithAI("xReplyByAuthor", "Author replies", "Replies engaged by author",
-      "Count of replies the author responded to. Unlocks +75 signal (150× a like).", "high");
+      "Count of replies the author responded to. Keeps the reply chain alive (replies +5, mutual-follow replies +15).", "high");
   }
 }
 

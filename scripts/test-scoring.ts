@@ -23,7 +23,7 @@ function approx(a: number, b: number, tol: number): boolean {
   return Math.abs(a - b) <= tol;
 }
 
-const NOW = new Date("2026-06-11T12:00:00Z").getTime(); // knowledge fresh (stamp June 2026)
+const NOW = new Date("2026-10-29T12:00:00Z").getTime(); // knowledge fresh (stamp October 2026)
 
 function baseInput(platform: AdapterInput["platform"], overrides: Partial<AdapterInput> = {}): AdapterInput {
   return {
@@ -70,9 +70,9 @@ const waves = analyzeWaves([
 ]);
 check("§5 m̂₁ = (1150−420)/420 ≈ 1.74", approx(waves.mHats[0], 1.738, 0.005), `got ${waves.mHats[0]?.toFixed(3)}`);
 check("§5 m̂₂ = 1420/1150 ≈ 1.23", approx(waves.mHats[1], 1.235, 0.005), `got ${waves.mHats[1]?.toFixed(3)}`);
-check("x_score break-even: 1 reply-back chain ≈ 177 like-equivalents", approx((75 + 13.5) / 0.5, 177, 0.1));
+check("x_score break-even: 1 report ≈ 355 like-equivalents", approx(234 / 0.66, 354.5, 0.1));
 const k = knowledgeFor("x");
-check("xScore weights injected from knowledge (report −369)", k.weights.report === -369);
+check("xScore weights injected from knowledge (report −234, copy-link share 20)", k.weights.report === -234 && k.weights.copyLinkShare === 20);
 check("linkedin_comment_value(20,expert,thread) = 45", linkedinCommentValue(20, true, true) === 2.5 * 6 * 3);
 check("google_citation_p chain multiplies", approx(googleCitationP(0.9, 0.3, 0.4), 0.108, 1e-9));
 check("brier([0.7],[1]) = 0.09", approx(brier([0.7], [1]), 0.09, 1e-9));
@@ -84,6 +84,7 @@ const samples: AdapterInput[] = [
   baseInput("instagram", { manualInputs: { igHold3s: 64, igReach: 4800, igSends: 90, igSaves: 60 } }),
   baseInput("youtube", { manualInputs: { ytCTRpct: 5.2, ytAVDpct: 48, ytImpressions: 90_000 } }),
   baseInput("youtube_short", { manualInputs: { ytAVDpct: 74 } }),
+  baseInput("facebook", { manualInputs: { fbHold3s: 66, fbReach: 5000, fbSends: 120, fbSaves: 80 } }),
   baseInput("x", { xRaw: { replies: 40, quotes: 8, bookmarks: 25, reposts: 30 }, manualInputs: { xTweepCred: 71 }, views: 12_000 }),
 ];
 for (const s of samples) {
@@ -106,6 +107,12 @@ for (const s of samples) {
     const tc = c.gates.find((g) => g.name === "TweepCred");
     check("x: TweepCred 71 passes ≥65 gate", tc?.verdict === "pass");
     check("x: omitted-components caveat present", c.caveats.some((x) => x.includes("public counts only")));
+  }
+  if (s.platform === "facebook") {
+    const gate = c.gates.find((g) => g.name === "H_3s");
+    check("facebook: H_3s gate measured with n + wilson + pass", gate?.n === 5000 && gate?.wilson_lb != null && gate?.verdict === "pass", JSON.stringify(gate));
+    check("facebook: composite + probability present", c.composite_score != null && c.virality_probability != null);
+    check("facebook: w_time/UTIS neutral-default caveat tagged", c.caveats.some((x) => x.includes("UTIS")));
   }
 }
 
@@ -149,7 +156,7 @@ check("far horizons null + explosive caveat", explosiveContract.projected_views.
 
 // ═══ ACCEPTANCE 5 — stale knowledge stamp → caveat ═══
 console.log("\n[5] Staleness (Domain A 60d)");
-const STALE_NOW = new Date("2026-08-15T00:00:00Z").getTime(); // 75 days after June 1
+const STALE_NOW = new Date("2026-12-21T00:00:00Z").getTime(); // 81 days after the October 2026 stamp
 const stale = scoreContent(baseInput("tiktok", { manualInputs: { ttCompletionPct: 72 } }), null, STALE_NOW);
 check("staleness caveat appears past 60 days", stale.caveats.some((c) => c.includes("Stale knowledge")), stale.caveats.join(" | "));
 const fresh = scoreContent(baseInput("tiktok", { manualInputs: { ttCompletionPct: 72 } }), null, NOW);
@@ -187,10 +194,7 @@ check("baselines (μ,σ) recorded", report.baselines.C_comp?.sigma > 0);
 console.log(`    Brier candidate ${report.brierCandidate.toFixed(3)} vs frozen ${report.brierFrozen.toFixed(3)} · holdout ${report.holdoutSize}`);
 
 // Extra: x_score sanity on partial public counts
-const xs = xScore(12_000, { likes: 300, reposts: 30, replies: 48, bookmarks: 25 }, {
-  like: 0.5, repost: 1, reply: 13.5, authorRepliedReply: 75, bookmark: 10,
-  profileClickEng: 12, dwell2min: 10, video50: 0.005, muteBlock: -74, report: -369,
-});
+const xs = xScore(12_000, { likes: 300, reposts: 30, replies: 40, quotes: 8 }, knowledgeFor("x").weights as never);
 check("\nxScore partial-count estimator positive + per-impression", xs > 0 && xs < 1, `got ${xs.toFixed(4)}`);
 
 console.log(`\n═══ ${passed} passed · ${failed} failed ═══`);

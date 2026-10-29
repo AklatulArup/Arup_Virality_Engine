@@ -34,7 +34,7 @@ export interface VideoData {
   thumbnail: string;
   tags: string[];
   description: string;
-  platform?: "youtube" | "youtube_short" | "tiktok" | "instagram" | "x";
+  platform?: "youtube" | "youtube_short" | "tiktok" | "instagram" | "facebook" | "x";
   shares?: number;
   saves?: number;
   channelContext?: ChannelContext;
@@ -185,6 +185,7 @@ export interface CompetitorEntry {
     youtube?: string;
     tiktok?: string;
     instagram?: string;
+    facebook?: string;
     x?: string;
   };
 }
@@ -196,6 +197,7 @@ export type PlatformId =
   | "youtube-shorts"
   | "tiktok"
   | "instagram"
+  | "facebook"
   | "x";
 
 export interface PlatformSignal {
@@ -311,7 +313,7 @@ export type SentimentLabel = "positive" | "neutral" | "negative";
 export interface ReferenceEntry {
   id: string;
   type: "channel" | "video";
-  platform?: "youtube" | "youtube_short" | "tiktok" | "instagram" | "x";
+  platform?: "youtube" | "youtube_short" | "tiktok" | "instagram" | "facebook" | "x";
   name: string;
   channelId: string;
   channelName: string;

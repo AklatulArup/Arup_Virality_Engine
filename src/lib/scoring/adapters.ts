@@ -127,6 +127,18 @@ export function toCanonical(input: AdapterInput): CanonicalMetrics {
       base.s = input.shares != null && input.shares > 0 ? rate(input.shares / views, views) : null;
       break;
     }
+    case "facebook": {
+      base.H_3s = rate(pct(m.fbHold3s), views);
+      const reach = m.fbReach != null && m.fbReach > 0 ? m.fbReach : null;
+      base.SPR = reach != null && m.fbSends != null ? rate(m.fbSends / reach, reach) : null;
+      base.save_rate = reach != null && m.fbSaves != null ? rate(m.fbSaves / reach, reach) : null;
+      base.likes_per_reach = reach != null ? rate(input.likes / reach, reach) : null;
+      if (reach == null) notes.push("Accounts-reached not on file — private sends/saves/likes-per-reach unavailable (add Meta Business Suite insights via 'Your data').");
+      base.s = input.shares != null && input.shares > 0 ? rate(input.shares / views, views) : null;
+      // Composite requires w_time + UTIS; neither is exposed publicly for Facebook.
+      notes.push("Watch-time (w_time) and UTIS interest score not measurable — composite uses the skill's neutral defaults; H_3s gate unaffected.");
+      break;
+    }
     case "x": {
       base.xCounts = {
         impressions: views,
@@ -143,8 +155,8 @@ export function toCanonical(input: AdapterInput): CanonicalMetrics {
         reports: null,
         tweepCred: m.xTweepCred ?? null,
       };
-      notes.push("X score computed from public counts only — author-replied chains, profile clicks, dwells, mutes and reports are not public; omitted terms listed per §2.1.");
-      if (!input.xRaw) notes.push("Quotes/bookmarks unavailable on this record — counted as 0 in Ŝ (public-data floor).");
+      notes.push("X score computed from public counts only (likes, reposts, replies, quotes) with X's published Aug-2026 weights — copy-link/DM shares, follows, mutual-follow replies, mutes and reports are not public; omitted terms listed per §2.1.");
+      if (!input.xRaw) notes.push("Quotes unavailable on this record — counted as 0 in Ŝ (public-data floor).");
       break;
     }
   }

@@ -10,6 +10,7 @@ export const PLATFORM_META: Record<Platform, { code: string; label: string; colo
   youtube_short: { code: "YTS", label: "YouTube Short", color: "#D96AA5", dim: "rgba(217,106,165,0.14)" },
   tiktok:        { code: "TTK", label: "TikTok",        color: "#2ECFD9", dim: "rgba(46,207,217,0.14)" },
   instagram:     { code: "IGR", label: "Instagram",     color: "#9B87E8", dim: "rgba(155,135,232,0.14)" },
+  facebook:      { code: "FBK", label: "Facebook",      color: "#4F9CFF", dim: "rgba(79,156,255,0.14)" },
   x:             { code: "X",   label: "X",             color: "#9E9C97", dim: "rgba(158,156,151,0.14)" },
 };
 

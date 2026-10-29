@@ -57,7 +57,7 @@ const PLATFORM_CONTEXT: Record<string, string> = {
     "Kill threshold: CTR <2% = Browse/Suggested sunset. AVD <30% over 90 days = decay. " +
     "PSYCHOLOGY: Trust is the dominant mechanism. Viewers feel personally betrayed by clickbait (title over-promises, content under-delivers). " +
     "Curiosity + Inspiration sustain AVD. The Zeigarnik effect (open loops stacked every 2-3 min) prevents exit. " +
-    "Satisfaction signal = did the viewer feel their time was well spent? Hype button (2026) directly measures this. " +
+    "Satisfaction signal = did the viewer feel their time was well spent? Hype button (long-form, channels 500–500K subs, first 7 days) directly measures this. Public views count from the first frame since Aug 24 2026 — judge on engaged views, watch time and AVD. " +
     "Niche: prop trading → funded trading search → forex education → trading tutorials. " +
     "CTA hierarchy: keep watching (AVD) > Hype button > FundedNext free trial > subscribe for series.",
 
@@ -93,12 +93,12 @@ const PLATFORM_CONTEXT: Record<string, string> = {
     "CTA: DM + save dual signal > DM send to named recipient > save for reference > FundedNext free trial.",
 
   x:
-    "PLATFORM: X (Twitter) — 2026 Grok/Phoenix transformer ranker. OPEN-SOURCE WEIGHTS (github.com/twitter/the-algorithm-ml): " +
-    "Like +0.5, Retweet +1.0, Reply +13.5 (27x a like), Reply engaged by author +75 (150x a like — single highest positive weight), Profile click + engagement +12, Good click into convo +11, Stay 2+ min in convo +10, Video 50% playback +0.005. Negative: 'Show less often'/mute/block -74, Report -369. " +
-    "Kill thresholds: TweepCred score below 0.65 = only 3 of your tweets considered per cycle. External link in post body = low reach (X keeps users on-platform). 2+ hashtags triggers spam classifier, reduces reach ~40%. 6-hour time decay: post loses 50% visibility every 6 hours. " +
+    "PLATFORM: X (Twitter) — 2026 Grok/Phoenix transformer ranker. PUBLISHED WEIGHTS (xai-org/x-algorithm param.rs, Aug 2026; multipliers on predicted probabilities): " +
+    "Share via copy link +20 (~30x a like — highest positive weight), Reply +5 (+15 more from mutual follows), Quote +5, Share via DM +5, Follow author +4, Share +2, Repost +1, Like +0.66, Open link +0.2, Profile click 0. Negative: Block -31.2, Not interested -52.3, Mute -58.8, Report -234. " +
+    "Kill thresholds: TweepCred score below 0.65 = only 3 of your tweets considered per cycle. Links in the post body are no longer penalized (X product head + Musk, Jul 2026) but still need a native hook. 2+ hashtags triggers spam classifier, reduces reach ~40%. 6-hour time decay: post loses 50% visibility every 6 hours. " +
     "2026 additions: Phoenix transformer reads post text + watches videos (100M+ daily per Musk). Hand-engineered features eliminated. Author Diversity Penalty limits posts per account per feed session. Premium boost: +4 to +16 TweepCred points. Community posts now surface to non-members. Grok-powered 'For You' customisation via natural language. " +
-    "PSYCHOLOGY: X is the status and opinion engine. Replies are weighted so high (27x a like) because they signal conversation quality and opinion dominance. A reply-chain where the author replies back scores the highest of anything on the platform. " +
-    "CTA: reply to EVERY reply in first 30 min (unlock the +75 weight) > put links in first reply never the post > 0-2 hashtags max > 2-3 posts/day (author diversity) > post during first 6-hour window > FundedNext free trial in bio.",
+    "PSYCHOLOGY: X is the status and opinion engine. Content people copy-link, DM, quote and reply to wins; replies from mutual follows count ~4x more. " +
+    "CTA: make it worth copy-linking or DMing > reply to EVERY reply in first 30 min > link can sit in the post behind a native hook > 0-2 hashtags max > 2-3 posts/day (author diversity) > post during first 6-hour window > FundedNext free trial in bio.",
 };
 
 function getPlatformContext(platform?: string): string {

@@ -117,7 +117,7 @@ export const INPUT_TOOLTIPS: Record<string, InputTooltip> = {
     where: "Manual count — open the post's replies, count how many times the author has responded.",
     good:  "Author engages back on ≥50% of replies in the first hour",
     bad:   "Author doesn't engage at all",
-    why:   "The single highest-weight positive signal in the open-source ranker: +75 per reply-engaged-by-author (150× a like). Every reply the author responds to compounds the ranking score.",
+    why:   "Answering replies keeps the conversation alive inside X's ~6-hour visibility window. Replies weigh +5 (≈7.6 likes) and replies from mutual follows +15 more in X's published Aug-2026 weights; the old +75 author-reply weight is retired.",
   },
 
   // ─── Override ────────────────────────────────────────────────────────────

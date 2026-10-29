@@ -37,7 +37,7 @@ import type { VideoData, ReferenceEntry } from "../src/lib/types";
 import type { ForecastSnapshot } from "../src/lib/forecast-learning";
 
 const BASE = process.env.ENGINE_URL ?? "http://localhost:3000";
-const MATURITY_DAYS: Record<Platform, number> = { x: 3, tiktok: 30, instagram: 35, youtube_short: 30, youtube: 90 };
+const MATURITY_DAYS: Record<Platform, number> = { x: 3, tiktok: 30, instagram: 35, facebook: 35, youtube_short: 30, youtube: 90 };
 const MIN_CHANNEL_VIDEOS = 5;
 // Quantile pairs to trial, tightest first. Raw 10/90 under-covers on UNSEEN
 // channels (creators aren't perfectly exchangeable — each has its own bias),

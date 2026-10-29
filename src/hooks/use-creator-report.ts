@@ -27,6 +27,8 @@ export function profileInputFor(platform: Platform, handle: string): string {
       return `https://www.tiktok.com/@${h}`;
     case "instagram":
       return `https://www.instagram.com/${h}/`;
+    case "facebook":
+      return `https://www.facebook.com/${h}`;
     case "x":
       return `https://x.com/${h}`;
   }
@@ -42,6 +44,8 @@ export function videoUrlFor(platform: Platform, v: EnrichedVideo): string {
       return `https://www.tiktok.com/@${(v.channel || "").replace(/^@/, "")}/video/${v.id}`;
     case "instagram":
       return `https://www.instagram.com/reel/${v.id}/`;
+    case "facebook":
+      return `https://www.facebook.com/watch/?v=${v.id}`;
     case "x":
       return `https://x.com/i/status/${v.id}`;
   }

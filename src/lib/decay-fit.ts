@@ -55,12 +55,13 @@ const KNOT_DAYS: Record<Platform, number[]> = {
   youtube_short: [1, 7, 30],
   tiktok:        [1, 3, 7, 14],
   instagram:     [1, 3, 7, 14],
+  facebook:      [1, 3, 7, 14],
   x:             [0.25, 0.5, 1, 2],
 };
 
 // Horizon (final knot, share pinned to 1.0) per platform — matches forecast.ts.
 const HORIZON_DAY: Record<Platform, number> = {
-  youtube: 365, youtube_short: 90, tiktok: 30, instagram: 35, x: 3,
+  youtube: 365, youtube_short: 90, tiktok: 30, instagram: 35, facebook: 35, x: 3,
 };
 
 // ─── TYPES ────────────────────────────────────────────────────────────────

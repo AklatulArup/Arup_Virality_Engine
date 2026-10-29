@@ -85,6 +85,8 @@ export const PLATFORM_INTEL: Record<PlatformId, PlatformInsight> = {
       "End screens and cards drive session contribution — link to relevant next video",
       "Chapters improve retention by letting viewers jump to relevant sections",
       "Community tab posts 1-2 days before upload prime the notification audience",
+      "Run Test & Compare on titles + thumbnails (winner by watch time per impression, not CTR)",
+      "Public views count from the first frame since Aug 24 2026 — judge videos on engaged views, watch time and AVD, not raw views",
     ],
     optimalFormats: [
       "8-25 minute focused videos",
@@ -101,7 +103,7 @@ export const PLATFORM_INTEL: Record<PlatformId, PlatformInsight> = {
       "Generic titles without curiosity trigger",
       "Ignoring comment section (reduces engagement signals)",
     ],
-    lastUpdated: "2026-Q1",
+    lastUpdated: "2026-Q4",
   },
 
   "youtube-shorts": {
@@ -152,6 +154,9 @@ export const PLATFORM_INTEL: Record<PlatformId, PlatformInsight> = {
       "End with a reason to re-watch or loop (revelation, punchline, callback)",
       "Trending sounds boost initial distribution by 20-40%",
       "Post 1-3 Shorts daily during growth phase, then 3-5x/week to maintain",
+      "Set a custom Shorts thumbnail (launched Jul 2026) — it shows on Search, Home and the channel page",
+      "Group challenge-journey Shorts into a Shorts series (seasons/episodes, Sep 2026)",
+      "No dislike button on Shorts since Jun 2026 — 'Not interested' / 'Don't recommend channel' are the negative signals, at channel level",
     ],
     optimalFormats: [
       "30-45 second focused clips",
@@ -166,8 +171,9 @@ export const PLATFORM_INTEL: Record<PlatformId, PlatformInsight> = {
       "Horizontal video letterboxed to vertical",
       "No text overlays (loses silent viewers)",
       "Repurposed TikTok with watermark (deprioritized)",
+      "Re-uploading other creators' clips — since Oct 1 2026 Shorts cuts reach for channels that mostly re-upload",
     ],
-    lastUpdated: "2026-Q1",
+    lastUpdated: "2026-Q4",
   },
 
   tiktok: {
@@ -320,16 +326,87 @@ export const PLATFORM_INTEL: Record<PlatformId, PlatformInsight> = {
     lastUpdated: "2026-Q1",
   },
 
+  facebook: {
+    id: "facebook",
+    name: "Facebook (Reels & Feed)",
+    icon: "FB",
+    signals: [
+      {
+        name: "Private Shares",
+        weight: "highest",
+        description:
+          "Sending a post to a friend via Messenger/WhatsApp is the highest-weighted interaction in 2026 — it outranks likes. Build content people send to one person.",
+        confidence: "confirmed",
+      },
+      {
+        name: "Watch Time / Completion",
+        weight: "highest",
+        description:
+          "Strongest Reels signal. Videos watched start-to-finish get pushed far wider — ~90% completion can 10x initial distribution.",
+        confidence: "confirmed",
+      },
+      {
+        name: "UTIS Interest Score",
+        weight: "strong",
+        description:
+          "The 1–5 'how well does this match your interests?' survey after Reels (Jan 2026). Declared interest corrects for passive scrolling and scales distribution.",
+        confidence: "strong",
+      },
+      {
+        name: "Saves",
+        weight: "strong",
+        description:
+          "Lasting-value signal, weighted above likes. Rule breakdowns, checklists, and reference clips earn saves.",
+        confidence: "strong",
+      },
+      {
+        name: "Originality (fingerprint)",
+        weight: "moderate",
+        description:
+          "Meta fingerprints video and favours the first uploader. Watermarked/reposted clips are suppressed from recommendations.",
+        confidence: "confirmed",
+      },
+    ],
+    keyBehaviors: [
+      "Reels is the discovery engine — ~50% of feeds are now recommended non-followed content",
+      "Post original uploads (no TikTok/CapCut watermark — it's fingerprinted and suppressed)",
+      "Publish same-day and let it ride: same-day Reels get up to +50% surfacing",
+      "Make the clip send-worthy in Messenger/WhatsApp — private shares outrank likes",
+      "Reuse the same vertical clip across Facebook, Instagram Reels, and Messenger (cross-app graph)",
+      "Keep Reels tight (15–90s) — completion is king",
+    ],
+    optimalFormats: [
+      "15–90 second vertical Reels with text overlays",
+      "Cliffhanger Reels funnelling to a longer Feed video",
+      "Meet-the-trader / changing-lives story clips",
+      "Educational challenge/rule breakdowns",
+    ],
+    antiPatterns: [
+      "Reposting watermarked TikTok/IG clips (fingerprinted → excluded)",
+      "Static image/link posts (lowest unconnected distribution)",
+      "Ambiguous content that fails the UTIS 'is this for me?' test",
+      "Withholding everything as bait — kills completion before it can funnel",
+    ],
+    lastUpdated: "2026-Q3",
+  },
+
   x: {
     id: "x",
     name: "X (Twitter)",
     icon: "X",
     signals: [
       {
+        name: "Copy-Link & DM Shares",
+        weight: "highest",
+        description:
+          "In X's published weights (Aug 2026) a copy-link share is the top positive signal (+20, ~30x a like); DM shares and quotes score +5. Content people paste elsewhere — data, charts, payout proof — travels furthest.",
+        confidence: "confirmed",
+      },
+      {
         name: "Reply Engagement",
         weight: "highest",
         description:
-          "Replies are weighted 27x more than likes in X's algorithm. Content that sparks replies gets massively more distribution.",
+          "Replies score +5 (~7.6x a like), and replies from mutual follows get +15 more. Content that sparks real conversation still gets far more distribution than likes.",
         confidence: "confirmed",
       },
       {
@@ -357,7 +434,7 @@ export const PLATFORM_INTEL: Record<PlatformId, PlatformInsight> = {
         name: "Link Click-Through",
         weight: "moderate",
         description:
-          "Posts with external links are deprioritized vs native content. Put links in replies, not the main post.",
+          "X dropped the link penalty (Jul 2026); link opens score +0.2. Links can go in the main post — lead with a native hook so the post earns replies and shares before the click.",
         confidence: "confirmed",
       },
       {
@@ -371,7 +448,7 @@ export const PLATFORM_INTEL: Record<PlatformId, PlatformInsight> = {
     keyBehaviors: [
       "First line is the hook — make it a bold claim, question, or contrarian take",
       "Threads outperform single tweets for educational content (each reply gets its own impression)",
-      "Post images/videos natively (external links get deprioritized)",
+      "Links are fine in the main post now — but open with a native hook, chart or image",
       "Engage with replies in first 30 minutes to boost the conversation signal",
       "Quote-tweet with added insight > simple repost",
       "Optimal posting: 2-5x daily, with 1 high-effort thread per day",
@@ -386,13 +463,13 @@ export const PLATFORM_INTEL: Record<PlatformId, PlatformInsight> = {
       "Poll with controversial options",
     ],
     antiPatterns: [
-      "External links in main post body (kills reach)",
+      "Bare links with no hook (link opens score only +0.2)",
       "Posting without engaging with replies",
       "Thread with no hook in first tweet",
       "Overusing hashtags (more than 2 looks spammy on X)",
       "Auto-cross-posting from other platforms (no native optimization)",
     ],
-    lastUpdated: "2026-Q1",
+    lastUpdated: "2026-Q4",
   },
 };
 
