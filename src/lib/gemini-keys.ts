@@ -14,7 +14,7 @@
 //
 // Usage:
 //   import { fetchGemini } from "./gemini-keys";
-//   const res = await fetchGemini("gemini-2.0-flash", { body, model });
+//   const res = await fetchGemini({ model: GEMINI_MODEL, bodyJson });
 //
 // The caller never sees which key was used. The helper returns the raw
 // Response object so the caller can stream / json-parse / inspect as usual.
@@ -61,8 +61,31 @@ export function getGeminiKeys(): string[] {
   return keys;
 }
 
+// ── Model names ─────────────────────────────────────────────────────────────
+// Google retires Gemini models on its own schedule (gemini-2.0-flash went away
+// in 2026 and every AI feature silently 404'd). Every caller reads these two
+// constants, so the next retirement is a Vercel env change — GEMINI_MODEL /
+// GEMINI_MODEL_LITE — not a code change. Defaults verified on a free-tier key
+// 2026-10-30 (2.5-flash is closed to new users).
+export const GEMINI_MODEL      = process.env.GEMINI_MODEL?.trim()      || "gemini-3.5-flash";
+export const GEMINI_MODEL_LITE = process.env.GEMINI_MODEL_LITE?.trim() || "gemini-3.5-flash-lite";
+
+/**
+ * Gemini 3.x full Flash "thinks" before answering and those thought tokens
+ * count against maxOutputTokens — with this codebase's small budgets (≤512)
+ * the visible answer gets truncated (finishReason MAX_TOKENS). Turn thinking
+ * off for the full model unless the caller set its own thinkingConfig. The
+ * Lite model doesn't think and rejects thinkingBudget, so it is left alone.
+ */
+function withThinkingOff(model: string, body: unknown): unknown {
+  if (/lite/i.test(model) || typeof body !== "object" || body === null) return body;
+  const b = body as { generationConfig?: Record<string, unknown> };
+  if (b.generationConfig?.thinkingConfig) return body;
+  return { ...b, generationConfig: { ...(b.generationConfig ?? {}), thinkingConfig: { thinkingBudget: 0 } } };
+}
+
 export interface FetchGeminiOptions {
-  model?:       string;                  // default: "gemini-2.0-flash"
+  model?:       string;                  // default: GEMINI_MODEL
   bodyJson:     unknown;                 // POST body — will be JSON-stringified
   signal?:      AbortSignal;
 }
@@ -82,7 +105,8 @@ export interface FetchGeminiResult {
  * response. If every key fails the final error is surfaced to the caller.
  */
 export async function fetchGemini(opts: FetchGeminiOptions): Promise<FetchGeminiResult> {
-  const model = opts.model ?? "gemini-2.0-flash";
+  const model = opts.model ?? GEMINI_MODEL;
+  const body = JSON.stringify(withThinkingOff(model, opts.bodyJson));
   const keys = getGeminiKeys();
   if (keys.length === 0) {
     return { ok: false, reason: "no_keys", attempts: 0 };
@@ -106,7 +130,7 @@ export async function fetchGemini(opts: FetchGeminiOptions): Promise<FetchGemini
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(opts.bodyJson),
+          body,
           signal: opts.signal,
         },
       );

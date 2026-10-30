@@ -26,7 +26,7 @@
 // confidence scoring treats it as a signal not a measurement — same pattern
 // as the thumbnail-CTR predictor for YT.
 
-import { fetchGemini } from "./gemini-keys";
+import { fetchGemini, GEMINI_MODEL } from "./gemini-keys";
 
 export interface HookFormulaMatch {
   name:  "contradiction" | "delayed-reveal" | "question" | "data" | "pattern-interrupt" | "none";
@@ -61,7 +61,7 @@ export async function scoreHookStrength(params: {
   // Multi-key rotation via fetchGemini: tries all configured GEMINI_API_KEY*
   // env vars in round-robin and falls through on 429/403 automatically.
   const gem = await fetchGemini({
-    model: "gemini-2.0-flash",   // vision — needs full Flash
+    model: GEMINI_MODEL,   // vision — needs full Flash
     bodyJson: {
       contents: [{
         role: "user",

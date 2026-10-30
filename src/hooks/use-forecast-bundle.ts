@@ -43,6 +43,7 @@ import {
 import { classifyCreatorNiche, nicheAdjustment } from "@/lib/niche-classifier";
 import { MIN_FORMAT_SIBLINGS, selectBaselineSiblings } from "@/lib/video-classifier";
 import { assessCreatorReputation } from "@/lib/reputation";
+import { canonicalVideoUrl } from "@/lib/video-url";
 import { assessCrossPlatformReputation } from "@/lib/cross-platform-reputation";
 import { recordForecast } from "@/lib/forecast-learning";
 import type { EnrichedVideo, VideoData } from "@/lib/types";
@@ -597,7 +598,7 @@ export function useForecastBundle(video: EnrichedVideo, creatorHistory: VideoDat
       .map(([k]) => k);
     recordForecast({
       videoId: video.id,
-      videoUrl: (video as { url?: string }).url,
+      videoUrl: (video as { url?: string }).url ?? canonicalVideoUrl(platform, video.id, video.channel) ?? undefined,
       platform,
       creatorHandle: video.channel,
       publishedAt: video.publishedAt,

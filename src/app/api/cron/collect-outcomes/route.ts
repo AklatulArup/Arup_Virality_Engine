@@ -25,6 +25,9 @@ import { recomputeConformalTable } from "@/lib/conformal";
 import { recomputeDecayTable } from "@/lib/decay-fit";
 import { recomputePriorCorrection } from "@/lib/prior-correction";
 import { fetchMarketVolatility } from "@/lib/seasonality";
+import { canonicalVideoUrl } from "@/lib/video-url";
+import { fetchVideo } from "@/lib/youtube";
+import { internalBaseUrl } from "@/lib/internal-base-url";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 min — rescrapes can be slow
@@ -197,20 +200,20 @@ export async function GET(req: NextRequest) {
 // Returns null if the video is unavailable (deleted, private, or scraper down).
 
 async function rescrapeViews(snap: ForecastSnapshot): Promise<number | null> {
-  const url = snap.videoUrl;
+  // Older snapshots were saved without a URL — rebuild it from platform + id.
+  const url = snap.videoUrl ?? canonicalVideoUrl(snap.platform, snap.videoId, snap.creatorHandle);
   if (!url) return null;
 
-  const base = process.env.NEXT_PUBLIC_BASE_URL ??
-               (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+  const base = internalBaseUrl();
   if (!base) return null;
 
   switch (snap.platform) {
     case "youtube":
     case "youtube_short": {
-      const r = await fetch(`${base}/api/analyze?url=${encodeURIComponent(url)}`, { cache: "no-store" });
-      if (!r.ok) return null;
-      const data = await r.json();
-      return typeof data?.video?.views === "number" ? data.video.views : null;
+      // Direct YouTube Data API lookup — the old /api/analyze route no longer
+      // exists (every call 404'd), and an in-process call needs no base URL.
+      const video = await fetchVideo(snap.videoId);
+      return typeof video?.views === "number" ? video.views : null;
     }
 
     case "tiktok": {
@@ -224,7 +227,7 @@ async function rescrapeViews(snap: ForecastSnapshot): Promise<number | null> {
       if (!r.ok) return null;
       const data = await r.json();
       const match = data?.videos?.find((v: { id?: string; url?: string }) =>
-        v.id === snap.videoId || v.url === snap.videoUrl);
+        v.id === snap.videoId || v.url === url);
       return match?.views ?? null;
     }
 
@@ -238,7 +241,7 @@ async function rescrapeViews(snap: ForecastSnapshot): Promise<number | null> {
       if (!r.ok) return null;
       const data = await r.json();
       const match = data?.videos?.find((v: { id?: string; url?: string }) =>
-        v.id === snap.videoId || v.url === snap.videoUrl);
+        v.id === snap.videoId || v.url === url);
       return match?.views ?? null;
     }
 

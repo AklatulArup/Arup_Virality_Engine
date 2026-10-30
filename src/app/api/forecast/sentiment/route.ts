@@ -22,7 +22,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { kvGet, kvSet, isKvAvailable } from "@/lib/kv";
-import { fetchGemini, isGeminiConfigured } from "@/lib/gemini-keys";
+import { fetchGemini, isGeminiConfigured, GEMINI_MODEL_LITE } from "@/lib/gemini-keys";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
 
     if (isGeminiConfigured()) {
       const gem = await fetchGemini({
-        model: "gemini-2.0-flash-lite",
+        model: GEMINI_MODEL_LITE,
         bodyJson: {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: { temperature: 0.1, maxOutputTokens: 512, responseMimeType: "application/json" },

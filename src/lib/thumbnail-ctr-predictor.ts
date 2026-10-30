@@ -41,7 +41,7 @@
 // Midpoints used for the point estimate. Confidence is "high" when Gemini
 // marks at least 10 criteria as clearly assessable, "medium" otherwise.
 
-import { fetchGemini } from "./gemini-keys";
+import { fetchGemini, GEMINI_MODEL } from "./gemini-keys";
 
 export interface ThumbnailCriterionScore {
   name:   string;
@@ -70,7 +70,7 @@ export async function scoreThumbnail(
   // automatically — all configured GEMINI_API_KEY / _2 / _3 / ... are
   // tried in round-robin, with automatic fallthrough on 429/403.
   const gem = await fetchGemini({
-    model: "gemini-2.0-flash",   // Vision calls need full Flash, not Lite
+    model: GEMINI_MODEL,   // Vision calls need full Flash, not Lite
     bodyJson: {
       contents: [{
         role:  "user",

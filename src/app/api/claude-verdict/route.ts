@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchGemini, isGeminiConfigured } from "@/lib/gemini-keys";
+import { fetchGemini, isGeminiConfigured, GEMINI_MODEL, GEMINI_MODEL_LITE } from "@/lib/gemini-keys";
 
 // ── Platform-specific + psychology-aware system prompts ──────────────────
 // Each persona knows the platform formula AND the psychological mechanisms
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
   // via fetchGemini, so stacked free-tier keys all contribute quota to the war
   // room too (previously this route read only the single primary key).
   if (isGeminiConfigured()) {
-    for (const model of ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"]) {
+    for (const model of [GEMINI_MODEL, GEMINI_MODEL_LITE]) {
       try {
         const gem = await fetchGemini({
           model,

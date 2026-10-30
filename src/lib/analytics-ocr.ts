@@ -8,7 +8,7 @@
 // forecast time. This module calls Gemini Vision on the image and extracts
 // the relevant fields directly into `Partial<ManualInputs>`.
 //
-// Model choice: gemini-2.0-flash — same model used by the sentiment pipeline;
+// Model choice: GEMINI_MODEL (full Flash, see gemini-keys.ts);
 // it's multimodal, cheap, and low-latency. Temperature 0 because we want
 // deterministic number extraction, not creative guessing.
 //
@@ -17,7 +17,7 @@
 // non-negotiable rule: "We NEVER invent numbers".
 
 import type { ManualInputs } from "./forecast";
-import { fetchGemini } from "./gemini-keys";
+import { fetchGemini, GEMINI_MODEL } from "./gemini-keys";
 
 export interface OcrField {
   value:      number;
@@ -47,7 +47,7 @@ export async function extractAnalyticsFromImage(
   // Multi-key rotation via fetchGemini — benefits from every configured
   // GEMINI_API_KEY* env var, with automatic fallthrough on 429/403.
   const gem = await fetchGemini({
-    model: "gemini-2.0-flash",   // vision — full Flash
+    model: GEMINI_MODEL,   // vision — full Flash
     bodyJson: {
       contents: [{
         role:  "user",

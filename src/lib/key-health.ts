@@ -13,7 +13,7 @@
 
 import { getApifyToken, describeApifyTokenSource, type ApifyPlatform } from "./apify-token";
 import { probeTikwm } from "./tikwm";
-import { getGeminiKeyVars } from "./gemini-keys";
+import { getGeminiKeyVars, GEMINI_MODEL } from "./gemini-keys";
 
 const TIMEOUT_MS = 8000;
 
@@ -74,7 +74,7 @@ async function checkGemini(keyVar: string): Promise<KeyHealthResult | null> {
   const k = process.env[keyVar];
   if (!k) return keyVar === "GEMINI_API_KEY" ? missing("Gemini", keyVar) : null;
   const r = await timed(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${k}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${k}`,
     { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: "hi" }] }], generationConfig: { maxOutputTokens: 1 } }) },
   );
   if (!r) return err("Gemini", keyVar, null, "no response");
@@ -87,6 +87,8 @@ async function checkGemini(keyVar: string): Promise<KeyHealthResult | null> {
     try { detail = (JSON.parse(r.text)?.error?.message ?? "").replace(/\s+/g, " ").slice(0, 200); } catch { /* ignore */ }
     return warn("Gemini", keyVar, r.status, "daily quota / rate cap (resets daily)", detail || undefined);
   }
+  // A 404 here means the MODEL is gone, not the key — every AI feature is down until GEMINI_MODEL is updated.
+  if (r.status === 404 && /no longer available|not found/.test(lc)) return err("Gemini", keyVar, r.status, `model ${GEMINI_MODEL} retired — set GEMINI_MODEL to a current model`);
   if (/api_key_invalid|not valid|expired|permission_denied|service_disabled/.test(lc)) return err("Gemini", keyVar, r.status, "invalid / expired / API disabled");
   return warn("Gemini", keyVar, r.status, `HTTP ${r.status}`);
 }

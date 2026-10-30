@@ -18,6 +18,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { kvGet, kvSetMembers, kvListPush, kvListRange, isKvAvailable } from "@/lib/kv";
 import type { ForecastSnapshot } from "@/lib/forecast-learning";
 import type { Platform } from "@/lib/forecast";
+import { canonicalVideoUrl } from "@/lib/video-url";
+import { fetchVideo } from "@/lib/youtube";
+import { internalBaseUrl } from "@/lib/internal-base-url";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -153,14 +156,15 @@ export async function GET(req: NextRequest) {
 // ─── SAMPLER ──────────────────────────────────────────────────────────────
 
 async function takeVelocitySample(snap: ForecastSnapshot): Promise<boolean> {
-  if (!snap.publishedAt || !snap.videoUrl) return false;
+  // Older snapshots were saved without a URL — rebuild it from platform + id.
+  const url = snap.videoUrl ?? canonicalVideoUrl(snap.platform, snap.videoId, snap.creatorHandle);
+  if (!snap.publishedAt || !url) return false;
 
   // Reuse the re-scrape logic from collect-outcomes by calling the respective scraper
-  const base = process.env.NEXT_PUBLIC_BASE_URL ??
-               (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+  const base = internalBaseUrl();
   if (!base) return false;
 
-  const views = await rescrapeVideo(snap.videoUrl, snap.platform, snap.videoId, base);
+  const views = await rescrapeVideo(url, snap.platform, snap.videoId, base);
   if (views === null) return false;
 
   const ageHours = (Date.now() - new Date(snap.publishedAt).getTime()) / 3_600_000;
@@ -202,10 +206,9 @@ async function rescrapeVideo(url: string, platform: Platform, videoId: string, b
     switch (platform) {
       case "youtube":
       case "youtube_short": {
-        const r = await fetch(`${base}/api/analyze?url=${encodeURIComponent(url)}`, { cache: "no-store" });
-        if (!r.ok) return null;
-        const d = await r.json();
-        return typeof d?.video?.views === "number" ? d.video.views : null;
+        // Direct YouTube Data API lookup — the old /api/analyze route no longer exists.
+        const video = await fetchVideo(videoId);
+        return typeof video?.views === "number" ? video.views : null;
       }
       case "tiktok":
       case "instagram": {
